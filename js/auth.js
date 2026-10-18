@@ -39,7 +39,7 @@ function supa() {
 async function buscarPerfilLogado() {
   const { data: { user } } = await supa().auth.getUser();
   if (!user) return null;
-  const { data, error } = await supa().from("perfis").select("nome,email,papel,ativo").eq("id", user.id).single();
+  const { data, error } = await supa().from("perfis").select("id,nome,email,papel,ativo").eq("id", user.id).single();
   if (error || !data) return null;
   return data;
 }
@@ -67,11 +67,12 @@ async function sair() {
    que aquela página espera. Redireciona sozinho se a pessoa não
    estiver logada ou se o papel for outro. */
 async function protegerPagina(papelEsperado) {
+  const permitidos = Array.isArray(papelEsperado) ? papelEsperado : [papelEsperado];
   const { data: { session } } = await supa().auth.getSession();
   if (!session) { location.href = "index.html"; return null; }
   const perfil = await buscarPerfilLogado();
   if (!perfil || !perfil.ativo) { await sair(); return null; }
-  if (perfil.papel !== papelEsperado) {
+  if (permitidos.indexOf(perfil.papel) === -1) {
     location.href = PAINEL_DO_PAPEL[perfil.papel] || "index.html";
     return null;
   }

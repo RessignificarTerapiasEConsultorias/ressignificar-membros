@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minha conta | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel">
+    <a class="voltar" id="voltar" href="index.html">← Voltar ao meu painel</a>
+    <h1>Minha conta</h1>
+    <p class="sub" id="meuEmail"></p>
+    <div class="cartao">
+      <h2>Seu nome</h2>
+      <form id="formNome" class="f" novalidate>
+        <label for="nome">Como você quer ser chamado(a)</label>
+        <input id="nome" maxlength="80" required>
+        <div class="acoes"><button class="btn auto" type="submit">Salvar nome</button></div>
+      </form>
+    </div>
+    <div class="cartao">
+      <h2>Trocar a senha</h2>
+      <p class="ajuda">Use pelo menos 8 caracteres. Misturar letras, números e símbolos deixa a senha mais forte.</p>
+      <form id="formSenha" class="f" novalidate>
+        <div class="grade g3">
+          <div><label for="atual">Senha atual</label><input id="atual" type="password" autocomplete="current-password" required></div>
+          <div><label for="nova">Nova senha</label><input id="nova" type="password" autocomplete="new-password" minlength="8" required></div>
+          <div><label for="nova2">Repita a nova senha</label><input id="nova2" type="password" autocomplete="new-password" minlength="8" required></div>
+        </div>
+        <div class="acoes"><button class="btn auto" type="submit">Trocar senha</button></div>
+      </form>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script>
+(async function () {
+  const eu = await protegerPagina(["master", "suporte", "cliente", "vendedor"]);
+  if (!eu) return;
+  document.getElementById("voltar").href = PAINEL_DO_PAPEL[eu.papel];
+  document.getElementById("meuEmail").textContent = "Acesso: " + eu.email;
+  document.getElementById("nome").value = eu.nome;
+
+  document.getElementById("formNome").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const nome = document.getElementById("nome").value.trim();
+    if (nome.length < 2) { aviso("Escreva um nome com pelo menos 2 letras.", true); return; }
+    const r = await chamarServidor({ acao: "meu_nome", nome: nome });
+    if (!r.ok) { aviso(r.erro, true); return; }
+    document.querySelectorAll("[data-nome-usuario]").forEach(function (el) { el.textContent = nome; });
+    aviso("Nome salvo.");
+  });
+
+  document.getElementById("formSenha").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const atual = document.getElementById("atual").value;
+    const nova = document.getElementById("nova").value;
+    const nova2 = document.getElementById("nova2").value;
+    if (nova.length < 8) { aviso("A nova senha precisa ter pelo menos 8 caracteres.", true); return; }
+    if (nova !== nova2) { aviso("As duas novas senhas não estão iguais.", true); return; }
+    const conf = await supa().auth.signInWithPassword({ email: eu.email, password: atual });
+    if (conf.error) { aviso("A senha atual está incorreta.", true); return; }
+    const { error } = await supa().auth.updateUser({ password: nova });
+    if (error) { aviso("Não foi possível trocar a senha. Tente uma senha diferente.", true); return; }
+    this.reset();
+    aviso("Senha trocada com sucesso.");
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DRE | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="index.html">← Voltar ao painel</a>
+    <div class="cartao erro-pagina" id="falha" hidden><h2>Não foi possível abrir</h2><p class="ajuda" id="falhaMsg"></p></div>
+
+    <div id="areaDre" hidden>
+      <div class="empresa-titulo"><h1 id="nomeEmpresa">DRE</h1><span class="selo" id="tipoEmpresa"></span></div>
+      <p class="sub" id="subEmpresa"></p>
+
+      <div class="barra-periodo f">
+        <div><label for="selAno">Ano</label><select id="selAno"></select></div>
+        <div><label for="selMes">Mês</label><select id="selMes"></select></div>
+      </div>
+
+      <div class="abas" id="abas" role="tablist">
+        <button class="aba" type="button" data-aba="lancar" aria-selected="true">Lançar</button>
+        <button class="aba" type="button" data-aba="dre" aria-selected="false">DRE</button>
+        <button class="aba" type="button" data-aba="painel" aria-selected="false">Painel e leituras</button>
+        <button class="aba" type="button" data-aba="cadastros" aria-selected="false">Produtos e contas</button>
+      </div>
+
+      <!-- ===== LANÇAR ===== -->
+      <section data-painel="lancar">
+        <div class="lancar-grade">
+          <div class="cartao">
+            <h2 id="tituloForm">Novo lançamento</h2>
+            <form id="formLanc" class="f" novalidate>
+              <div class="tipos" id="tipos">
+                <button type="button" class="tipo" data-tipo="receita" aria-pressed="true"><span data-rot="entrada">Entrada</span><small data-rot="entradaDica">venda, serviço</small></button>
+                <button type="button" class="tipo" data-tipo="cmv" aria-pressed="false">Custo<small>mercadoria para revender</small></button>
+                <button type="button" class="tipo" data-tipo="despesa" aria-pressed="false"><span data-rot="despesa">Despesa</span><small data-rot="despesaDica">aluguel, folha, contas</small></button>
+              </div>
+              <div class="grade g2" style="margin-top:14px">
+                <div><label for="lData">Data</label><input id="lData" type="date" required></div>
+                <div class="campo-valor"><label for="lValor">Valor (R$)</label><input id="lValor" inputmode="decimal" placeholder="0,00" required autocomplete="off"></div>
+              </div>
+              <div style="margin-top:14px"><label for="lConta">Conta</label><select id="lConta" required></select></div>
+              <div style="margin-top:14px" id="blocoProduto"><label for="lProduto">Produto ou canal <span class="vazio">(opcional)</span></label><select id="lProduto"></select>
+                <small>Cadastre seus produtos e canais na aba "Produtos e contas".</small></div>
+              <div style="margin-top:14px"><label for="lDesc">Descrição <span class="vazio">(opcional)</span></label><input id="lDesc" maxlength="140" placeholder="Ex.: venda balcão, fornecedor X"></div>
+              <div class="acoes">
+                <button class="btn auto" type="submit" id="lSalvar">Salvar lançamento</button>
+                <button class="btn auto contorno" type="button" id="lCancelar" hidden>Cancelar edição</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="cartao">
+            <h2 id="tituloMes">Lançamentos do mês</h2>
+            <div class="totais-mes" id="totaisMes"></div>
+            <div class="f" style="max-width:340px;margin-bottom:12px"><input id="filtroLanc" placeholder="Filtrar por conta, produto ou descrição" aria-label="Filtrar lançamentos"></div>
+            <div class="tabela-wrap" style="max-height:620px"><table class="t" id="tabLanc">
+              <thead><tr><th>Data</th><th>Conta</th><th class="col-prod">Produto / canal</th><th>Descrição</th><th class="n">Valor</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== DRE ===== -->
+      <section data-painel="dre" hidden>
+        <div class="cartao">
+          <div class="checks" style="margin-bottom:12px"><label><input type="checkbox" id="mostrarZeradas"> Mostrar contas sem valor no ano</label></div>
+          <div class="tabela-wrap" style="max-height:72vh"><table class="t dre-tab" id="tabDre"></table></div>
+        </div>
+      </section>
+
+      <!-- ===== PAINEL ===== -->
+      <section data-painel="painel" hidden>
+        <div class="kpis" id="kpis"></div>
+        <div class="cartao"><h2 id="tituloLeituras">Leituras do mês</h2><ul class="insights" id="insights"></ul></div>
+        <div class="graficos" id="graficos">
+          <div class="cartao"><h2 data-rot="g1">Entradas x saídas por mês</h2><div class="graf"><canvas id="g1"></canvas></div></div>
+          <div class="cartao"><h2 data-rot="g2">Resultado por mês</h2><div class="graf"><canvas id="g2"></canvas></div></div>
+          <div class="cartao"><h2 data-rot="g3">Para onde vai o dinheiro (no ano)</h2><div class="graf"><canvas id="g3"></canvas></div></div>
+          <div class="cartao" id="cartaoG4"><h2>Entradas por canal (no ano)</h2><div class="graf"><canvas id="g4"></canvas></div></div>
+        </div>
+      </section>
+
+      <!-- ===== CADASTROS ===== -->
+      <section data-painel="cadastros" hidden>
+        <div class="cartao" id="cartaoProdutos">
+          <h2>Produtos e canais</h2>
+          <p class="ajuda">Ex.: "Vestido linha verão" na loja física, "Curso online" no digital, "Consulta" como serviço. Ao lançar uma entrada, escolha o produto para saber o que mais vende e por qual canal.</p>
+          <form id="formProduto" class="f grade g3" novalidate>
+            <div><label for="pNome">Produto ou linha</label><input id="pNome" maxlength="80" required></div>
+            <div><label for="pCanal">Canal</label><select id="pCanal"><option value="loja_fisica">Loja física</option><option value="digital">Digital / online</option><option value="servico">Serviço</option><option value="outro">Outro</option></select></div>
+            <div style="align-self:end"><button class="btn auto" type="submit">Adicionar</button></div>
+          </form>
+          <div class="tabela-wrap" style="margin-top:14px"><table class="t"><thead><tr><th>Produto</th><th>Canal</th><th>Situação</th><th></th></tr></thead><tbody id="listaProdutos"></tbody></table></div>
+        </div>
+        <div class="cartao so-gestor">
+          <h2>Plano de contas</h2>
+          <p class="ajuda">Contas desativadas somem da lista de lançamento, mas continuam na DRE com o histórico.</p>
+          <form id="formConta" class="f grade g4" novalidate>
+            <div><label for="cTipo">Tipo</label><select id="cTipo"><option value="receita">Receita / renda</option><option value="cmv">Custo da mercadoria (CMV)</option><option value="despesa">Despesa</option></select></div>
+            <div><label for="cGrupo">Grupo</label><input id="cGrupo" list="gruposLista" maxlength="60" required placeholder="Ex.: Marketing e comunicação"><datalist id="gruposLista"></datalist></div>
+            <div><label for="cNome">Nome da conta</label><input id="cNome" maxlength="80" required></div>
+            <div style="align-self:end"><button class="btn auto" type="submit">Adicionar conta</button></div>
+          </form>
+          <div class="tabela-wrap" style="margin-top:14px;max-height:520px"><table class="t"><thead><tr><th>Tipo</th><th>Grupo</th><th>Conta</th><th>Situação</th><th></th></tr></thead><tbody id="listaContas"></tbody></table></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/dre.js"></script>
+</body>
+</html>

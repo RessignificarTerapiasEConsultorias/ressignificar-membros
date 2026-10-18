@@ -7,7 +7,7 @@
   --serif:"Newsreader",Georgia,serif; --sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-   [hidden]{display:none!important}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{font:400 16px/1.55 var(--sans);color:var(--ink);background:var(--sand);min-height:100dvh}
 h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.15;letter-spacing:-.01em;color:var(--navy)}
@@ -50,3 +50,105 @@ a{color:var(--navy)}
 .cartao-vazio{padding:28px;border-radius:16px;background:var(--paper);border:1px dashed var(--line);color:var(--muted)}
 .cartao-vazio b{display:block;color:var(--navy);font-size:17px;margin-bottom:6px;font-family:var(--serif)}
 .carregando{min-height:100dvh;display:flex;align-items:center;justify-content:center;background:var(--deep);color:#C7D0E2;font-size:14px}
+
+/* ================= FASE 2: telas de gestão e DRE ================= */
+.topo-painel .usuario a.lnk{color:#D5DCEA;text-decoration:none;font-size:14px;font-weight:600;padding:8px 10px;border-radius:8px}
+.topo-painel .usuario a.lnk:hover{background:rgba(255,255,255,.08);color:#fff}
+.conteudo-painel.largo{max-width:1320px}
+.voltar{display:inline-block;margin-bottom:14px;font-size:14px;font-weight:600;color:var(--goldtxt);text-decoration:none}
+.abas{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 22px;overflow-x:auto}
+.aba{background:none;border:0;padding:12px 14px;font-weight:700;font-size:15px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.aba[aria-selected="true"]{color:var(--navy);border-bottom-color:var(--gold)}
+.cartao{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+.cartao h2{font-size:21px;margin-bottom:6px}
+.cartao .ajuda{color:var(--muted);font-size:14.5px;margin-bottom:16px}
+.grade{display:grid;gap:14px}
+@media(min-width:720px){.grade.g2{grid-template-columns:1fr 1fr}.grade.g3{grid-template-columns:repeat(3,1fr)}.grade.g4{grid-template-columns:repeat(4,1fr)}}
+.f label{display:block;font-weight:600;font-size:14px;color:var(--navy);margin-bottom:6px}
+.f input,.f select,.f textarea{width:100%;padding:12px;border-radius:10px;border:1.5px solid #CFC6B3;background:#fff;color:var(--ink);font-size:16px}
+.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(11,31,58,.12)}
+.f small{display:block;color:var(--muted);font-size:13px;margin-top:5px}
+.checks{display:flex;flex-wrap:wrap;gap:10px 18px}
+.checks label{display:flex;gap:8px;align-items:center;font-weight:500;color:var(--ink);font-size:15px;margin:0}
+.checks input{width:20px;height:20px;accent-color:var(--navy)}
+.acoes{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;align-items:center}
+.btn.auto{width:auto;padding:0 22px}
+.btn.peq{min-height:36px;font-size:13.5px;padding:0 12px;width:auto;border-radius:9px}
+.btn.perigo{background:#fff;color:#8C2016;border:1.5px solid #E2B4AC}
+.btn.perigo:hover{background:#FBE9E7}
+.tabela-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;max-width:100%}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th,table.t td{padding:10px 12px;border-bottom:1px solid #EEE8DC;text-align:left;white-space:nowrap;vertical-align:middle}
+table.t th{background:#F7F2E8;color:var(--navy);font-weight:700;position:sticky;top:0;z-index:2}
+table.t .n{text-align:right;font-variant-numeric:tabular-nums}
+table.t td.quebra{white-space:normal;min-width:180px}
+.selo{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:#EFE7D6;color:var(--navy);margin:1px 2px 1px 0}
+.selo.ouro{background:var(--gold);color:var(--deep)}
+.selo.off{background:#F2DEDB;color:#8C2016}
+.selo.ok{background:#DDF2E3;color:#15502E}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:calc(100% - 32px);background:var(--deep);color:#fff;padding:13px 18px;border-radius:10px;z-index:99;font-size:14.5px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.toast.erro{background:#8C2016}
+.vazio{color:var(--muted);font-size:14.5px;padding:8px 0}
+dialog.janela{border:0;border-radius:18px;padding:24px;max-width:520px;width:calc(100% - 32px);background:var(--paper);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.35)}
+dialog.janela::backdrop{background:rgba(6,20,42,.6)}
+dialog.janela h2{font-size:22px;margin-bottom:14px}
+.barra-periodo{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:18px}
+.barra-periodo .f{min-width:130px}
+.empresa-titulo{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline;margin-bottom:6px}
+.empresa-titulo h1{margin:0}
+/* lançamento */
+.tipos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tipos.dois{grid-template-columns:1fr 1fr}
+.tipo{min-height:56px;padding:10px 8px;border-radius:12px;border:2px solid #CFC6B3;background:#fff;font-weight:700;font-size:15.5px;cursor:pointer;color:var(--navy)}
+.tipo small{display:block;font-weight:500;font-size:12.5px;color:var(--muted)}
+.tipo[aria-pressed="true"]{border-color:var(--gold);background:#FBF3DF}
+.tipo[data-tipo="receita"][aria-pressed="true"]{border-color:#1FA855;background:#E6F6EC}
+.tipo[data-tipo="despesa"][aria-pressed="true"]{border-color:#C9742F;background:#FBEFE4}
+.campo-valor input{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.v-receita{color:#15803D;font-weight:700}
+.v-saida{color:#B3261E;font-weight:700}
+/* DRE */
+.dre-tab td:first-child,.dre-tab th:first-child{position:sticky;left:0;z-index:1;background:inherit;min-width:220px}
+.dre-tab th:first-child{z-index:3;background:#F7F2E8}
+.dre-tab tr{background:#fff}
+.dre-tab tr.tot{background:#F7F2E8;font-weight:700}
+.dre-tab tr.res{background:var(--navy);color:#fff;font-weight:700}
+.dre-tab tr.res td{border-bottom-color:var(--navy)}
+.dre-tab tr.grp td{font-weight:700;color:var(--goldtxt);background:#FBF7EE}
+.dre-tab tr.sub td:first-child{padding-left:28px;color:var(--muted)}
+.dre-tab tr.pct td{font-size:13px;color:var(--muted);font-style:italic}
+.dre-tab td.neg{color:#B3261E}
+.dre-tab tr.res td.neg{color:#FFB4A9}
+.dre-tab td.mes-atual,.dre-tab th.mes-atual{box-shadow:inset 2px 0 0 var(--gold),inset -2px 0 0 var(--gold)}
+/* painel */
+.kpis{display:grid;gap:12px;grid-template-columns:1fr 1fr;margin-bottom:18px}
+@media(min-width:960px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px}
+.kpi small{display:block;color:var(--muted);font-size:13px;font-weight:600}
+.kpi b{display:block;font:600 clamp(19px,2.4vw,26px)/1.2 var(--serif);color:var(--navy);margin:6px 0 4px;font-variant-numeric:tabular-nums}
+.kpi span{font-size:13px;color:var(--muted)}
+.sobe{color:#15803D!important}.desce{color:#B3261E!important}
+.graficos{display:grid;gap:14px}
+@media(min-width:960px){.graficos{grid-template-columns:1fr 1fr}}
+.graf{position:relative;height:290px}
+.insights{list-style:none;display:grid;gap:10px}
+.insights li{padding:13px 15px;border-radius:12px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--gold);font-size:15px}
+.insights li.alerta{border-left-color:#B3261E}
+.insights li.bom{border-left-color:#1FA855}
+.lista-empresas{display:grid;gap:12px}
+@media(min-width:720px){.lista-empresas{grid-template-columns:1fr 1fr}}
+.cartao-empresa{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:8px}
+.cartao-empresa b{font:600 19px var(--serif);color:var(--navy)}
+.cartao-empresa .btn{margin-top:auto}
+.btn{text-decoration:none}
+.lancar-grade{display:grid;gap:18px;align-items:start}
+@media(min-width:1100px){.lancar-grade{grid-template-columns:430px 1fr}}
+.totais-mes{display:flex;flex-wrap:wrap;gap:8px 18px;margin:4px 0 14px;font-size:14.5px}
+.totais-mes b{font-variant-numeric:tabular-nums}
+.erro-pagina{max-width:640px}
+.lancar-grade>*,.graficos>*,.grade>*{min-width:0}
+#tabLanc td:last-child{white-space:nowrap}
+#tabLanc td.quebra{min-width:110px;white-space:normal}
+#tabLanc th,#tabLanc td{padding:9px 10px}
+#tabLanc td:last-child .btn{margin:2px 0}
+.kpi b span{font-size:inherit;color:inherit}

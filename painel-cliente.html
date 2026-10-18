@@ -6,7 +6,7 @@
 <title>Minha Área | Ressignificar</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="img/favicon.png">
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/estilo.css">
 </head>
 <body>
@@ -16,22 +16,51 @@
     <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
     <div class="usuario">
       <span data-nome-usuario></span>
-      <span class="selo-papel" data-papel-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
       <button class="sair" data-sair>Sair</button>
     </div>
   </header>
   <main class="conteudo-painel">
-    <h1>Sua área</h1>
-    <p class="sub">Aqui você vai acompanhar o seu processo e preencher os seus dados.</p>
-    <div class="cartao-vazio">
-      <b>Em breve</b>
-      Seu login já está funcionando. As telas do seu acompanhamento (dados, sessões, financeiro) chegam nas próximas etapas.
+    <h1 id="ola">Sua área</h1>
+    <p class="sub">Aqui você acompanha o seu processo e mantém os seus números em dia.</p>
+    <div class="cartao">
+      <h2>Seus serviços</h2>
+      <div id="meusServicos"><p class="vazio">Carregando...</p></div>
+    </div>
+    <div class="cartao">
+      <h2>Suas empresas e finanças</h2>
+      <p class="ajuda">Lance as entradas e saídas do dia a dia. A DRE e os gráficos se montam sozinhos.</p>
+      <div class="lista-empresas" id="minhasEmpresas"><p class="vazio">Carregando...</p></div>
     </div>
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/auth.js"></script>
-<script>protegerPagina("cliente");</script>
+<script src="js/app.js"></script>
+<script>
+(async function () {
+  const eu = await protegerPagina("cliente");
+  if (!eu) return;
+  document.getElementById("ola").textContent = "Olá, " + eu.nome.split(" ")[0] + "!";
+  const s = await supa().from("servicos_contratados").select("tipo,ativo,iniciado_em").eq("perfil_id", eu.id).eq("ativo", true);
+  const caixaS = document.getElementById("meusServicos");
+  caixaS.innerHTML = (s.data && s.data.length)
+    ? s.data.map(function (x) { return '<span class="selo ouro">' + ROTULO_SERVICO[x.tipo] + "</span>"; }).join(" ")
+    : '<p class="vazio">Nenhum serviço ativo no momento.</p>';
+  const e = await supa().from("empresas").select("id,nome,segmento,tipo").order("nome");
+  const caixaE = document.getElementById("minhasEmpresas");
+  if (!e.data || !e.data.length) {
+    caixaE.innerHTML = '<p class="vazio">Ainda não há empresa ligada ao seu acesso. Assim que o Mauricio cadastrar, ela aparece aqui.</p>';
+    return;
+  }
+  caixaE.innerHTML = e.data.map(function (x) {
+    return '<div class="cartao-empresa"><b>' + esc(x.nome) + "</b><div>" +
+      '<span class="selo">' + (x.tipo === "pessoal" ? "Orçamento pessoal" : "Empresa") + "</span>" +
+      (x.segmento ? '<span class="selo">' + esc(x.segmento) + "</span>" : "") +
+      '</div><a class="btn" href="dre.html?e=' + x.id + '">Abrir e lançar</a></div>';
+  }).join("");
+})();
+</script>
 </body>
 </html>

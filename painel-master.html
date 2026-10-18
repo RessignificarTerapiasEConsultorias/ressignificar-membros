@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Painel Master | Ressignificar</title>
+<title>Painel master | Ressignificar</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="img/favicon.png">
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/estilo.css">
 </head>
-<body>
+<body data-modo="master">
 <div class="carregando" id="carregando">Carregando...</div>
 <div id="painel" hidden>
   <header class="topo-painel">
@@ -17,21 +17,129 @@
     <div class="usuario">
       <span data-nome-usuario></span>
       <span class="selo-papel" data-papel-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
       <button class="sair" data-sair>Sair</button>
     </div>
   </header>
-  <main class="conteudo-painel">
+  <main class="conteudo-painel largo">
     <h1>Painel master</h1>
-    <p class="sub">Acesso total: todos os clientes, todos os papéis, sua própria DRE pessoal e empresarial.</p>
-    <div class="cartao-vazio">
-      <b>Fase 1 concluída</b>
-      Login, papéis e a separação de dados já estão funcionando. As telas de verdade (gestão de clientes, DRE, financeiro, cadastro de novos usuários) chegam nas próximas fases, uma de cada vez.
+    <p class="sub">Cadastre pessoas, dê acessos, crie empresas e acompanhe as DREs. Também é aqui que ficam as suas finanças, visíveis só para você.</p>
+
+    <div class="abas" id="abas" role="tablist">
+      <button class="aba" type="button" data-aba="pessoas" aria-selected="true">Pessoas e acessos</button>
+      <button class="aba" type="button" data-aba="empresas" aria-selected="false">Empresas e DRE</button>
     </div>
+
+    <!-- ===== PESSOAS ===== -->
+    <section data-painel="pessoas">
+      <div class="cartao so-master">
+        <h2>Criar novo acesso</h2>
+        <p class="ajuda">A pessoa recebe e-mail e senha provisória. No primeiro acesso, ela troca a senha em "Minha conta".</p>
+        <form id="formNovo" class="f" novalidate>
+          <div class="grade g2">
+            <div><label for="novoNome">Nome completo</label><input id="novoNome" name="nome" required maxlength="80"></div>
+            <div><label for="novoEmail">E-mail</label><input id="novoEmail" name="email" type="email" required autocomplete="off"></div>
+            <div><label for="novoSenha">Senha provisória</label><input id="novoSenha" name="senha" required minlength="8" autocomplete="new-password"><small><button type="button" class="btn peq contorno" id="gerarSenha">Gerar senha</button> Mínimo de 8 caracteres.</small></div>
+            <div><label for="novoPapel">Tipo de acesso</label>
+              <select id="novoPapel" name="papel">
+                <option value="cliente">Cliente (mentorado, terapia, consultoria)</option>
+                <option value="suporte">Suporte (ajuda a administrar)</option>
+                <option value="vendedor">Vendedor(a) de loja</option>
+                <option value="master">Master (acesso total)</option>
+              </select></div>
+          </div>
+          <div style="margin-top:16px"><label>Serviços contratados</label>
+            <div class="checks">
+              <label><input type="checkbox" name="servico" value="consultoria_empresarial"> Consultoria empresarial</label>
+              <label><input type="checkbox" name="servico" value="terapia"> Terapia</label>
+              <label><input type="checkbox" name="servico" value="mentoria"> Mentoria</label>
+            </div></div>
+          <div class="acoes"><button class="btn auto" type="submit">Criar acesso</button></div>
+        </form>
+        <div id="resultadoNovo" hidden style="margin-top:18px">
+          <div class="f"><label for="msgBoasVindas">Mensagem pronta para enviar à pessoa (WhatsApp ou e-mail)</label>
+          <textarea id="msgBoasVindas" rows="7" readonly></textarea></div>
+          <div class="acoes"><button class="btn auto" type="button" id="copiarMsg">Copiar mensagem</button></div>
+        </div>
+      </div>
+
+      <div class="cartao">
+        <div class="empresa-titulo"><h2>Pessoas cadastradas</h2><span class="selo" id="contaPessoas"></span></div>
+        <div class="f" style="max-width:380px;margin:10px 0 14px"><input id="buscaPessoa" placeholder="Buscar por nome ou e-mail" aria-label="Buscar pessoa"></div>
+        <div class="tabela-wrap"><table class="t" id="tabPessoas">
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Acesso</th><th>Serviços</th><th>Situação</th><th></th></tr></thead>
+          <tbody><tr><td colspan="6" class="vazio">Carregando...</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- ===== EMPRESAS ===== -->
+    <section data-painel="empresas" hidden>
+      <div class="cartao">
+        <h2>Cadastrar empresa ou orçamento pessoal</h2>
+        <p class="ajuda">Cada cadastro já nasce com o plano de contas pronto (receitas, CMV e despesas no formato da DRE). Dá para ajustar depois, dentro da DRE.</p>
+        <form id="formEmpresa" class="f" novalidate>
+          <div class="grade g2">
+            <div><label for="empNome">Nome</label><input id="empNome" name="nome" required maxlength="100" placeholder="Ex.: Spasso 7"></div>
+            <div><label for="empSeg">Segmento</label><input id="empSeg" name="segmento" maxlength="60" placeholder="Ex.: Loja de moda, clínica, e-commerce"></div>
+            <div><label for="empTipo">Tipo</label>
+              <select id="empTipo" name="tipo"><option value="empresa">Empresa (DRE com CMV)</option><option value="pessoal">Orçamento pessoal (renda e gastos)</option></select></div>
+            <div><label for="empDono">Quem acessa como dono(a)</label><select id="empDono" name="dono"></select></div>
+          </div>
+          <div class="checks so-master" style="margin-top:14px"><label><input type="checkbox" id="empVisivel" checked> A equipe de suporte pode ver esta empresa</label></div>
+          <div class="acoes"><button class="btn auto" type="submit">Cadastrar</button></div>
+        </form>
+      </div>
+      <div class="cartao">
+        <h2>Empresas e orçamentos</h2>
+        <div class="lista-empresas" id="listaEmpresas"><p class="vazio">Carregando...</p></div>
+      </div>
+    </section>
   </main>
 </div>
+
+<dialog class="janela" id="janelaEditar">
+  <h2 id="edTitulo"></h2>
+  <p class="vazio" id="edEmail" style="margin-top:-8px"></p>
+  <div class="f">
+    <div class="so-master">
+      <div class="grade g2" style="margin-bottom:14px">
+        <div><label for="edNome">Nome</label><input id="edNome" maxlength="80"></div>
+        <div><label for="edPapel">Tipo de acesso</label>
+          <select id="edPapel"><option value="cliente">Cliente</option><option value="suporte">Suporte</option><option value="vendedor">Vendedor(a)</option><option value="master">Master</option></select></div>
+      </div>
+    </div>
+    <label>Serviços contratados</label>
+    <div class="checks">
+      <label><input type="checkbox" name="edServico" value="consultoria_empresarial"> Consultoria empresarial</label>
+      <label><input type="checkbox" name="edServico" value="terapia"> Terapia</label>
+      <label><input type="checkbox" name="edServico" value="mentoria"> Mentoria</label>
+    </div>
+    <div class="so-master" style="margin-top:14px">
+      <div class="checks"><label><input type="checkbox" id="edAtivo"> Acesso ativo</label></div>
+      <div style="margin-top:16px"><label for="edSenha">Trocar a senha desta pessoa</label>
+        <input id="edSenha" placeholder="Nova senha (mínimo 8 caracteres)" autocomplete="new-password">
+        <div class="acoes" style="margin-top:8px"><button class="btn peq contorno" type="button" id="edGerar">Gerar senha</button><button class="btn peq" type="button" id="edTrocarSenha">Trocar senha agora</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="acoes"><button class="btn auto" type="button" id="edSalvar">Salvar</button><button class="btn auto contorno" type="button" id="edCancelar">Fechar</button></div>
+</dialog>
+
+<dialog class="janela" id="janelaMembros">
+  <h2>Pessoas com acesso: <span id="mbTitulo"></span></h2>
+  <div class="tabela-wrap"><table class="t"><tbody id="mbLista"></tbody></table></div>
+  <div class="f grade g2" style="margin-top:16px">
+    <div><label for="mbPessoa">Dar acesso a</label><select id="mbPessoa"></select></div>
+    <div><label for="mbFuncao">Como</label><select id="mbFuncao"><option value="dono">Dono(a)</option><option value="funcionario">Funcionário(a) que lança dados</option></select></div>
+  </div>
+  <div class="acoes"><button class="btn auto" type="button" id="mbAdicionar">Dar acesso</button><button class="btn auto contorno" type="button" id="mbFechar">Fechar</button></div>
+</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/auth.js"></script>
-<script>protegerPagina("master");</script>
+<script src="js/app.js"></script>
+<script src="js/gestao.js"></script>
 </body>
 </html>
