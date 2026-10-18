@@ -32,6 +32,11 @@
       </form>
     </div>
     <div class="cartao">
+      <h2>Lembretes por e-mail</h2>
+      <p class="ajuda">Avisos de pagamento, de ações com prazo vencido e de DRE sem lançamento.</p>
+      <div class="checks"><label><input type="checkbox" id="querLembretes"> Quero receber lembretes por e-mail</label></div>
+    </div>
+    <div class="cartao">
       <h2>Trocar a senha</h2>
       <p class="ajuda">Use pelo menos 8 caracteres. Misturar letras, números e símbolos deixa a senha mais forte.</p>
       <form id="formSenha" class="f" novalidate>
@@ -56,6 +61,17 @@
   document.getElementById("voltar").href = PAINEL_DO_PAPEL[eu.papel];
   document.getElementById("meuEmail").textContent = "Acesso: " + eu.email;
   document.getElementById("nome").value = eu.nome;
+
+  const rp = await supa().from("preferencias").select("dados").eq("perfil_id", eu.id).maybeSingle();
+  let prefs = (rp.data && rp.data.dados) || {};
+  const ql = document.getElementById("querLembretes");
+  ql.checked = prefs.lembretes !== false;
+  ql.addEventListener("change", async function () {
+    prefs = Object.assign({}, prefs, { lembretes: ql.checked });
+    const { error } = await supa().from("preferencias").upsert({ perfil_id: eu.id, dados: prefs, atualizado_em: new Date().toISOString() }, { onConflict: "perfil_id" });
+    if (error) { aviso("Não foi possível salvar.", true); ql.checked = !ql.checked; return; }
+    aviso(ql.checked ? "Você vai receber os lembretes por e-mail." : "Lembretes por e-mail desligados.");
+  });
 
   document.getElementById("formNome").addEventListener("submit", async function (e) {
     e.preventDefault();

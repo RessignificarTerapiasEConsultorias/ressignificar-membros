@@ -289,6 +289,52 @@
   });
   document.getElementById("mbFechar").addEventListener("click", function () { janelaMb.close(); });
 
+  /* ================= LEMBRETES (só master) ================= */
+  const formLb = document.getElementById("formLembretes");
+  async function carregarLembretes() {
+    if (!formLb) return;
+    const r = await supa().from("lembretes_config").select("*").eq("id", 1).maybeSingle();
+    const c = r.data;
+    if (c) {
+      document.getElementById("lbAtivo").checked = c.ativo;
+      document.getElementById("lbDre").checked = c.dre_ativo;
+      document.getElementById("lbDias").value = c.dias_sem_lancamento;
+      document.getElementById("lbAcoes").checked = c.acoes_ativo;
+      document.getElementById("lbReenvio").value = c.reenvio_dias;
+      document.getElementById("lbPag").checked = c.pagamentos_ativo;
+      document.getElementById("lbPrevio").value = c.aviso_previo_dias;
+      document.getElementById("lbAtraso").value = c.atraso_reenvio_dias;
+      document.getElementById("lbResumo").checked = c.resumo_master;
+      document.getElementById("lbEmail").value = c.email_master;
+    }
+    const e = await supa().from("lembretes_enviados").select("tipo,para,assunto,enviado_em").order("enviado_em", { ascending: false }).limit(60);
+    const TIPO = { dre: "DRE parada", acoes: "Ações atrasadas", pagamento_previo: "Pagamento a vencer", pagamento_atraso: "Pagamento em atraso", resumo: "Resumo do dia" };
+    const vistos = {};
+    const linhas = (e.data || []).filter(function (x) { const k = x.enviado_em.slice(0, 16) + x.para + x.assunto; if (vistos[k]) return false; vistos[k] = 1; return true; });
+    document.getElementById("listaEnviados").innerHTML = linhas.length ? linhas.map(function (x) {
+      const d = new Date(x.enviado_em);
+      return "<tr><td>" + d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) + "</td><td>" + (TIPO[x.tipo] || esc(x.tipo)) +
+        "</td><td>" + esc(x.para || "") + '</td><td class="quebra">' + esc(x.assunto || "") + "</td></tr>";
+    }).join("") : '<tr><td colspan="4" class="vazio">Nenhum e-mail enviado ainda.</td></tr>';
+  }
+  if (formLb) formLb.addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    const n = function (id, min, max) { return Math.max(min, Math.min(max, parseInt(document.getElementById(id).value, 10) || min)); };
+    const reg = {
+      ativo: document.getElementById("lbAtivo").checked,
+      dre_ativo: document.getElementById("lbDre").checked, dias_sem_lancamento: n("lbDias", 1, 60),
+      acoes_ativo: document.getElementById("lbAcoes").checked, reenvio_dias: n("lbReenvio", 1, 30),
+      pagamentos_ativo: document.getElementById("lbPag").checked, aviso_previo_dias: n("lbPrevio", 0, 30), atraso_reenvio_dias: n("lbAtraso", 1, 60),
+      resumo_master: document.getElementById("lbResumo").checked, email_master: document.getElementById("lbEmail").value.trim() || eu.email,
+      atualizado_em: new Date().toISOString()
+    };
+    const { error } = await supa().from("lembretes_config").update(reg).eq("id", 1);
+    if (error) { aviso("Não foi possível salvar as configurações.", true); return; }
+    aviso("Configurações dos lembretes salvas.");
+    carregarLembretes();
+  });
+
   await carregarPessoas();
   await carregarEmpresas();
+  carregarLembretes();
 })();

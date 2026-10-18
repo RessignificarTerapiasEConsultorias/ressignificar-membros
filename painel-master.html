@@ -29,6 +29,7 @@
     <div class="abas" id="abas" role="tablist">
       <button class="aba" type="button" data-aba="pessoas" aria-selected="true">Pessoas e acessos</button>
       <button class="aba" type="button" data-aba="empresas" aria-selected="false">Empresas e DRE</button>
+      <button class="aba so-master" type="button" data-aba="lembretes" aria-selected="false">Lembretes por e-mail</button>
     </div>
 
     <!-- ===== PESSOAS ===== -->
@@ -95,6 +96,40 @@
       <div class="cartao">
         <h2>Empresas e orçamentos</h2>
         <div class="lista-empresas" id="listaEmpresas"><p class="vazio">Carregando...</p></div>
+      </div>
+    </section>
+    <!-- ===== LEMBRETES ===== -->
+    <section data-painel="lembretes" class="so-master" hidden>
+      <div class="cartao">
+        <h2>Lembretes automáticos por e-mail</h2>
+        <p class="ajuda">Enviados todo dia às 8h pelo seu Gmail, pelo programa do Apps Script. Cada cliente pode desligar os lembretes dele em "Minha conta".</p>
+        <form id="formLembretes" class="f" novalidate>
+          <div class="checks" style="margin-bottom:16px"><label><input type="checkbox" id="lbAtivo"> <b>Lembretes ligados</b></label></div>
+          <div class="grade g2">
+            <div class="cartao" style="margin:0">
+              <div class="checks"><label><input type="checkbox" id="lbDre"> DRE sem lançamento</label></div>
+              <label for="lbDias" style="margin-top:10px">Avisar depois de quantos dias sem lançamento</label><input id="lbDias" type="number" min="1" max="60">
+            </div>
+            <div class="cartao" style="margin:0">
+              <div class="checks"><label><input type="checkbox" id="lbAcoes"> Ações com prazo vencido</label></div>
+              <label for="lbReenvio" style="margin-top:10px">Repetir o aviso de DRE e de ações a cada (dias)</label><input id="lbReenvio" type="number" min="1" max="30">
+            </div>
+            <div class="cartao" style="margin:0">
+              <div class="checks"><label><input type="checkbox" id="lbPag"> Pagamentos</label></div>
+              <label for="lbPrevio" style="margin-top:10px">Avisar quantos dias antes do vencimento</label><input id="lbPrevio" type="number" min="0" max="30">
+              <label for="lbAtraso" style="margin-top:10px">Repetir o aviso de atraso a cada (dias)</label><input id="lbAtraso" type="number" min="1" max="60">
+            </div>
+            <div class="cartao" style="margin:0">
+              <div class="checks"><label><input type="checkbox" id="lbResumo"> Resumo do dia para mim</label></div>
+              <label for="lbEmail" style="margin-top:10px">Meu e-mail para o resumo</label><input id="lbEmail" type="email">
+            </div>
+          </div>
+          <div class="acoes"><button class="btn auto" type="submit">Salvar configurações</button></div>
+        </form>
+      </div>
+      <div class="cartao">
+        <h2>Últimos e-mails enviados</h2>
+        <div class="tabela-wrap" style="max-height:480px"><table class="t"><thead><tr><th>Quando</th><th>Tipo</th><th>Para</th><th>Assunto</th></tr></thead><tbody id="listaEnviados"></tbody></table></div>
       </div>
     </section>
   </main>
