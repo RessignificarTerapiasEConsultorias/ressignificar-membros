@@ -38,7 +38,8 @@
         '<td><span class="selo' + (p.papel === "master" ? " ouro" : "") + '">' + ROTULO_PAPEL[p.papel] + "</span></td>" +
         '<td class="quebra">' + (servs || '<span class="vazio">—</span>') + "</td>" +
         "<td>" + (p.ativo ? '<span class="selo ok">Ativo</span>' : '<span class="selo off">Desativado</span>') + "</td>" +
-        '<td><button class="btn peq contorno" type="button" data-editar="' + p.id + '">Editar</button></td>' +
+        '<td><button class="btn peq contorno" type="button" data-editar="' + p.id + '">Editar</button>' +
+        (master && p.papel === "cliente" && servicosDe(p.id).indexOf("terapia") > -1 ? ' <a class="btn peq" href="terapia.html?p=' + p.id + '">Terapia</a>' : "") + "</td>" +
         "</tr>";
     }).join("");
   }

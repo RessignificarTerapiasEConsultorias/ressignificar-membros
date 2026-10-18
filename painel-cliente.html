@@ -27,6 +27,11 @@
       <h2>Seus serviços</h2>
       <div id="meusServicos"><p class="vazio">Carregando...</p></div>
     </div>
+    <div class="cartao" id="cartaoTerapia" hidden>
+      <h2>Seu processo terapêutico</h2>
+      <p class="ajuda">Suas áreas de trabalho, ações combinadas, sessões, testes e anamnese. Tudo sigiloso.</p>
+      <a class="btn auto" href="terapia.html">Abrir meu processo</a>
+    </div>
     <div class="cartao">
       <h2>Suas empresas e finanças</h2>
       <p class="ajuda">Lance as entradas e saídas do dia a dia. A DRE e os gráficos se montam sozinhos.</p>
@@ -48,6 +53,7 @@
   caixaS.innerHTML = (s.data && s.data.length)
     ? s.data.map(function (x) { return '<span class="selo ouro">' + ROTULO_SERVICO[x.tipo] + "</span>"; }).join(" ")
     : '<p class="vazio">Nenhum serviço ativo no momento.</p>';
+  if ((s.data || []).some(function (x) { return x.tipo === "terapia"; })) document.getElementById("cartaoTerapia").hidden = false;
   const e = await supa().from("empresas").select("id,nome,segmento,tipo").order("nome");
   const caixaE = document.getElementById("minhasEmpresas");
   if (!e.data || !e.data.length) {

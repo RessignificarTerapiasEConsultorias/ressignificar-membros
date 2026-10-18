@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Processo terapêutico | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="index.html">← Voltar ao painel</a>
+    <div class="cartao erro-pagina" id="falha" hidden><h2>Não foi possível abrir</h2><p class="ajuda" id="falhaMsg"></p></div>
+
+    <div id="areaTerapia" hidden>
+      <div class="empresa-titulo"><h1 id="titulo">Processo terapêutico</h1><span class="selo ouro">Terapia</span></div>
+      <p class="sub" id="subtitulo"></p>
+      <div class="aviso-sigilo">🔒 <span id="textoSigilo">Tudo o que está aqui é sigiloso: só você e o Mauricio têm acesso.</span></div>
+
+      <div class="abas" id="abas" role="tablist">
+        <button class="aba" type="button" data-aba="geral" aria-selected="true">Visão geral</button>
+        <button class="aba" type="button" data-aba="areas" aria-selected="false">Áreas e ações</button>
+        <button class="aba" type="button" data-aba="sessoes" aria-selected="false">Sessões</button>
+        <button class="aba" type="button" data-aba="testes" aria-selected="false">Testes</button>
+        <button class="aba" type="button" data-aba="anamnese" aria-selected="false">Anamnese</button>
+      </div>
+
+      <!-- ===== VISÃO GERAL ===== -->
+      <section data-painel="geral">
+        <div class="kpis" id="kpis"></div>
+        <div class="graficos">
+          <div class="cartao"><h2>Roda da vida</h2><p class="ajuda">Nota de cada área no início do processo e agora (0 a 10).</p><div class="graf"><canvas id="gRoda"></canvas></div></div>
+          <div class="cartao"><h2>Próximas ações</h2><ul class="acoes-lista" id="proximas"></ul></div>
+        </div>
+        <div class="cartao" id="cartaoUltima"></div>
+      </section>
+
+      <!-- ===== ÁREAS E AÇÕES ===== -->
+      <section data-painel="areas" hidden>
+        <div class="cartao so-master">
+          <h2>Adicionar área de trabalho</h2>
+          <p class="ajuda">As áreas que o cliente escolheu trabalhar. Cada uma ganha a sua própria evolução e as suas ações.</p>
+          <form id="formArea" class="f grade g3" novalidate>
+            <div><label for="aNome">Área</label><input id="aNome" maxlength="60" required list="sugestoesAreas" placeholder="Ex.: Financeira"><datalist id="sugestoesAreas"></datalist></div>
+            <div><label for="aMeta">Meta nesta área</label><input id="aMeta" maxlength="160" placeholder="Ex.: sair do cheque especial até março"></div>
+            <div style="align-self:end"><button class="btn auto" type="submit">Adicionar área</button></div>
+          </form>
+          <div class="sugestoes" id="chipsAreas"></div>
+        </div>
+        <div class="areas-grade" id="listaAreas"></div>
+      </section>
+
+      <!-- ===== SESSÕES ===== -->
+      <section data-painel="sessoes" hidden>
+        <div class="duas-col">
+          <div class="cartao so-master">
+            <h2 id="tituloSessao">Registrar sessão</h2>
+            <form id="formSessao" class="f" novalidate>
+              <div class="grade g2">
+                <div><label for="sData">Data</label><input id="sData" type="date" required></div>
+                <div><label for="sDur">Duração (minutos)</label><input id="sDur" type="number" min="1" max="600" value="60"></div>
+                <div><label for="sAntes">Como chegou (0 a 10)</label><input id="sAntes" type="number" min="0" max="10"></div>
+                <div><label for="sDepois">Como saiu (0 a 10)</label><input id="sDepois" type="number" min="0" max="10"></div>
+              </div>
+              <div style="margin-top:12px"><label for="sTema">Tema</label><input id="sTema" maxlength="120" placeholder="Ex.: medo de cobrar"></div>
+              <div style="margin-top:12px"><label for="sResumo">Resumo para o cliente</label><textarea id="sResumo" rows="4" placeholder="O cliente vê este texto."></textarea></div>
+              <div style="margin-top:12px"><label for="sTarefa">Tarefa até a próxima sessão</label><textarea id="sTarefa" rows="2"></textarea></div>
+              <div style="margin-top:12px"><label for="sNotas">Notas privadas (só você vê)</label><textarea id="sNotas" rows="4"></textarea></div>
+              <div class="acoes"><button class="btn auto" type="submit" id="sSalvar">Salvar sessão</button><button class="btn auto contorno" type="button" id="sCancelar" hidden>Cancelar edição</button></div>
+            </form>
+          </div>
+          <div>
+            <div class="cartao"><h2>Como chegou e como saiu</h2><p class="ajuda">Nota de 0 a 10 no início e no fim de cada sessão.</p><div class="graf baixo"><canvas id="gHumor"></canvas></div></div>
+            <div class="lista-sessoes" id="listaSessoes"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TESTES ===== -->
+      <section data-painel="testes" hidden>
+        <div class="cartao so-master">
+          <h2>Registrar resultado de teste</h2>
+          <p class="ajuda">Ex.: Teste de Travas Mentais. Escreva cada trava (ou dimensão) com a sua nota. Ao repetir o mesmo teste, os nomes das dimensões já vêm preenchidos.</p>
+          <form id="formTeste" class="f" novalidate>
+            <div class="grade g3">
+              <div><label for="tNome">Teste</label><input id="tNome" maxlength="80" required list="listaTestes" value="Teste de Travas Mentais"><datalist id="listaTestes"></datalist></div>
+              <div><label for="tData">Data</label><input id="tData" type="date" required></div>
+              <div><label for="tPont">Pontuação geral</label><input id="tPont" inputmode="decimal" placeholder="Ex.: 62"></div>
+            </div>
+            <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="tMenor"> Neste teste, quanto menor a pontuação, melhor</label></div>
+            <div style="margin-top:14px"><label>Dimensões (opcional)</label><div id="dims"></div>
+              <button class="btn peq contorno" type="button" id="addDim">+ Adicionar dimensão</button></div>
+            <div style="margin-top:12px"><label for="tObs">Observação</label><textarea id="tObs" rows="2"></textarea></div>
+            <div class="acoes"><button class="btn auto" type="submit">Salvar resultado</button></div>
+          </form>
+        </div>
+        <div id="listaTestesRes"></div>
+      </section>
+
+      <!-- ===== ANAMNESE ===== -->
+      <section data-painel="anamnese" hidden>
+        <div class="cartao">
+          <h2>Anamnese</h2>
+          <p class="ajuda" id="anamneseInfo">Responda com calma e com as suas palavras. Dá para voltar e completar depois.</p>
+          <form id="formAnamnese" class="f" novalidate>
+            <div id="camposAnamnese"></div>
+            <div class="acoes"><button class="btn auto" type="submit">Salvar anamnese</button></div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/terapia.js"></script>
+</body>
+</html>
