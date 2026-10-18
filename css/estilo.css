@@ -1,0 +1,51 @@
+/* Área de Membros — Ressignificar. Mesma identidade do site principal. */
+:root{
+  --deep:#06142A; --navy:#0B1F3A; --navy2:#13294B;
+  --gold:#C9A24A; --gold2:#E3C477; --goldtxt:#8A6A22;
+  --sand:#F4EFE5; --paper:#FFFDF8; --ink:#16203A; --muted:#4C5670; --line:#E3DCCD;
+  --ok:#1FA855; --alerta:#C9742F; --erro:#B3261E;
+  --serif:"Newsreader",Georgia,serif; --sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font:400 16px/1.55 var(--sans);color:var(--ink);background:var(--sand);min-height:100dvh}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.15;letter-spacing:-.01em;color:var(--navy)}
+img{max-width:100%;display:block}
+button,input,select,textarea{font:inherit}
+a{color:var(--navy)}
+
+/* ---------- tela de login ---------- */
+.tela-login{min-height:100dvh;display:flex;align-items:center;justify-content:center;background:var(--deep);padding:24px}
+.cartao-login{width:100%;max-width:400px;background:var(--paper);border-radius:18px;padding:32px 28px;box-shadow:0 24px 60px rgba(0,0,0,.4)}
+.marca-login{display:flex;align-items:center;gap:12px;margin-bottom:26px}
+.marca-login img{width:46px;height:46px;border-radius:50%}
+.marca-login b{display:block;font:600 20px var(--serif);color:var(--navy)}
+.marca-login span{font-size:13px;color:var(--muted)}
+.campo{display:block;margin-bottom:16px}
+.campo span{display:block;font-weight:600;font-size:14.5px;margin-bottom:6px;color:var(--navy)}
+.campo input{width:100%;padding:13px 14px;border-radius:10px;border:1.5px solid #CFC6B3;background:#fff;color:var(--ink)}
+.campo input:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(11,31,58,.15)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;font:700 15.5px var(--sans);border:0;border-radius:11px;background:var(--gold);color:var(--deep);cursor:pointer;transition:background .2s}
+.btn:hover{background:var(--gold2)}
+.btn:disabled{opacity:.6;cursor:default}
+.btn.contorno{background:transparent;border:1.5px solid var(--navy);color:var(--navy)}
+.aviso{margin-top:14px;padding:11px 13px;border-radius:9px;font-size:14px;line-height:1.4}
+.aviso.erro{background:#FBE9E7;color:#8C2016;border:1px solid #F2C4BC}
+.aviso.ok{background:#E3F6E9;color:#15502E;border:1px solid #BFE6CC}
+.nota-login{margin-top:18px;font-size:13px;color:var(--muted);text-align:center}
+
+/* ---------- painéis internos ---------- */
+.topo-painel{position:sticky;top:0;z-index:5;background:var(--deep);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.topo-painel .marca{display:flex;align-items:center;gap:10px}
+.topo-painel .marca img{width:34px;height:34px;border-radius:50%}
+.topo-painel .marca b{font:600 17px var(--serif)}
+.topo-painel .usuario{display:flex;align-items:center;gap:12px;font-size:14px;color:#D5DCEA}
+.selo-papel{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--gold);color:var(--deep)}
+.sair{background:none;border:1px solid rgba(255,255,255,.35);color:#fff;padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:600;font-size:13.5px}
+.sair:hover{border-color:#fff}
+.conteudo-painel{max-width:980px;margin:0 auto;padding:40px 20px 80px}
+.conteudo-painel h1{font-size:28px;margin-bottom:8px}
+.conteudo-painel .sub{color:var(--muted);margin-bottom:28px;max-width:640px}
+.cartao-vazio{padding:28px;border-radius:16px;background:var(--paper);border:1px dashed var(--line);color:var(--muted)}
+.cartao-vazio b{display:block;color:var(--navy);font-size:17px;margin-bottom:6px;font-family:var(--serif)}
+.carregando{min-height:100dvh;display:flex;align-items:center;justify-content:center;background:var(--deep);color:#C7D0E2;font-size:14px}
