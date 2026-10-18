@@ -32,6 +32,11 @@
       <p class="ajuda">Suas áreas de trabalho, ações combinadas, sessões, testes e anamnese. Tudo sigiloso.</p>
       <a class="btn auto" href="terapia.html">Abrir meu processo</a>
     </div>
+    <div class="cartao" id="cartaoMentoria" hidden>
+      <h2>Sua mentoria</h2>
+      <p class="ajuda">Registre os seus ganhos, acompanhe as ações, o retorno sobre o investimento e as suas lives.</p>
+      <a class="btn auto" href="mentoria.html">Abrir minha mentoria</a>
+    </div>
     <div class="cartao">
       <h2>Suas empresas e finanças</h2>
       <p class="ajuda">Lance as entradas e saídas do dia a dia. A DRE e os gráficos se montam sozinhos.</p>
@@ -54,6 +59,7 @@
     ? s.data.map(function (x) { return '<span class="selo ouro">' + ROTULO_SERVICO[x.tipo] + "</span>"; }).join(" ")
     : '<p class="vazio">Nenhum serviço ativo no momento.</p>';
   if ((s.data || []).some(function (x) { return x.tipo === "terapia"; })) document.getElementById("cartaoTerapia").hidden = false;
+  if ((s.data || []).some(function (x) { return x.tipo === "mentoria"; })) document.getElementById("cartaoMentoria").hidden = false;
   const e = await supa().from("empresas").select("id,nome,segmento,tipo").order("nome");
   const caixaE = document.getElementById("minhasEmpresas");
   if (!e.data || !e.data.length) {

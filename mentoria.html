@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mentoria | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="index.html">← Voltar ao painel</a>
+    <div class="cartao erro-pagina" id="falha" hidden><h2>Não foi possível abrir</h2><p class="ajuda" id="falhaMsg"></p></div>
+
+    <div id="areaMentoria" hidden>
+      <div class="empresa-titulo"><h1 id="titulo">Mentoria</h1><span class="selo ouro">Mentoria</span></div>
+      <p class="sub" id="subtitulo"></p>
+
+      <div class="abas" id="abas" role="tablist">
+        <button class="aba" type="button" data-aba="geral" aria-selected="true">Visão geral</button>
+        <button class="aba" type="button" data-aba="ganhos" aria-selected="false">Ganhos e evolução</button>
+        <button class="aba" type="button" data-aba="acoes" aria-selected="false">Ações</button>
+        <button class="aba so-financeiro" type="button" data-aba="contrato" aria-selected="false">Investimento e pagamentos</button>
+        <button class="aba" type="button" data-aba="iniciativas" aria-selected="false">Lives e iniciativas</button>
+        <button class="aba" type="button" data-aba="analises" aria-selected="false">Análises</button>
+      </div>
+
+      <!-- ===== VISÃO GERAL ===== -->
+      <section data-painel="geral">
+        <div class="kpis" id="kpis"></div>
+        <div class="cartao"><h2>Leituras</h2><ul class="insights" id="leituras"></ul></div>
+        <div class="graficos">
+          <div class="cartao"><h2 id="tituloRetorno">Ganhos acumulados x investimento</h2><div class="graf"><canvas id="gRetorno"></canvas></div></div>
+          <div class="cartao"><h2>Evolução do faturamento</h2><div class="graf"><canvas id="gFat"></canvas></div></div>
+        </div>
+      </section>
+
+      <!-- ===== GANHOS E EVOLUÇÃO ===== -->
+      <section data-painel="ganhos" hidden>
+        <div class="duas-col">
+          <div>
+            <div class="cartao">
+              <h2>Registrar um ganho</h2>
+              <p class="ajuda">Todo resultado que veio da mentoria: um cliente novo, aumento de preço, uma economia. É isso que mostra o retorno.</p>
+              <form id="formGanho" class="f" novalidate>
+                <div class="grade g2">
+                  <div><label for="gData">Data</label><input id="gData" type="date" required></div>
+                  <div class="campo-valor"><label for="gValor">Valor (R$)</label><input id="gValor" inputmode="decimal" placeholder="0,00" required></div>
+                </div>
+                <div style="margin-top:12px"><label for="gCat">Tipo de ganho</label>
+                  <select id="gCat"><option>Aumento de faturamento</option><option>Novo cliente</option><option>Aumento de preço ou ticket</option><option>Redução de custos</option><option>Outro</option></select></div>
+                <div style="margin-top:12px"><label for="gDesc">Descrição</label><input id="gDesc" maxlength="160" placeholder="Ex.: fechei pacote de 10 sessões"></div>
+                <div class="acoes"><button class="btn auto" type="submit">Salvar ganho</button></div>
+              </form>
+            </div>
+            <div class="cartao">
+              <h2>Faturamento do mês</h2>
+              <p class="ajuda">Uma vez por mês: quanto faturou e quantos clientes atendeu. Se o mês já tiver registro, ele é atualizado.</p>
+              <form id="formInd" class="f" novalidate>
+                <div class="grade g3">
+                  <div><label for="iMes">Mês</label><input id="iMes" type="month" required></div>
+                  <div><label for="iFat">Faturamento (R$)</label><input id="iFat" inputmode="decimal" placeholder="0,00"></div>
+                  <div><label for="iCli">Clientes</label><input id="iCli" type="number" min="0"></div>
+                </div>
+                <div class="acoes"><button class="btn auto" type="submit">Salvar mês</button></div>
+              </form>
+            </div>
+          </div>
+          <div>
+            <div class="cartao"><h2>Ganhos registrados</h2><div class="totais-mes" id="totGanhos"></div>
+              <div class="tabela-wrap" style="max-height:420px"><table class="t"><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th class="n">Valor</th><th></th></tr></thead><tbody id="listaGanhos"></tbody></table></div></div>
+            <div class="cartao"><h2>Meses registrados</h2>
+              <div class="tabela-wrap"><table class="t"><thead><tr><th>Mês</th><th class="n">Faturamento</th><th class="n">Clientes</th><th></th></tr></thead><tbody id="listaInd"></tbody></table></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== AÇÕES ===== -->
+      <section data-painel="acoes" hidden>
+        <div class="duas-col">
+          <div class="cartao so-equipe">
+            <h2>Nova ação</h2>
+            <form id="formAcao" class="f" novalidate>
+              <div><label for="aTitulo">O que aplicar</label><input id="aTitulo" maxlength="140" required></div>
+              <div style="margin-top:12px"><label for="aPlano">Plano (como fazer)</label><textarea id="aPlano" rows="3"></textarea></div>
+              <div class="grade g2" style="margin-top:12px">
+                <div><label for="aResp">Quem faz</label><input id="aResp" maxlength="60"></div>
+                <div><label for="aPrazo">Prazo</label><input id="aPrazo" type="date"></div>
+              </div>
+              <div class="acoes"><button class="btn auto" type="submit">Salvar ação</button></div>
+            </form>
+          </div>
+          <div class="cartao"><h2>Ações da mentoria</h2><div class="totais-mes" id="totAcoes"></div><ul class="acoes-lista" id="listaAcoes"></ul></div>
+        </div>
+      </section>
+
+      <!-- ===== INVESTIMENTO E PAGAMENTOS ===== -->
+      <section data-painel="contrato" class="so-financeiro" hidden>
+        <div class="cartao so-master">
+          <h2>Registrar contrato de mentoria</h2>
+          <p class="ajuda">As parcelas são criadas sozinhas, mês a mês, a partir do primeiro vencimento.</p>
+          <form id="formContrato" class="f" novalidate>
+            <div class="grade g3">
+              <div><label for="cProd">Produto</label><input id="cProd" maxlength="80" value="Mentoria 4ª Onda Gestão Ressignificar" required></div>
+              <div><label for="cIni">Início</label><input id="cIni" type="date" required></div>
+              <div><label for="cFim">Término</label><input id="cFim" type="date"></div>
+              <div class="campo-valor"><label for="cValor">Valor total (R$)</label><input id="cValor" inputmode="decimal" placeholder="0,00" required></div>
+              <div><label for="cParc">Parcelas</label><input id="cParc" type="number" min="1" max="60" value="6" required></div>
+              <div><label for="cVenc">1º vencimento</label><input id="cVenc" type="date" required></div>
+            </div>
+            <div class="grade g2" style="margin-top:12px">
+              <div><label for="cForma">Forma de pagamento</label><input id="cForma" maxlength="60" placeholder="Ex.: Pix, cartão, boleto"></div>
+              <div><label for="cObs">Observação</label><input id="cObs" maxlength="160"></div>
+            </div>
+            <div class="acoes"><button class="btn auto" type="submit">Salvar contrato e criar parcelas</button></div>
+          </form>
+        </div>
+        <div id="listaContratos"></div>
+      </section>
+
+      <!-- ===== LIVES E INICIATIVAS ===== -->
+      <section data-painel="iniciativas" hidden>
+        <div class="kpis" id="kpisIni"></div>
+        <div class="duas-col">
+          <div class="cartao">
+            <h2 id="tituloIni">Registrar live ou iniciativa</h2>
+            <form id="formIni" class="f" novalidate>
+              <div><label for="nNome">Nome</label><input id="nNome" maxlength="100" required placeholder="Ex.: Live de lançamento de outubro"></div>
+              <div class="grade g2" style="margin-top:12px">
+                <div><label for="nTipo">Tipo</label><select id="nTipo"><option>Live</option><option>Campanha de tráfego</option><option>Evento</option><option>Lançamento</option><option>Parceria</option><option>Outro</option></select></div>
+                <div><label for="nData">Data</label><input id="nData" type="date" required></div>
+                <div><label for="nCusto">Custo total (R$)</label><input id="nCusto" inputmode="decimal" placeholder="0,00"></div>
+                <div><label for="nRec">Receita gerada (R$)</label><input id="nRec" inputmode="decimal" placeholder="0,00"></div>
+                <div><label for="nLeads">Leads / contatos</label><input id="nLeads" type="number" min="0"></div>
+                <div><label for="nVendas">Vendas</label><input id="nVendas" type="number" min="0"></div>
+              </div>
+              <div style="margin-top:12px"><label for="nAcoes">Ações tomadas</label><textarea id="nAcoes" rows="3" placeholder="Ex.: convite nos stories 3 dias antes, oferta com bônus para quem comprasse na live"></textarea></div>
+              <div style="margin-top:12px"><label for="nObs">Observação</label><input id="nObs" maxlength="200"></div>
+              <div class="acoes"><button class="btn auto" type="submit" id="nSalvar">Salvar</button><button class="btn auto contorno" type="button" id="nCancelar" hidden>Cancelar edição</button></div>
+            </form>
+          </div>
+          <div>
+            <div class="cartao"><h2>Custo x receita por iniciativa</h2><div class="graf"><canvas id="gIni"></canvas></div></div>
+            <div class="lista-sessoes" id="listaIni"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== ANÁLISES ===== -->
+      <section data-painel="analises" hidden>
+        <div class="duas-col">
+          <div class="cartao so-equipe">
+            <h2 id="tituloAn">Nova análise</h2>
+            <form id="formAn" class="f" novalidate>
+              <div><label for="anTitulo">Título</label><input id="anTitulo" maxlength="120" required></div>
+              <div class="grade g2" style="margin-top:12px">
+                <div><label for="anTipo">Tipo</label><select id="anTipo"><option>Análise empresarial</option><option>Diagnóstico</option><option>Devolutiva</option><option>Outra</option></select></div>
+                <div><label for="anData">Data</label><input id="anData" type="date" required></div>
+              </div>
+              <div style="margin-top:12px"><label for="anTexto">Conteúdo</label><textarea id="anTexto" rows="10"></textarea></div>
+              <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="anVisivel" checked> O cliente pode ver esta análise</label></div>
+              <div class="acoes"><button class="btn auto" type="submit" id="anSalvar">Salvar análise</button><button class="btn auto contorno" type="button" id="anCancelar" hidden>Cancelar edição</button></div>
+            </form>
+          </div>
+          <div class="lista-sessoes" id="listaAn"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/mentoria.js"></script>
+</body>
+</html>

@@ -49,7 +49,7 @@
     const [ra, rv, rc, rs, rt] = await Promise.all([
       supa().from("areas_vida").select("id,nome,meta,ordem,ativo").eq("perfil_id", pid).order("ordem").order("criado_em"),
       supa().from("areas_avaliacoes").select("id,area_id,data,nota,comentario").eq("perfil_id", pid).order("data"),
-      supa().from("acoes").select("id,area_id,titulo,plano,responsavel,prazo,status,comentario_cliente,concluida_em").eq("perfil_id", pid).is("empresa_id", null).order("prazo", { ascending: true, nullsFirst: false }),
+      supa().from("acoes").select("id,area_id,titulo,plano,responsavel,prazo,status,comentario_cliente,concluida_em").eq("perfil_id", pid).eq("contexto", "terapia").order("prazo", { ascending: true, nullsFirst: false }),
       supa().from("terapia_sessoes").select("id,data,duracao_min,tema,resumo_cliente,tarefa,humor_antes,humor_depois").eq("perfil_id", pid).order("data", { ascending: false }),
       supa().from("testes_resultados").select("id,teste,data,pontuacao,menor_melhor,dimensoes,observacao").eq("perfil_id", pid).order("data")
     ]);
@@ -224,7 +224,7 @@
       e.preventDefault();
       const titulo = fa.titulo.value.trim();
       if (titulo.length < 2) { aviso("Escreva o que deve ser feito.", true); return; }
-      const { error } = await supa().from("acoes").insert({ perfil_id: pid, area_id: fa.dataset.novaAcao, titulo: titulo, plano: fa.plano.value.trim() || null,
+      const { error } = await supa().from("acoes").insert({ perfil_id: pid, contexto: "terapia", area_id: fa.dataset.novaAcao, titulo: titulo, plano: fa.plano.value.trim() || null,
         responsavel: fa.responsavel.value.trim() || null, prazo: fa.prazo.value || null });
       if (error) { aviso("Não foi possível salvar a ação.", true); return; }
       aviso("Ação criada.");
