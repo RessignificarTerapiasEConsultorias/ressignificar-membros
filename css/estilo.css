@@ -7,6 +7,7 @@
   --serif:"Newsreader",Georgia,serif; --sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+   [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{font:400 16px/1.55 var(--sans);color:var(--ink);background:var(--sand);min-height:100dvh}
 h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.15;letter-spacing:-.01em;color:var(--navy)}
