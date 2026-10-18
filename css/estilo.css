@@ -193,3 +193,5 @@ dialog.janela h2{font-size:22px;margin-bottom:14px}
 .campo-anamnese textarea{min-height:84px;resize:vertical}
 details>summary{list-style:none;cursor:pointer;display:inline-flex}
 details>summary::-webkit-details-marker{display:none}
+#cartaoPag td.quebra{min-width:120px}#cartaoPag th,#cartaoPag td{padding:9px 8px}
+#cartaoPag td.quebra{min-width:92px}#cartaoPag td:nth-child(2),#cartaoPag th:nth-child(2){white-space:normal}#cartaoPag .selo{font-size:11px;padding:2px 7px}

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Financeiro | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <span class="selo-papel" data-papel-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" href="painel-master.html">← Voltar ao painel</a>
+    <div class="empresa-titulo"><h1>Meu financeiro</h1><span class="selo ouro">Só você vê</span></div>
+    <p class="sub">Quem pagou, quem está devendo, o que vence nos próximos dias e quanto cada cliente rende.</p>
+
+    <div class="abas" id="abas" role="tablist">
+      <button class="aba" type="button" data-aba="painel" aria-selected="true">Painel</button>
+      <button class="aba" type="button" data-aba="cobrancas" aria-selected="false">Cobranças</button>
+      <button class="aba" type="button" data-aba="clientes" aria-selected="false">Por cliente</button>
+      <button class="aba" type="button" data-aba="contratos" aria-selected="false">Contratos</button>
+      <button class="aba" type="button" data-aba="custos" aria-selected="false">Custos por cliente</button>
+    </div>
+
+    <!-- ===== PAINEL ===== -->
+    <section data-painel="painel">
+      <div class="kpis" id="kpis"></div>
+      <div class="graficos">
+        <div class="cartao"><h2>Em atraso</h2><ul class="acoes-lista" id="listaAtraso"></ul></div>
+        <div class="cartao"><h2>Próximos vencimentos (30 dias)</h2><div class="tabela-wrap" style="max-height:360px"><table class="t"><tbody id="listaProximos"></tbody></table></div></div>
+      </div>
+      <div class="barra-periodo f"><div><label for="selAno">Ano dos gráficos</label><select id="selAno"></select></div></div>
+      <div class="graficos">
+        <div class="cartao"><h2>Recebido x previsto por mês</h2><div class="graf"><canvas id="gMes"></canvas></div></div>
+        <div class="cartao"><h2>Recebido por serviço</h2><div class="graf"><canvas id="gServ"></canvas></div></div>
+        <div class="cartao"><h2>Clientes pagantes por mês</h2><div class="graf"><canvas id="gCli"></canvas></div></div>
+        <div class="cartao">
+          <h2>Recebimentos na sua DRE</h2>
+          <p class="ajuda">Quando você marcar um pagamento como recebido, ele entra sozinho como receita na DRE escolhida. Ao desfazer, sai da DRE também.</p>
+          <div class="f grade g2">
+            <div><label for="dreEmpresa">Empresa</label><select id="dreEmpresa"></select></div>
+            <div><label for="dreConta">Conta de receita</label><select id="dreConta"></select></div>
+          </div>
+          <div class="acoes"><button class="btn auto" type="button" id="dreSalvar">Salvar</button><a class="btn auto contorno" id="dreAbrir" href="#" hidden>Abrir minha DRE</a></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== COBRANÇAS ===== -->
+    <section data-painel="cobrancas" hidden>
+      <div class="cartao">
+        <h2>Cobrança avulsa</h2>
+        <form id="formAvulsa" class="f grade g4" novalidate>
+          <div><label for="avCli">Cliente</label><select id="avCli" required></select></div>
+          <div><label for="avDesc">Descrição</label><input id="avDesc" maxlength="120" placeholder="Ex.: sessão extra" required></div>
+          <div><label for="avValor">Valor (R$)</label><input id="avValor" inputmode="decimal" placeholder="0,00" required></div>
+          <div><label for="avVenc">Vencimento</label><input id="avVenc" type="date" required></div>
+          <div style="align-self:end"><button class="btn auto" type="submit">Criar cobrança</button></div>
+        </form>
+      </div>
+      <div class="cartao">
+        <div class="sugestoes" id="filtros" style="margin-bottom:12px">
+          <button type="button" data-f="atrasadas">Em atraso</button>
+          <button type="button" data-f="proximas">Próximos 30 dias</button>
+          <button type="button" data-f="mes">Vencem este mês</button>
+          <button type="button" data-f="pagas">Recebidas este mês</button>
+          <button type="button" data-f="abertas">Todas em aberto</button>
+          <button type="button" data-f="todas">Todas</button>
+        </div>
+        <div class="f" style="max-width:340px;margin-bottom:12px"><input id="buscaCob" placeholder="Buscar por cliente ou descrição" aria-label="Buscar cobrança"></div>
+        <div class="totais-mes" id="totCob"></div>
+        <div class="tabela-wrap" style="max-height:640px"><table class="t"><thead><tr><th>Cliente</th><th>Descrição</th><th>Vencimento</th><th class="n">Valor</th><th>Situação</th><th></th></tr></thead><tbody id="listaCob"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ===== POR CLIENTE ===== -->
+    <section data-painel="clientes" hidden>
+      <div class="cartao">
+        <h2>Resultado por cliente</h2>
+        <p class="ajuda">Recebido até agora, o que falta receber, o que está atrasado e quanto sobra depois dos custos de cada cliente.</p>
+        <div class="tabela-wrap" style="max-height:680px"><table class="t"><thead><tr><th>Cliente</th><th>Serviços</th><th class="n">Recebido</th><th class="n">Em aberto</th><th class="n">Em atraso</th><th class="n">Custos</th><th class="n">Margem</th><th>Próximo vencimento</th></tr></thead><tbody id="listaCli"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ===== CONTRATOS ===== -->
+    <section data-painel="contratos" hidden>
+      <div class="cartao">
+        <h2>Novo contrato</h2>
+        <p class="ajuda" id="ajudaContrato"></p>
+        <form id="formContrato" class="f" novalidate>
+          <div class="grade g3">
+            <div><label for="ctCli">Cliente</label><select id="ctCli" required></select></div>
+            <div><label for="ctServ">Serviço</label><select id="ctServ"><option value="terapia">Terapia</option><option value="mentoria">Mentoria</option><option value="consultoria_empresarial">Consultoria empresarial</option></select></div>
+            <div><label for="ctProd">Descrição</label><input id="ctProd" maxlength="100" placeholder="Ex.: Acompanhamento 3 meses" required></div>
+            <div><label for="ctPer">Como cobra</label><select id="ctPer">
+              <option value="parcelado">Valor fechado (à vista ou parcelado)</option>
+              <option value="mensal">Mensal</option><option value="quinzenal">Quinzenal</option><option value="semanal">Semanal</option>
+              <option value="sessao">Por sessão</option></select></div>
+            <div class="campo-valor"><label for="ctValor" id="rotValor">Valor total (R$)</label><input id="ctValor" inputmode="decimal" placeholder="0,00" required></div>
+            <div id="blocoQtd"><label for="ctQtd" id="rotQtd">Parcelas</label><input id="ctQtd" type="number" min="1" max="60" value="1"></div>
+            <div id="blocoVenc"><label for="ctVenc">1º vencimento</label><input id="ctVenc" type="date"></div>
+            <div><label for="ctForma">Forma de pagamento</label><input id="ctForma" maxlength="60" placeholder="Ex.: Pix"></div>
+            <div><label for="ctIni">Início</label><input id="ctIni" type="date"></div>
+          </div>
+          <div class="acoes"><button class="btn auto" type="submit">Salvar contrato</button></div>
+        </form>
+      </div>
+      <div class="cartao">
+        <h2>Contratos ativos</h2>
+        <div class="tabela-wrap"><table class="t"><thead><tr><th>Cliente</th><th>Serviço</th><th>Descrição</th><th>Cobrança</th><th class="n">Recebido</th><th class="n">Em aberto</th><th></th></tr></thead><tbody id="listaContratos"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ===== CUSTOS ===== -->
+    <section data-painel="custos" hidden>
+      <div class="cartao">
+        <h2>Registrar custo de um cliente</h2>
+        <p class="ajuda">Ex.: material, deslocamento, sala, ferramenta ou terapeuta parceiro que atendeu. Entra no cálculo da margem por cliente.</p>
+        <form id="formCusto" class="f grade g4" novalidate>
+          <div><label for="cuCli">Cliente</label><select id="cuCli" required></select></div>
+          <div><label for="cuData">Data</label><input id="cuData" type="date" required></div>
+          <div><label for="cuValor">Valor (R$)</label><input id="cuValor" inputmode="decimal" placeholder="0,00" required></div>
+          <div><label for="cuDesc">Descrição</label><input id="cuDesc" maxlength="120"></div>
+          <div style="align-self:end"><button class="btn auto" type="submit">Salvar custo</button></div>
+        </form>
+      </div>
+      <div class="cartao"><div class="tabela-wrap" style="max-height:560px"><table class="t"><thead><tr><th>Data</th><th>Cliente</th><th>Descrição</th><th class="n">Valor</th><th></th></tr></thead><tbody id="listaCustos"></tbody></table></div></div>
+    </section>
+  </main>
+</div>
+
+<dialog class="janela" id="janelaPagar">
+  <h2>Registrar recebimento</h2>
+  <p class="ajuda" id="pgInfo"></p>
+  <div class="f grade g2">
+    <div><label for="pgData">Data do pagamento</label><input id="pgData" type="date"></div>
+    <div><label for="pgForma">Forma</label><input id="pgForma" maxlength="40" placeholder="Ex.: Pix"></div>
+  </div>
+  <div class="acoes"><button class="btn auto" type="button" id="pgConfirmar">Confirmar recebimento</button><button class="btn auto contorno" type="button" id="pgCancelar">Cancelar</button></div>
+</dialog>
+
+<dialog class="janela" id="janelaSessao">
+  <h2>Registrar sessão cobrada</h2>
+  <p class="ajuda" id="seInfo"></p>
+  <div class="f grade g2">
+    <div><label for="seData">Data da sessão</label><input id="seData" type="date"></div>
+    <div><label for="seQtd">Quantas sessões</label><input id="seQtd" type="number" min="1" max="20" value="1"></div>
+  </div>
+  <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="sePago" checked> Já foi paga</label></div>
+  <div class="acoes"><button class="btn auto" type="button" id="seConfirmar">Registrar</button><button class="btn auto contorno" type="button" id="seCancelar">Cancelar</button></div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/financeiro.js"></script>
+</body>
+</html>

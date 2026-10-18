@@ -27,6 +27,12 @@
       <h2>Seus serviços</h2>
       <div id="meusServicos"><p class="vazio">Carregando...</p></div>
     </div>
+    <div class="cartao" id="cartaoPag" hidden>
+      <h2>Seus pagamentos</h2>
+      <div id="avisoPag"></div>
+      <div class="tabela-wrap" style="margin-top:12px"><table class="t"><thead><tr><th>Serviço</th><th>Vencimento</th><th class="n">Valor</th></tr></thead><tbody id="listaPag"></tbody></table></div>
+      <div class="acoes"><button class="btn peq contorno" type="button" id="verTodosPag" hidden>Ver histórico completo</button></div>
+    </div>
     <div class="cartao" id="cartaoTerapia" hidden>
       <h2>Seu processo terapêutico</h2>
       <p class="ajuda">Suas áreas de trabalho, ações combinadas, sessões, testes e anamnese. Tudo sigiloso.</p>
@@ -60,6 +66,34 @@
     : '<p class="vazio">Nenhum serviço ativo no momento.</p>';
   if ((s.data || []).some(function (x) { return x.tipo === "terapia"; })) document.getElementById("cartaoTerapia").hidden = false;
   if ((s.data || []).some(function (x) { return x.tipo === "mentoria"; })) document.getElementById("cartaoMentoria").hidden = false;
+  /* ---------- pagamentos do próprio cliente ---------- */
+  const rc = await supa().from("cobrancas").select("id,contrato_id,descricao,vencimento,valor,pago_em").eq("perfil_id", eu.id).order("vencimento");
+  const rk = await supa().from("contratos").select("id,servico,produto").eq("perfil_id", eu.id);
+  const cobs = rc.data || [], ks = rk.data || [];
+  if (cobs.length) {
+    const hoje = hojeISO();
+    const servDe = function (c) { const k = ks.find(function (x) { return x.id === c.contrato_id; }); return k ? ROTULO_SERVICO[k.servico] : "Avulsa"; };
+    const atras = cobs.filter(function (c) { return !c.pago_em && c.vencimento < hoje; });
+    const prox = cobs.filter(function (c) { return !c.pago_em && c.vencimento >= hoje; });
+    const totAtras = atras.reduce(function (t, c) { return t + +c.valor; }, 0);
+    let avisoHtml = "";
+    if (atras.length) avisoHtml += '<div class="aviso erro" style="margin-top:0">Você tem <b>' + brl(totAtras) + "</b> em atraso desde " + dataBR(atras[0].vencimento) + ". Se já pagou, envie o comprovante ao Mauricio. Se precisar, fale com ele para combinar.</div>";
+    if (prox.length) avisoHtml += '<div class="aviso ok">Próximo pagamento: <b>' + brl(prox[0].valor) + "</b> em " + dataBR(prox[0].vencimento) + " (" + esc(prox[0].descricao) + ").</div>";
+    if (!atras.length && !prox.length) avisoHtml = '<div class="aviso ok" style="margin-top:0">Tudo em dia. Obrigado!</div>';
+    document.getElementById("avisoPag").innerHTML = avisoHtml;
+    const linha = function (c) {
+      const sit = c.pago_em ? '<span class="selo ok">Pago em ' + dataBR(c.pago_em) + "</span>" : (c.vencimento < hoje ? '<span class="selo off">Em atraso</span>' : '<span class="selo">A vencer</span>');
+      return '<tr><td class="quebra"><b>' + servDe(c) + '</b><br><span class="vazio" style="padding:0">' + esc(c.descricao) + "</span></td><td>" + dataBR(c.vencimento) + "<br>" + sit + '</td><td class="n">' + brl(c.valor) + "</td></tr>";
+    };
+    const resumo = atras.concat(prox.slice(0, 4));
+    const tb = document.getElementById("listaPag");
+    tb.innerHTML = (resumo.length ? resumo : cobs.slice(-4)).map(linha).join("");
+    const bt = document.getElementById("verTodosPag");
+    bt.hidden = cobs.length <= resumo.length;
+    bt.addEventListener("click", function () { tb.innerHTML = cobs.slice().reverse().map(linha).join(""); bt.hidden = true; });
+    document.getElementById("cartaoPag").hidden = false;
+  }
+
   const e = await supa().from("empresas").select("id,nome,segmento,tipo").order("nome");
   const caixaE = document.getElementById("minhasEmpresas");
   if (!e.data || !e.data.length) {

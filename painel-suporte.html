@@ -23,6 +23,7 @@
   </header>
   <main class="conteudo-painel largo">
     <h1>Painel de suporte</h1>
+    <div class="acoes so-master" style="margin:-6px 0 22px"><a class="btn auto" href="financeiro.html">Abrir meu financeiro</a></div>
     <p class="sub">Ajude os clientes: confira cadastros, serviços e as DREs das empresas. Criar acessos e trocar senhas fica com o master.</p>
 
     <div class="abas" id="abas" role="tablist">
@@ -39,6 +40,7 @@
           <div class="grade g2">
             <div><label for="novoNome">Nome completo</label><input id="novoNome" name="nome" required maxlength="80"></div>
             <div><label for="novoEmail">E-mail</label><input id="novoEmail" name="email" type="email" required autocomplete="off"></div>
+            <div><label for="novoTel">WhatsApp <span class="vazio">(opcional, para cobranças)</span></label><input id="novoTel" name="telefone" inputmode="tel" placeholder="(81) 99999-9999" autocomplete="off"></div>
             <div><label for="novoSenha">Senha provisória</label><input id="novoSenha" name="senha" required minlength="8" autocomplete="new-password"><small><button type="button" class="btn peq contorno" id="gerarSenha">Gerar senha</button> Mínimo de 8 caracteres.</small></div>
             <div><label for="novoPapel">Tipo de acesso</label>
               <select id="novoPapel" name="papel">
@@ -107,6 +109,7 @@
         <div><label for="edNome">Nome</label><input id="edNome" maxlength="80"></div>
         <div><label for="edPapel">Tipo de acesso</label>
           <select id="edPapel"><option value="cliente">Cliente</option><option value="suporte">Suporte</option><option value="vendedor">Vendedor(a)</option><option value="master">Master</option></select></div>
+        <div><label for="edTelefone">WhatsApp</label><input id="edTelefone" inputmode="tel" placeholder="(81) 99999-9999"></div>
       </div>
     </div>
     <label>Serviços contratados</label>

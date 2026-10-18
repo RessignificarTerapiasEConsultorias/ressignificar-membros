@@ -84,3 +84,11 @@ function ligarAbas(raiz, aoTrocar) {
   botoes.forEach(function (b) { b.addEventListener("click", function () { abrir(b.dataset.aba); }); });
   return abrir;
 }
+
+/* Telefone salvo como 5581999999999 -> "(81) 99999-9999" */
+function foneBR(t) {
+  const d = String(t || "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
+  if (d.length === 11) return "(" + d.slice(0, 2) + ") " + d.slice(2, 7) + "-" + d.slice(7);
+  if (d.length === 10) return "(" + d.slice(0, 2) + ") " + d.slice(2, 6) + "-" + d.slice(6);
+  return t || "";
+}
