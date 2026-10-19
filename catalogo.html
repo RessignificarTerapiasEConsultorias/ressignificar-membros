@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Produtos e ofertas | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <span class="selo-papel" data-papel-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="painel-master.html">← Voltar ao painel</a>
+    <h1>Produtos e ofertas</h1>
+    <p class="sub">Monte o catálogo, marque o que cada cliente já tem, ofereça o próximo passo e acompanhe quem demonstrou interesse.</p>
+
+    <div class="abas" id="abas" role="tablist">
+      <button class="aba" type="button" data-aba="interesses" aria-selected="true">Interesses <span class="selo ouro" id="contaNovos" hidden></span></button>
+      <button class="aba" type="button" data-aba="catalogo" aria-selected="false">Catálogo</button>
+      <button class="aba" type="button" data-aba="clientes" aria-selected="false">Por cliente</button>
+    </div>
+
+    <!-- ===== INTERESSES ===== -->
+    <section data-painel="interesses">
+      <div class="cartao">
+        <h2>Quem quer saber mais</h2>
+        <p class="ajuda">Cada vez que um cliente clica em "Quero saber mais" num produto, aparece aqui. Atualize a situação conforme a conversa andar.</p>
+        <div class="sugestoes" id="filtroInt" style="margin-bottom:12px">
+          <button type="button" data-f="abertos">Novos e em conversa</button>
+          <button type="button" data-f="fechado">Fechados</button>
+          <button type="button" data-f="perdido">Perdidos</button>
+          <button type="button" data-f="todos">Todos</button>
+        </div>
+        <ul class="acoes-lista" id="listaInt"></ul>
+      </div>
+    </section>
+
+    <!-- ===== CATÁLOGO ===== -->
+    <section data-painel="catalogo" hidden>
+      <div class="duas-col">
+        <div class="cartao so-master">
+          <h2 id="tituloProd">Novo produto</h2>
+          <form id="formProd" class="f" novalidate>
+            <div><label for="pNome">Nome</label><input id="pNome" maxlength="100" required placeholder="Ex.: Mentoria 4ª Onda Gestão Ressignificar"></div>
+            <div class="grade g2" style="margin-top:12px">
+              <div><label for="pServ">Serviço</label><select id="pServ"><option value="">Outro</option><option value="terapia">Terapia</option><option value="mentoria">Mentoria</option><option value="consultoria_empresarial">Consultoria empresarial</option></select></div>
+              <div><label for="pPreco">Preço (como mostrar)</label><input id="pPreco" maxlength="80" placeholder="Ex.: 6x de R$ 1.000"></div>
+            </div>
+            <div style="margin-top:12px"><label for="pDesc">Descrição curta</label><textarea id="pDesc" rows="3" maxlength="400" placeholder="Para quem é e o que resolve"></textarea></div>
+            <div style="margin-top:12px"><label for="pInclui">O que inclui (um item por linha)</label><textarea id="pInclui" rows="4" placeholder="12 encontros de 1 hora&#10;Suporte pelo WhatsApp"></textarea></div>
+            <div style="margin-top:12px"><label for="pLink">Link de pagamento <span class="vazio">(opcional)</span></label><input id="pLink" type="url" maxlength="400" placeholder="https://..."><small>Se preencher, o cliente vê o botão "Comprar agora".</small></div>
+            <div class="grade g2" style="margin-top:12px">
+              <div><label for="pPub">Quem vê</label><select id="pPub"><option value="todos">Todos os clientes</option><option value="selecionados">Só quem eu oferecer</option></select></div>
+              <div><label for="pOrdem">Ordem na vitrine</label><input id="pOrdem" type="number" value="0"></div>
+            </div>
+            <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="pDestaque"> Destacar</label><label><input type="checkbox" id="pAtivo" checked> Ativo</label></div>
+            <div class="acoes"><button class="btn auto" type="submit" id="pSalvar">Salvar produto</button><button class="btn auto contorno" type="button" id="pCancelar" hidden>Cancelar edição</button></div>
+          </form>
+        </div>
+        <div class="lista-sessoes" id="listaProd"></div>
+      </div>
+    </section>
+
+    <!-- ===== POR CLIENTE ===== -->
+    <section data-painel="clientes" hidden>
+      <div class="cartao">
+        <h2>Produtos de cada cliente</h2>
+        <p class="ajuda">Marque o que o cliente <b>já tem</b> e o que você quer <b>oferecer</b> a ele. Produtos "só quem eu oferecer" só aparecem para quem estiver marcado aqui.</p>
+        <div class="f" style="max-width:420px;margin-bottom:14px"><label for="selCli">Cliente</label><select id="selCli"></select></div>
+        <div class="tabela-wrap"><table class="t"><thead><tr><th>Produto</th><th>Quem vê</th><th>Situação para este cliente</th></tr></thead><tbody id="listaCliProd"></tbody></table></div>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/catalogo.js"></script>
+</body>
+</html>
