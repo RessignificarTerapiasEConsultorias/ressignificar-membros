@@ -30,11 +30,18 @@
 
     <div class="abas" id="abas" role="tablist">
       <button class="aba" type="button" data-aba="charter" aria-selected="true">Charter</button>
+      <button class="aba" type="button" data-aba="sipoc">SIPOC</button>
+      <button class="aba" type="button" data-aba="swot">SWOT</button>
       <button class="aba" type="button" data-aba="brainstorm">Brainstorming</button>
       <button class="aba" type="button" data-aba="ishikawa">Ishikawa</button>
       <button class="aba" type="button" data-aba="porques">5 Porquês</button>
+      <button class="aba" type="button" data-aba="fmea">FMEA</button>
       <button class="aba" type="button" data-aba="pareto">Pareto</button>
+      <button class="aba" type="button" data-aba="priorizacao">Priorização</button>
       <button class="aba" type="button" data-aba="acoes">Plano de ação</button>
+      <button class="aba" type="button" data-aba="eap">EAP/WBS</button>
+      <button class="aba" type="button" data-aba="licoes">Lições aprendidas</button>
+      <button class="aba" type="button" data-aba="padronizacao">Padronização</button>
     </div>
 
     <!-- ===== CHARTER ===== -->
@@ -57,6 +64,40 @@
             <div><label for="chGanho">Ganho esperado (R$)</label><input id="chGanho" inputmode="decimal" placeholder="0,00"></div>
           </div>
           <div class="acoes"><button class="btn auto" type="submit">Salvar charter</button></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== SIPOC ===== -->
+    <section data-painel="sipoc" hidden>
+      <div class="cartao">
+        <h2>SIPOC</h2>
+        <p class="ajuda">Visão macro do processo: Fornecedores, Entradas, Processo, Saídas, Clientes. Um item por linha.</p>
+        <form id="formSipoc" class="f">
+          <div class="grade g3" style="gap:12px">
+            <div><label for="spFornecedores">Fornecedores (Suppliers)</label><textarea id="spFornecedores" rows="6"></textarea></div>
+            <div><label for="spEntradas">Entradas (Inputs)</label><textarea id="spEntradas" rows="6"></textarea></div>
+            <div><label for="spProcesso">Processo (Process) — 4 a 7 etapas</label><textarea id="spProcesso" rows="6"></textarea></div>
+            <div><label for="spSaidas">Saídas (Outputs)</label><textarea id="spSaidas" rows="6"></textarea></div>
+            <div><label for="spClientes">Clientes (Customers)</label><textarea id="spClientes" rows="6"></textarea></div>
+          </div>
+          <div class="acoes"><button class="btn auto" type="submit">Salvar SIPOC</button></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== SWOT ===== -->
+    <section data-painel="swot" hidden>
+      <div class="cartao">
+        <h2>Análise SWOT</h2>
+        <form id="formSwot" class="f">
+          <div class="grade g2" style="gap:12px">
+            <div><label for="swForcas">Forças</label><textarea id="swForcas" rows="5"></textarea></div>
+            <div><label for="swFraquezas">Fraquezas</label><textarea id="swFraquezas" rows="5"></textarea></div>
+            <div><label for="swOportunidades">Oportunidades</label><textarea id="swOportunidades" rows="5"></textarea></div>
+            <div><label for="swAmeacas">Ameaças</label><textarea id="swAmeacas" rows="5"></textarea></div>
+          </div>
+          <div class="acoes"><button class="btn auto" type="submit">Salvar SWOT</button></div>
         </form>
       </div>
     </section>
@@ -102,6 +143,27 @@
       </div>
     </section>
 
+    <!-- ===== FMEA ===== -->
+    <section data-painel="fmea" hidden>
+      <div class="cartao">
+        <h2>FMEA / AMEF — Análise de Modo e Efeito de Falha</h2>
+        <p class="ajuda">O RPN (Severidade × Ocorrência × Detecção) é calculado sozinho. Quanto maior, mais prioritário.</p>
+        <form id="formFmea" class="f">
+          <div class="grade g3">
+            <div><label for="fmModo">Modo de falha</label><input id="fmModo" maxlength="150" required></div>
+            <div><label for="fmEfeito">Efeito</label><input id="fmEfeito" maxlength="150"></div>
+            <div><label for="fmCausa">Causa</label><input id="fmCausa" maxlength="150"></div>
+            <div><label for="fmSeveridade">Severidade (1-10)</label><input id="fmSeveridade" type="number" min="1" max="10" required></div>
+            <div><label for="fmOcorrencia">Ocorrência (1-10)</label><input id="fmOcorrencia" type="number" min="1" max="10" required></div>
+            <div><label for="fmDeteccao">Detecção (1-10)</label><input id="fmDeteccao" type="number" min="1" max="10" required></div>
+          </div>
+          <div style="margin-top:12px"><label for="fmAcao">Ação recomendada</label><input id="fmAcao" maxlength="200"></div>
+          <div class="acoes"><button class="btn auto" type="submit">Adicionar</button></div>
+        </form>
+        <div class="tabela-wrap" style="margin-top:14px"><table class="t"><thead><tr><th>Modo de falha</th><th>Efeito</th><th>Causa</th><th class="n">Sev.</th><th class="n">Ocor.</th><th class="n">Det.</th><th class="n">RPN</th><th>Ação recomendada</th><th></th></tr></thead><tbody id="listaFmea"></tbody></table></div>
+      </div>
+    </section>
+
     <!-- ===== PARETO ===== -->
     <section data-painel="pareto" hidden>
       <div class="cartao">
@@ -117,11 +179,39 @@
       </div>
     </section>
 
+    <!-- ===== PRIORIZAÇÃO ===== -->
+    <section data-painel="priorizacao" hidden>
+      <div class="cartao">
+        <h2>Matriz de priorização</h2>
+        <p class="ajuda">Use Impacto × Esforço para ideias rápidas, ou G×U×T (Gravidade, Urgência, Tendência) para uma pontuação mais detalhada. Preencha o que fizer sentido.</p>
+        <form id="formPriorizacao" class="f">
+          <div class="grade g3">
+            <div style="grid-column:span 2"><label for="prItem">Item a priorizar</label><input id="prItem" maxlength="150" required></div>
+            <div></div>
+            <div><label for="prImpacto">Impacto (1-5)</label><input id="prImpacto" type="number" min="1" max="5"></div>
+            <div><label for="prEsforco">Esforço (1-5)</label><input id="prEsforco" type="number" min="1" max="5"></div>
+            <div></div>
+            <div><label for="prGravidade">Gravidade (1-5)</label><input id="prGravidade" type="number" min="1" max="5"></div>
+            <div><label for="prUrgencia">Urgência (1-5)</label><input id="prUrgencia" type="number" min="1" max="5"></div>
+            <div><label for="prTendencia">Tendência (1-5)</label><input id="prTendencia" type="number" min="1" max="5"></div>
+          </div>
+          <div class="acoes"><button class="btn auto" type="submit">Adicionar</button></div>
+        </form>
+        <div class="graf" style="margin-top:14px"><canvas id="gPriorizacao"></canvas></div>
+        <div class="tabela-wrap" style="margin-top:14px"><table class="t"><thead><tr><th>Item</th><th class="n">Impacto</th><th class="n">Esforço</th><th class="n">G×U×T</th><th></th></tr></thead><tbody id="listaPriorizacao"></tbody></table></div>
+      </div>
+    </section>
+
     <!-- ===== PLANO DE AÇÃO ===== -->
     <section data-painel="acoes" hidden>
       <div class="cartao">
         <h2>Plano de ação</h2>
         <p class="ajuda">A peça central do projeto. Qualquer ferramenta pode enviar um item para cá com um clique.</p>
+        <div class="sugestoes" style="margin-bottom:10px">
+          <button type="button" data-visao="tabela">Tabela</button>
+          <button type="button" data-visao="kanban">Kanban</button>
+          <button type="button" data-visao="gantt">Gantt</button>
+        </div>
         <button class="btn auto contorno" type="button" id="btNovaAcaoProjeto" style="margin-bottom:14px">+ Nova ação</button>
         <div id="formAcaoProjetoWrap" hidden>
           <form id="formAcaoProjeto" class="f" novalidate>
@@ -135,6 +225,7 @@
               <div><label for="apOnde">Onde</label><input id="apOnde" maxlength="100"></div>
               <div><label for="apComo">Como</label><input id="apComo" maxlength="200"></div>
               <div><label for="apResponsavel">Responsável</label><select id="apResponsavel"></select></div>
+              <div><label for="apEntrega">Entrega (EAP) <span class="vazio">(opcional)</span></label><select id="apEntrega"></select></div>
               <div><label for="apEquipe">Equipe de execução</label><input id="apEquipe" maxlength="150"></div>
               <div><label for="apInicio">Data de início</label><input id="apInicio" type="date"></div>
               <div><label for="apPrazo">Prazo</label><input id="apPrazo" type="date"></div>
@@ -150,10 +241,55 @@
             <div class="acoes"><button class="btn auto" type="submit" id="apSalvar">Salvar ação</button><button class="btn auto contorno" type="button" id="apCancelar">Cancelar</button></div>
           </form>
         </div>
-        <div class="tabela-wrap" style="margin-top:8px"><table class="t" id="tabelaAcoesProjeto">
+        <div id="visaoTabela"><div class="tabela-wrap" style="margin-top:8px"><table class="t" id="tabelaAcoesProjeto">
           <thead><tr><th>Etapa</th><th>Problema</th><th>Causa raiz</th><th>Ação</th><th>Como</th><th>Responsável</th><th>Prazo</th><th class="n">%</th><th>Status</th><th>Eficácia</th><th></th></tr></thead>
           <tbody id="listaAcoesProjeto"></tbody>
-        </table></div>
+        </table></div></div>
+        <div id="visaoKanban" hidden class="kanban-cols"></div>
+        <div id="visaoGantt" hidden></div>
+      </div>
+    </section>
+
+    <!-- ===== EAP/WBS ===== -->
+    <section data-painel="eap" hidden>
+      <div class="cartao">
+        <h2>EAP / WBS — Estrutura Analítica do Projeto</h2>
+        <p class="ajuda">Projeto → Etapa do PDCA → Entrega → Ações. O percentual sobe sozinho das ações até o projeto.</p>
+        <form id="formEntrega" class="f grade g3">
+          <div><label for="enEtapa">Etapa</label><select id="enEtapa"><option value="P">Planejar</option><option value="D">Fazer</option><option value="C">Checar</option><option value="A">Agir</option></select></div>
+          <div><label for="enTitulo">Entrega</label><input id="enTitulo" maxlength="150" required placeholder="Ex.: Checklist de qualidade implantado"></div>
+          <div style="align-self:end"><button class="btn auto" type="submit">Adicionar entrega</button></div>
+        </form>
+        <div id="arvoreEap" style="margin-top:16px"></div>
+      </div>
+    </section>
+
+    <!-- ===== LIÇÕES APRENDIDAS ===== -->
+    <section data-painel="licoes" hidden>
+      <div class="cartao">
+        <h2>Lições aprendidas</h2>
+        <form id="formLicao" class="f">
+          <div class="grade g2">
+            <div><label for="liCategoria">Categoria</label><select id="liCategoria"><option value="funcionou">Funcionou</option><option value="nao_funcionou">Não funcionou</option><option value="replicar">Vale replicar</option></select></div>
+            <div><label for="liTexto">O que aconteceu</label><input id="liTexto" maxlength="300" required></div>
+          </div>
+          <div class="acoes"><button class="btn auto" type="submit">Registrar lição</button></div>
+        </form>
+        <div id="listaLicoes" style="margin-top:14px"></div>
+      </div>
+    </section>
+
+    <!-- ===== PADRONIZAÇÃO ===== -->
+    <section data-painel="padronizacao" hidden>
+      <div class="cartao">
+        <h2>Padronização (POP/SOP)</h2>
+        <p class="ajuda">Ligue um POP já existente como resultado deste projeto, ou crie um novo diretamente na biblioteca de manuais.</p>
+        <div class="grade g2">
+          <div><label for="pdPopExistente">Ligar POP existente</label><select id="pdPopExistente"></select></div>
+          <div style="align-self:end"><button class="btn auto contorno" type="button" id="btLigarPop">Ligar</button></div>
+        </div>
+        <p class="ajuda" style="margin-top:14px">Para criar um POP novo a partir deste projeto, acesse <a href="pops.html" target="_blank">POPs e manuais</a> e crie normalmente — ele pode ser vinculado aqui depois.</p>
+        <div id="listaPopsLigados" style="margin-top:14px"></div>
       </div>
     </section>
 

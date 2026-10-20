@@ -281,3 +281,22 @@ dialog.janela.janela-larga{max-width:780px;max-height:88vh;overflow-y:auto}
 .porque-item{display:flex;gap:10px;align-items:center;background:#F8F4E9;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
 .porque-item b{min-width:70px}
 .porque-item input{flex:1}
+
+/* ===== Fase 2: Kanban, Gantt, EAP ===== */
+.kanban-cols{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;overflow-x:auto}
+.kanban-col{background:#F4EFE5;border-radius:10px;padding:10px;min-width:180px}
+.kanban-col h4{font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:var(--goldtxt);margin:0 0 8px}
+.kanban-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:13.5px}
+.kanban-card .acoes{margin-top:6px;display:flex;gap:4px;flex-wrap:wrap}
+.gantt-linha{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13.5px}
+.gantt-nome{min-width:200px;flex-shrink:0}
+.gantt-trilho{flex:1;position:relative;height:22px;background:#F4EFE5;border-radius:6px}
+.gantt-barra{position:absolute;top:2px;height:18px;border-radius:5px;background:var(--gold)}
+.gantt-barra.atrasada{background:#C0392B}
+.gantt-barra.concluida{background:#1FA855}
+.eap-no{margin-left:0}
+.eap-no .eap-linha{display:flex;align-items:center;gap:10px;background:#F8F4E9;border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-bottom:6px}
+.eap-no .eap-linha b{flex:1}
+.eap-barra-mini{width:80px;height:8px;background:#EEE8DC;border-radius:8px;overflow:hidden}
+.eap-barra-mini span{display:block;height:100%;background:var(--gold)}
+.eap-filhos{margin-left:24px;padding-left:12px;border-left:2px solid var(--line)}

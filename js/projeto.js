@@ -13,28 +13,38 @@
   const STATUS_CLS = { nao_iniciada: "", em_andamento: "amarelo", concluida: "verde", atrasada: "vermelho", cancelada: "" };
 
   let projeto = null, charter = null, brainstorm = [], ishikawa = [], porques = [], pareto = [], acoes = [], perfisEquipe = [];
-  let editandoAcaoId = null, grafPareto = null;
+  let sipoc = null, swot = null, fmea = [], priorizacao = [], entregas = [], licoes = [], popsCliente = [];
+  let editandoAcaoId = null, grafPareto = null, grafPriorizacao = null, visaoAcoes = "tabela";
 
   function esc(s) { return String(s || "").replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
 
   async function carregar() {
-    const [rp, rc, rb, ri, r5, rpt, ra] = await Promise.all([
+    const [rp, rc, rb, ri, r5, rpt, ra, rsi, rsw, rfm, rpr, ren, rli] = await Promise.all([
       supa().from("projetos_melhoria").select("*").eq("id", pid).maybeSingle(),
       supa().from("projetos_charter").select("*").eq("projeto_id", pid).maybeSingle(),
       supa().from("projetos_brainstorm").select("*").eq("projeto_id", pid).order("votos", { ascending: false }),
       supa().from("projetos_ishikawa").select("*").eq("projeto_id", pid),
       supa().from("projetos_5porques").select("*").eq("projeto_id", pid).order("ordem"),
       supa().from("projetos_pareto").select("*").eq("projeto_id", pid).order("ordem"),
-      supa().from("projetos_acoes").select("*").eq("projeto_id", pid).order("criado_em")
+      supa().from("projetos_acoes").select("*").eq("projeto_id", pid).order("criado_em"),
+      supa().from("projetos_sipoc").select("*").eq("projeto_id", pid).maybeSingle(),
+      supa().from("projetos_swot").select("*").eq("projeto_id", pid).maybeSingle(),
+      supa().from("projetos_fmea").select("*").eq("projeto_id", pid).order("rpn", { ascending: false }),
+      supa().from("projetos_priorizacao").select("*").eq("projeto_id", pid),
+      supa().from("projetos_entregas").select("*").eq("projeto_id", pid).order("etapa_pdca").order("ordem"),
+      supa().from("projetos_licoes").select("*").eq("projeto_id", pid).order("criado_em", { ascending: false })
     ]);
     if (!rp.data) { aviso("Projeto não encontrado ou sem acesso.", true); setTimeout(function () { location.href = "projetos.html"; }, 1500); return false; }
     projeto = rp.data; charter = rc.data; brainstorm = rb.data || []; ishikawa = ri.data || []; porques = r5.data || []; pareto = rpt.data || []; acoes = ra.data || [];
+    sipoc = rsi.data; swot = rsw.data; fmea = rfm.data || []; priorizacao = rpr.data || []; entregas = ren.data || []; licoes = rli.data || [];
     if (gestor) {
       const rpe = await supa().from("perfis").select("id,nome").eq("ativo", true).order("nome");
       perfisEquipe = rpe.data || [];
     } else {
       perfisEquipe = [{ id: eu.id, nome: eu.nome }];
     }
+    const rpops = await supa().from("pops_documentos").select("id,titulo,origem_projeto_id").eq("perfil_id", projeto.perfil_id).eq("ativo", true);
+    popsCliente = rpops.data || [];
     return true;
   }
 
@@ -243,7 +253,7 @@
       projeto_id: pid, etapa_pdca: document.getElementById("apEtapa").value, problema: document.getElementById("apProblema").value.trim() || null,
       causa_raiz: document.getElementById("apCausa").value.trim() || null, acao: acaoTxt, por_que: document.getElementById("apPorque").value.trim() || null,
       onde: document.getElementById("apOnde").value.trim() || null, como: document.getElementById("apComo").value.trim() || null,
-      responsavel_perfil_id: document.getElementById("apResponsavel").value || null, equipe_execucao: document.getElementById("apEquipe").value.trim() || null,
+      responsavel_perfil_id: document.getElementById("apResponsavel").value || null, entrega_id: document.getElementById("apEntrega").value || null, equipe_execucao: document.getElementById("apEquipe").value.trim() || null,
       data_inicio: document.getElementById("apInicio").value || null, prazo: document.getElementById("apPrazo").value || null,
       custo_estimado: lerValor(document.getElementById("apCusto").value), prioridade: document.getElementById("apPrioridade").value || null,
       indicador_vinculado: document.getElementById("apIndicador").value.trim() || null, status: document.getElementById("apStatus").value,
@@ -268,7 +278,7 @@
       document.getElementById("apProblema").value = a.problema || ""; document.getElementById("apCausa").value = a.causa_raiz || "";
       document.getElementById("apAcao").value = a.acao; document.getElementById("apPorque").value = a.por_que || "";
       document.getElementById("apOnde").value = a.onde || ""; document.getElementById("apComo").value = a.como || "";
-      document.getElementById("apResponsavel").value = a.responsavel_perfil_id || ""; document.getElementById("apEquipe").value = a.equipe_execucao || "";
+      document.getElementById("apResponsavel").value = a.responsavel_perfil_id || ""; document.getElementById("apEntrega").value = a.entrega_id || ""; document.getElementById("apEquipe").value = a.equipe_execucao || "";
       document.getElementById("apInicio").value = a.data_inicio || ""; document.getElementById("apPrazo").value = a.prazo || "";
       document.getElementById("apCusto").value = a.custo_estimado || ""; document.getElementById("apIndicador").value = a.indicador_vinculado || "";
       document.getElementById("apStatus").value = a.status; document.getElementById("apPct").value = a.percentual_conclusao;
@@ -279,6 +289,237 @@
       document.getElementById("formAcaoProjetoWrap").scrollIntoView({ behavior: "smooth", block: "start" });
     }
     if (bd) { if (!confirm("Apagar esta ação?")) return; await supa().from("projetos_acoes").delete().eq("id", bd.dataset.delAcao); await recarregarESeção("acoes"); }
+  });
+
+  /* ===== SIPOC ===== */
+  function preencherSipoc() {
+    document.getElementById("spFornecedores").value = sipoc ? (sipoc.fornecedores || "") : "";
+    document.getElementById("spEntradas").value = sipoc ? (sipoc.entradas || "") : "";
+    document.getElementById("spProcesso").value = sipoc ? (sipoc.processo || "") : "";
+    document.getElementById("spSaidas").value = sipoc ? (sipoc.saidas || "") : "";
+    document.getElementById("spClientes").value = sipoc ? (sipoc.clientes || "") : "";
+  }
+  document.getElementById("formSipoc").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const reg = { projeto_id: pid, fornecedores: document.getElementById("spFornecedores").value.trim() || null, entradas: document.getElementById("spEntradas").value.trim() || null,
+      processo: document.getElementById("spProcesso").value.trim() || null, saidas: document.getElementById("spSaidas").value.trim() || null, clientes: document.getElementById("spClientes").value.trim() || null, atualizado_em: new Date().toISOString() };
+    const r = await supa().from("projetos_sipoc").upsert(reg, { onConflict: "projeto_id" });
+    if (r.error) { aviso("Não foi possível salvar.", true); return; }
+    aviso("SIPOC salvo!");
+  });
+
+  /* ===== SWOT ===== */
+  function preencherSwot() {
+    document.getElementById("swForcas").value = swot ? (swot.forcas || "") : "";
+    document.getElementById("swFraquezas").value = swot ? (swot.fraquezas || "") : "";
+    document.getElementById("swOportunidades").value = swot ? (swot.oportunidades || "") : "";
+    document.getElementById("swAmeacas").value = swot ? (swot.ameacas || "") : "";
+  }
+  document.getElementById("formSwot").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const reg = { projeto_id: pid, forcas: document.getElementById("swForcas").value.trim() || null, fraquezas: document.getElementById("swFraquezas").value.trim() || null,
+      oportunidades: document.getElementById("swOportunidades").value.trim() || null, ameacas: document.getElementById("swAmeacas").value.trim() || null, atualizado_em: new Date().toISOString() };
+    const r = await supa().from("projetos_swot").upsert(reg, { onConflict: "projeto_id" });
+    if (r.error) { aviso("Não foi possível salvar.", true); return; }
+    aviso("SWOT salvo!");
+  });
+
+  /* ===== FMEA ===== */
+  function desenharFmea() {
+    document.getElementById("listaFmea").innerHTML = fmea.length ? fmea.map(function (f) {
+      const corRpn = f.rpn >= 200 ? "v-despesa" : (f.rpn >= 80 ? "" : "v-receita");
+      return "<tr><td><b>" + esc(f.modo_falha) + "</b></td><td>" + (f.efeito ? esc(f.efeito) : "—") + "</td><td>" + (f.causa ? esc(f.causa) : "—") + "</td>" +
+        '<td class="n">' + f.severidade + '</td><td class="n">' + f.ocorrencia + '</td><td class="n">' + f.deteccao + '</td>' +
+        '<td class="n"><b class="' + corRpn + '">' + f.rpn + "</b></td><td>" + (f.acao_recomendada ? esc(f.acao_recomendada) : "—") + "</td>" +
+        '<td><button class="btn peq" type="button" data-enviar-acao="fmea" data-texto="' + esc(f.modo_falha) + '">→ Plano</button> <button class="btn peq perigo" type="button" data-del-fm="' + f.id + '">Apagar</button></td></tr>';
+    }).join("") : '<tr><td colspan="9" class="vazio">Nenhum modo de falha cadastrado.</td></tr>';
+  }
+  document.getElementById("formFmea").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const reg = { projeto_id: pid, modo_falha: document.getElementById("fmModo").value.trim(), efeito: document.getElementById("fmEfeito").value.trim() || null,
+      causa: document.getElementById("fmCausa").value.trim() || null, severidade: parseInt(document.getElementById("fmSeveridade").value), ocorrencia: parseInt(document.getElementById("fmOcorrencia").value),
+      deteccao: parseInt(document.getElementById("fmDeteccao").value), acao_recomendada: document.getElementById("fmAcao").value.trim() || null };
+    if (!reg.modo_falha || !reg.severidade || !reg.ocorrencia || !reg.deteccao) { aviso("Preencha o modo de falha e as 3 notas.", true); return; }
+    const r = await supa().from("projetos_fmea").insert(reg);
+    if (r.error) { aviso("Não foi possível adicionar.", true); return; }
+    this.reset(); await recarregarESeção("fmea");
+  });
+  document.getElementById("listaFmea").addEventListener("click", async function (e) {
+    const bd = e.target.closest("[data-del-fm]"), ba = e.target.closest("[data-enviar-acao]");
+    if (bd) { if (!confirm("Apagar este modo de falha?")) return; await supa().from("projetos_fmea").delete().eq("id", bd.dataset.delFm); await recarregarESeção("fmea"); }
+    if (ba) abrirNovaAcaoComOrigem("fmea", ba.dataset.texto);
+  });
+
+  /* ===== PRIORIZAÇÃO ===== */
+  function desenharPriorizacao() {
+    const comGut = priorizacao.filter(function (p) { return p.pontuacao_gut !== null; }).sort(function (a, b) { return b.pontuacao_gut - a.pontuacao_gut; });
+    const semGut = priorizacao.filter(function (p) { return p.pontuacao_gut === null; });
+    const ordenado = comGut.concat(semGut);
+    document.getElementById("listaPriorizacao").innerHTML = ordenado.length ? ordenado.map(function (p) {
+      return "<tr><td>" + esc(p.item) + '</td><td class="n">' + (p.impacto || "—") + '</td><td class="n">' + (p.esforco || "—") + '</td><td class="n"><b>' + (p.pontuacao_gut !== null ? p.pontuacao_gut : "—") + "</b></td>" +
+        '<td><button class="btn peq" type="button" data-enviar-acao="priorizacao" data-texto="' + esc(p.item) + '">→ Plano</button> <button class="btn peq perigo" type="button" data-del-pr="' + p.id + '">Apagar</button></td></tr>';
+    }).join("") : '<tr><td colspan="5" class="vazio">Nenhum item cadastrado.</td></tr>';
+
+    if (typeof Chart !== "undefined") {
+      if (grafPriorizacao) grafPriorizacao.destroy();
+      const comEixos = priorizacao.filter(function (p) { return p.impacto !== null && p.esforco !== null; });
+      grafPriorizacao = new Chart(document.getElementById("gPriorizacao"), {
+        type: "scatter",
+        data: { datasets: [{ label: "Impacto × Esforço", data: comEixos.map(function (p) { return { x: p.esforco, y: p.impacto, item: p.item }; }), backgroundColor: "#C9A24A" }] },
+        options: { maintainAspectRatio: false, scales: { x: { title: { display: true, text: "Esforço →" }, min: 0, max: 6 }, y: { title: { display: true, text: "Impacto →" }, min: 0, max: 6 } },
+          plugins: { tooltip: { callbacks: { label: function (c) { return c.raw.item + " (impacto " + c.raw.y + ", esforço " + c.raw.x + ")"; } } } } }
+      });
+    }
+  }
+  document.getElementById("formPriorizacao").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const item = document.getElementById("prItem").value.trim();
+    if (!item) { aviso("Escreva o item.", true); return; }
+    const v = function (id) { const x = document.getElementById(id).value; return x ? parseInt(x) : null; };
+    const reg = { projeto_id: pid, item: item, impacto: v("prImpacto"), esforco: v("prEsforco"), gravidade: v("prGravidade"), urgencia: v("prUrgencia"), tendencia: v("prTendencia") };
+    const r = await supa().from("projetos_priorizacao").insert(reg);
+    if (r.error) { aviso("Não foi possível adicionar.", true); return; }
+    this.reset(); await recarregarESeção("priorizacao");
+  });
+  document.getElementById("listaPriorizacao").addEventListener("click", async function (e) {
+    const bd = e.target.closest("[data-del-pr]"), ba = e.target.closest("[data-enviar-acao]");
+    if (bd) { if (!confirm("Apagar este item?")) return; await supa().from("projetos_priorizacao").delete().eq("id", bd.dataset.delPr); await recarregarESeção("priorizacao"); }
+    if (ba) abrirNovaAcaoComOrigem("priorizacao", ba.dataset.texto);
+  });
+
+  /* ===== PLANO DE AÇÃO: visões Kanban / Gantt + entrega (EAP) ===== */
+  function preencherEntregas() {
+    const sel = document.getElementById("apEntrega"); if (!sel) return;
+    sel.innerHTML = '<option value="">—</option>' + entregas.map(function (en) { return '<option value="' + en.id + '">' + esc(en.titulo) + " (" + en.etapa_pdca + ")</option>"; }).join("");
+  }
+  document.querySelectorAll('[data-visao]').forEach(function (b) {
+    b.addEventListener("click", function () {
+      visaoAcoes = this.dataset.visao;
+      document.querySelectorAll('[data-visao]').forEach(function (x) { x.style.borderColor = x.dataset.visao === visaoAcoes ? "#C9A24A" : ""; x.style.background = x.dataset.visao === visaoAcoes ? "#FBF3DF" : ""; });
+      document.getElementById("visaoTabela").hidden = visaoAcoes !== "tabela";
+      document.getElementById("visaoKanban").hidden = visaoAcoes !== "kanban";
+      document.getElementById("visaoGantt").hidden = visaoAcoes !== "gantt";
+      if (visaoAcoes === "kanban") desenharKanban();
+      if (visaoAcoes === "gantt") desenharGantt();
+    });
+  });
+  function desenharKanban() {
+    const colunas = ["nao_iniciada", "em_andamento", "concluida", "atrasada", "cancelada"];
+    document.getElementById("visaoKanban").innerHTML = colunas.map(function (st) {
+      const itens = acoes.filter(function (a) { return a.status === st; });
+      return '<div class="kanban-col"><h4>' + STATUS_LABEL[st] + " (" + itens.length + ')</h4>' +
+        itens.map(function (a) {
+          return '<div class="kanban-card"><b>' + esc(a.acao) + '</b><br><span class="acao-info">' + nomeResponsavel(a.responsavel_perfil_id) + (a.prazo ? " · " + dataBR(a.prazo) : "") + '</span>' +
+            '<div class="acoes">' + colunas.filter(function (x) { return x !== st; }).map(function (x) { return '<button class="btn peq contorno" type="button" data-mover-kanban="' + a.id + '" data-para="' + x + '">' + STATUS_LABEL[x] + "</button>"; }).join("") + "</div></div>";
+        }).join("") + "</div>";
+    }).join("");
+  }
+  document.getElementById("visaoKanban").addEventListener("click", async function (e) {
+    const b = e.target.closest("[data-mover-kanban]"); if (!b) return;
+    await supa().from("projetos_acoes").update({ status: b.dataset.para, atualizado_em: new Date().toISOString() }).eq("id", b.dataset.moverKanban);
+    await recarregarESeção("acoes"); desenharKanban();
+  });
+  function desenharGantt() {
+    const comData = acoes.filter(function (a) { return a.data_inicio && a.prazo; });
+    if (!comData.length) { document.getElementById("visaoGantt").innerHTML = '<p class="vazio">Nenhuma ação com data de início e prazo definidos.</p>'; return; }
+    const datas = comData.reduce(function (acc, a) { return acc.concat([a.data_inicio, a.prazo]); }, []).sort();
+    const min = new Date(datas[0] + "T12:00:00"), max = new Date(datas[datas.length - 1] + "T12:00:00");
+    const totalDias = Math.max(1, Math.round((max - min) / 86400000));
+    document.getElementById("visaoGantt").innerHTML = comData.map(function (a) {
+      const ini = Math.round((new Date(a.data_inicio + "T12:00:00") - min) / 86400000);
+      const dur = Math.max(1, Math.round((new Date(a.prazo + "T12:00:00") - new Date(a.data_inicio + "T12:00:00")) / 86400000));
+      const esq = (ini / totalDias * 100), larg = (dur / totalDias * 100);
+      const cls = a.status === "concluida" ? "concluida" : ((a.prazo < hojeISO() && a.status !== "concluida") ? "atrasada" : "");
+      return '<div class="gantt-linha"><span class="gantt-nome">' + esc(a.acao) + '</span><div class="gantt-trilho"><div class="gantt-barra ' + cls + '" style="left:' + esq + '%;width:' + larg + '%" title="' + dataBR(a.data_inicio) + " a " + dataBR(a.prazo) + '"></div></div></div>';
+    }).join("");
+  }
+
+  /* ===== EAP / WBS ===== */
+  document.getElementById("formEntrega").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const titulo = document.getElementById("enTitulo").value.trim();
+    if (!titulo) { aviso("Escreva o nome da entrega.", true); return; }
+    const etapa = document.getElementById("enEtapa").value;
+    const ordem = entregas.filter(function (x) { return x.etapa_pdca === etapa; }).length;
+    const r = await supa().from("projetos_entregas").insert({ projeto_id: pid, etapa_pdca: etapa, titulo: titulo, ordem: ordem });
+    if (r.error) { aviso("Não foi possível adicionar.", true); return; }
+    this.reset(); await recarregarESeção("eap");
+  });
+  function pctEntrega(en) {
+    const das = acoes.filter(function (a) { return a.entrega_id === en.id; });
+    if (!das.length) return null;
+    return Math.round(das.reduce(function (s, a) { return s + a.percentual_conclusao; }, 0) / das.length);
+  }
+  function pctEtapa(etapa) {
+    const ens = entregas.filter(function (x) { return x.etapa_pdca === etapa; });
+    const pcts = ens.map(pctEntrega).filter(function (p) { return p !== null; });
+    return pcts.length ? Math.round(pcts.reduce(function (s, p) { return s + p; }, 0) / pcts.length) : null;
+  }
+  function barraMini(p) { return '<div class="eap-barra-mini"><span style="width:' + (p || 0) + '%"></span></div><span class="acao-info">' + (p !== null ? p + "%" : "—") + "</span>"; }
+  function desenharEap() {
+    preencherEntregas();
+    document.getElementById("arvoreEap").innerHTML = ETAPA_ORDEM.map(function (etapa) {
+      const ens = entregas.filter(function (x) { return x.etapa_pdca === etapa; });
+      const pEtapa = pctEtapa(etapa);
+      return '<div class="eap-no"><div class="eap-linha"><b>' + etapa + " · " + ETAPA_LABEL[etapa] + "</b>" + barraMini(pEtapa) + '</div>' +
+        '<div class="eap-filhos">' + (ens.length ? ens.map(function (en) {
+          const pEn = pctEntrega(en);
+          const das = acoes.filter(function (a) { return a.entrega_id === en.id; });
+          return '<div class="eap-no"><div class="eap-linha"><b>' + esc(en.titulo) + '</b>' + barraMini(pEn) +
+            '<button class="btn peq perigo" type="button" data-del-entrega="' + en.id + '">Apagar</button></div>' +
+            '<div class="eap-filhos">' + (das.length ? das.map(function (a) {
+              return '<div class="eap-linha"><span>' + esc(a.acao) + '</span><span class="selo ' + STATUS_CLS[a.status] + '">' + STATUS_LABEL[a.status] + '</span>' + barraMini(a.percentual_conclusao) + '</div>';
+            }).join("") : '<p class="vazio" style="margin:4px 0">Nenhuma ação ligada a esta entrega.</p>') + "</div></div>";
+        }).join("") : '<p class="vazio" style="margin:4px 0">Nenhuma entrega cadastrada nesta etapa.</p>') + "</div></div>";
+    }).join("");
+  }
+  document.getElementById("arvoreEap").addEventListener("click", async function (e) {
+    const bd = e.target.closest("[data-del-entrega]"); if (!bd) return;
+    if (!confirm("Apagar esta entrega? As ações ligadas a ela continuam, mas desvinculadas.")) return;
+    await supa().from("projetos_entregas").delete().eq("id", bd.dataset.delEntrega); await recarregarESeção("eap");
+  });
+
+  /* ===== LIÇÕES APRENDIDAS ===== */
+  function desenharLicoes() {
+    const CAT = { funcionou: "✓ Funcionou", nao_funcionou: "✗ Não funcionou", replicar: "↻ Vale replicar" };
+    document.getElementById("listaLicoes").innerHTML = licoes.length ? licoes.map(function (l) {
+      return '<div class="sessao"><div class="sessao-topo"><span class="selo">' + CAT[l.categoria] + '</span><span class="acao-info">' + dataBR(l.criado_em.slice(0, 10)) + '</span></div><p>' + esc(l.texto) + '</p>' +
+        '<button class="btn peq perigo" type="button" data-del-licao="' + l.id + '">Apagar</button></div>';
+    }).join("") : '<p class="vazio">Nenhuma lição registrada ainda.</p>';
+  }
+  document.getElementById("formLicao").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const texto = document.getElementById("liTexto").value.trim();
+    if (!texto) { aviso("Escreva a lição.", true); return; }
+    const r = await supa().from("projetos_licoes").insert({ projeto_id: pid, categoria: document.getElementById("liCategoria").value, texto: texto, criado_por: eu.id });
+    if (r.error) { aviso("Não foi possível registrar.", true); return; }
+    this.reset(); await recarregarESeção("licoes");
+  });
+  document.getElementById("listaLicoes").addEventListener("click", async function (e) {
+    const bd = e.target.closest("[data-del-licao]"); if (!bd) return;
+    if (!confirm("Apagar esta lição?")) return;
+    await supa().from("projetos_licoes").delete().eq("id", bd.dataset.delLicao); await recarregarESeção("licoes");
+  });
+
+  /* ===== PADRONIZAÇÃO ===== */
+  function desenharPadronizacao() {
+    const naoLigados = popsCliente.filter(function (p) { return p.origem_projeto_id !== pid; });
+    const ligados = popsCliente.filter(function (p) { return p.origem_projeto_id === pid; });
+    document.getElementById("pdPopExistente").innerHTML = naoLigados.length ? naoLigados.map(function (p) { return '<option value="' + p.id + '">' + esc(p.titulo) + "</option>"; }).join("") : '<option value="">Nenhum POP disponível</option>';
+    document.getElementById("listaPopsLigados").innerHTML = ligados.length ? "<h3 style='font-size:15px;margin-bottom:8px'>POPs ligados a este projeto</h3>" + ligados.map(function (p) {
+      return '<div class="sessao"><b>' + esc(p.titulo) + '</b> <button class="btn peq perigo" type="button" data-desligar-pop="' + p.id + '">Desligar</button></div>';
+    }).join("") : '<p class="vazio">Nenhum POP ligado ainda.</p>';
+  }
+  document.getElementById("btLigarPop").addEventListener("click", async function () {
+    const id = document.getElementById("pdPopExistente").value;
+    if (!id) { aviso("Escolha um POP para ligar.", true); return; }
+    await supa().from("pops_documentos").update({ origem_projeto_id: pid }).eq("id", id);
+    aviso("POP ligado ao projeto!"); await recarregarESeção("padronizacao");
+  });
+  document.getElementById("listaPopsLigados").addEventListener("click", async function (e) {
+    const bd = e.target.closest("[data-desligar-pop]"); if (!bd) return;
+    await supa().from("pops_documentos").update({ origem_projeto_id: null }).eq("id", bd.dataset.desligarPop);
+    await recarregarESeção("padronizacao");
   });
 
   /* ===== CONTROLE DE ETAPA / CICLO ===== */
@@ -311,16 +552,28 @@
     if (secao === "ishikawa") desenharIshikawa();
     if (secao === "porques") desenharPorques();
     if (secao === "pareto") desenharPareto();
-    if (secao === "acoes") desenharAcoes();
+    if (secao === "acoes") { preencherEntregas(); desenharAcoes(); if (visaoAcoes === "kanban") desenharKanban(); if (visaoAcoes === "gantt") desenharGantt(); }
+    if (secao === "fmea") desenharFmea();
+    if (secao === "priorizacao") desenharPriorizacao();
+    if (secao === "eap") desenharEap();
+    if (secao === "licoes") desenharLicoes();
+    if (secao === "padronizacao") desenharPadronizacao();
   }
   async function recarregarTudo() {
     const ok = await carregar(); if (!ok) return;
-    desenharCabecalho(); preencherCharter(); desenharBrainstorm(); desenharIshikawa(); desenharPorques(); desenharPareto(); preencherResponsaveis(); desenharAcoes();
+    desenharCabecalho(); preencherCharter(); preencherSipoc(); preencherSwot(); desenharBrainstorm(); desenharIshikawa(); desenharPorques();
+    preencherResponsaveis(); preencherEntregas(); desenharAcoes(); desenharFmea(); desenharLicoes();
   }
 
-  ligarAbas(document.getElementById("abas"), function (nome) { if (nome === "pareto") desenharPareto(); });
+  ligarAbas(document.getElementById("abas"), function (nome) {
+    if (nome === "pareto") desenharPareto();
+    if (nome === "priorizacao") desenharPriorizacao();
+    if (nome === "eap") desenharEap();
+    if (nome === "padronizacao") desenharPadronizacao();
+  });
 
   const ok = await carregar();
   if (!ok) return;
-  desenharCabecalho(); preencherCharter(); desenharBrainstorm(); desenharIshikawa(); desenharPorques(); preencherResponsaveis(); desenharAcoes();
+  desenharCabecalho(); preencherCharter(); preencherSipoc(); preencherSwot(); desenharBrainstorm(); desenharIshikawa(); desenharPorques();
+  preencherResponsaveis(); preencherEntregas(); desenharAcoes(); desenharFmea(); desenharLicoes();
 })();
