@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>POPs e manuais | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <span class="selo-papel" data-papel-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="painel-cliente.html">← Voltar ao painel</a>
+    <h1>POPs e manuais</h1>
+    <p class="sub">Procedimentos operacionais padrão para cada canal de atendimento. Edite, adapte ou crie novos a partir dos modelos.</p>
+
+    <div class="abas" id="abas" role="tablist">
+      <button class="aba" type="button" data-aba="meus" aria-selected="true">Meus POPs</button>
+      <button class="aba" type="button" data-aba="biblioteca" id="abaBiblioteca" hidden>Biblioteca padrão (modelos)</button>
+    </div>
+
+    <!-- ===== MEUS POPS ===== -->
+    <section data-painel="meus">
+      <div class="sugestoes" id="filtroCanal" style="margin-bottom:14px"></div>
+      <div class="acoes" style="margin-bottom:14px">
+        <button class="btn auto contorno" type="button" id="btAdicionarModelo">+ Adicionar da biblioteca</button>
+        <button class="btn auto contorno" type="button" id="btNovoPop">+ Criar POP do zero</button>
+      </div>
+      <div id="listaPops"></div>
+    </section>
+
+    <!-- ===== BIBLIOTECA (só master) ===== -->
+    <section data-painel="biblioteca" hidden>
+      <p class="ajuda">Estes são os modelos que todo novo cliente recebe automaticamente. Editar aqui não altera os POPs que os clientes já personalizaram.</p>
+      <div id="listaModelos"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Janela de escolher modelos para adicionar -->
+<dialog class="janela" id="janelaAdicionarModelo">
+  <h2>Adicionar da biblioteca</h2>
+  <p class="ajuda">Escolha os modelos que você ainda não tem.</p>
+  <div id="listaModelosDisponiveis" class="checks" style="flex-direction:column;align-items:flex-start;gap:10px"></div>
+  <div class="acoes"><button class="btn auto" type="button" id="btConfirmarAdicionar">Adicionar selecionados</button><button class="btn auto contorno" type="button" id="btFecharAdicionar">Fechar</button></div>
+</dialog>
+
+<!-- Janela de edição completa de um POP -->
+<dialog class="janela janela-larga" id="janelaEditarPop">
+  <h2 id="tituloJanelaPop">Editar POP</h2>
+  <form id="formPop" class="f" novalidate>
+    <div class="grade g2">
+      <div><label for="popTitulo">Título</label><input id="popTitulo" maxlength="150" required></div>
+      <div><label for="popCanal">Canal</label><select id="popCanal">
+        <option value="clinica_presencial">Atendimento presencial / clínica</option>
+        <option value="whatsapp">WhatsApp</option>
+        <option value="instagram_redes">Instagram e redes sociais</option>
+        <option value="vendas">Vendas</option>
+        <option value="interno_empresa">Interno / operacional</option>
+        <option value="outro">Outro</option>
+      </select></div>
+    </div>
+    <div style="margin-top:12px"><label for="popObjetivo">Objetivo</label><textarea id="popObjetivo" rows="2" placeholder="Para que serve este procedimento"></textarea></div>
+    <div class="grade g2" style="margin-top:12px">
+      <div><label for="popEscopo">Escopo (quando se aplica)</label><textarea id="popEscopo" rows="2"></textarea></div>
+      <div><label for="popResponsavel">Responsável</label><input id="popResponsavel" maxlength="100"></div>
+    </div>
+    <div style="margin-top:12px"><label for="popMateriais">Materiais / recursos necessários</label><textarea id="popMateriais" rows="2"></textarea></div>
+
+    <h3 style="margin:18px 0 8px;font-size:16px;color:var(--navy)">Passo a passo</h3>
+    <div id="listaPassos"></div>
+    <button class="btn peq contorno" type="button" id="btAddPasso" style="margin-top:8px">+ Adicionar passo</button>
+
+    <div class="grade g2" style="margin-top:16px">
+      <div><label for="popCriterios">Critérios de qualidade</label><textarea id="popCriterios" rows="2" placeholder="Como saber que foi bem feito"></textarea></div>
+      <div><label for="popErros">Erros comuns</label><textarea id="popErros" rows="2" placeholder="O que normalmente dá errado"></textarea></div>
+    </div>
+
+    <div class="acoes" style="margin-top:16px"><button class="btn auto" type="submit">Salvar POP</button><button class="btn auto contorno" type="button" id="btFecharEditarPop">Cancelar</button></div>
+  </form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/pops.js"></script>
+</body>
+</html>

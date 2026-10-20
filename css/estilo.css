@@ -254,3 +254,16 @@ details>summary::-webkit-details-marker{display:none}
 .tipo-custo{color:#8C2016}
 .tipo-antecipada{color:#7D6608}
 .cal-item.roxo{background:#F3EFFB;color:#4A2E8C;border-left:3px solid #7B4FD4}
+
+/* ===== POPs e manuais ===== */
+dialog.janela.janela-larga{max-width:780px;max-height:88vh;overflow-y:auto}
+.passo-item{display:flex;gap:10px;align-items:flex-start;background:#F8F4E9;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.passo-item .passo-num{font:700 15px var(--serif);color:var(--gold2);min-width:22px}
+.passo-item .passo-campos{flex:1;display:flex;flex-direction:column;gap:6px}
+.passo-item input, .passo-item textarea{width:100%}
+.pop-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+.pop-card .pop-topo{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.pop-card .pop-canal{font:600 12px var(--sans);color:var(--goldtxt);text-transform:uppercase;letter-spacing:.04em}
+.pop-card ol{margin:10px 0 0;padding-left:22px}
+.pop-card ol li{margin-bottom:6px;font-size:14.5px}
+.pop-card ol li b{color:var(--navy)}
