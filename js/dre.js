@@ -51,7 +51,7 @@
       if (r.data && r.data.length) document.getElementById("abaLives").hidden = false;
     });
     // Também mostra a aba se for empresa tipo loja
-    if (empresa.tipo === "empresa") document.getElementById("abaLives").hidden = false;
+    if (re.data && re.data.tipo === "empresa") document.getElementById("abaLives").hidden = false;
   }
   document.getElementById("areaDre").hidden = false;
 
