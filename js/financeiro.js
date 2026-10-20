@@ -46,7 +46,7 @@
       supa().from("perfis").select("id,nome,email,papel,telefone,ativo").order("nome"),
       supa().from("contratos").select("id,perfil_id,servico,produto,data_inicio,data_fim,valor_total,periodicidade,valor_recorrente,forma_pagamento,ativo").order("criado_em"),
       supa().from("custos_cliente").select("id,perfil_id,data,valor,descricao").order("data", { ascending: false }),
-      supa().from("empresas").select("id,nome,tipo,empresa_membros(perfil_id)").eq("tipo", "empresa").order("nome"),
+      supa().from("empresas").select("id,nome,tipo,empresa_membros(perfil_id)").in("tipo", ["empresa","pessoal"]).order("nome"),
       supa().from("preferencias").select("dados").eq("perfil_id", eu.id).maybeSingle()
     ]);
     perfis = rp.data || [];
