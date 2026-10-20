@@ -67,6 +67,14 @@
           </form>
         </div>
         <div class="cartao" style="margin-top:14px">
+          <div class="barra-periodo f" style="align-items:center;gap:12px">
+            <button class="btn peq contorno" type="button" id="mesAnteriorAgenda">‹</button>
+            <b id="tituloMesAgenda" style="font-size:16px;min-width:150px;text-align:center"></b>
+            <button class="btn peq contorno" type="button" id="mesProximoAgenda">›</button>
+          </div>
+          <div class="calendario-fluxo" id="calendarioAgenda" style="margin-top:12px"></div>
+        </div>
+        <div class="cartao" style="margin-top:14px">
           <h2>Sessões</h2>
           <div id="listaSessoes"></div>
         </div>
@@ -76,10 +84,19 @@
 </div>
 
 <dialog class="janela" id="janelaNota">
-  <h2>Notas clínicas da sessão</h2>
-  <p class="ajuda">O paciente nunca vê esta nota.</p>
-  <div class="f"><textarea id="textoNota" rows="5"></textarea></div>
-  <div class="acoes"><button class="btn auto" type="button" id="btSalvarNota">Salvar nota</button><button class="btn auto contorno" type="button" id="btFecharNota">Fechar</button></div>
+  <h2>Sessão: notas e pagamento</h2>
+  <p class="ajuda">A nota clínica nunca aparece para o paciente. O valor e o status de pagamento aparecem para ele, como um preço.</p>
+  <div class="f"><label for="textoNota">Notas clínicas</label><textarea id="textoNota" rows="4"></textarea></div>
+  <div class="f grade g2" style="margin-top:12px">
+    <div><label for="valorSessao">Valor da sessão (R$)</label><input id="valorSessao" inputmode="decimal" placeholder="0,00"></div>
+    <div style="align-self:end"><span class="selo" id="statusPagamentoSessao"></span></div>
+  </div>
+  <div class="acoes">
+    <button class="btn auto" type="button" id="btSalvarNota">Salvar nota</button>
+    <button class="btn auto" type="button" id="btMarcarPago">Marcar como pago (lança na DRE)</button>
+    <button class="btn auto contorno" type="button" id="btDesfazerPago" hidden>Desfazer pagamento</button>
+    <button class="btn auto contorno" type="button" id="btFecharNota">Fechar</button>
+  </div>
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>

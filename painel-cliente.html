@@ -35,7 +35,7 @@
     </div>
     <div class="cartao" id="cartaoTerapia" hidden>
       <h2>Seu processo terapêutico</h2>
-      <p class="ajuda">Suas áreas de trabalho, ações combinadas, sessões, testes e anamnese. Tudo sigiloso.</p>
+      <p class="ajuda">Suas áreas de trabalho, ações combinadas, sessões e testes. Tudo sigiloso.</p>
       <a class="btn auto" href="terapia.html">Abrir meu processo</a>
     </div>
     <div class="cartao" id="cartaoClinica" hidden>
@@ -95,10 +95,10 @@
     const vinc = rv.data[0];
     const rProf = await supa().from("perfis").select("nome").eq("id", vinc.profissional_perfil_id).maybeSingle();
     document.getElementById("profissionalResponsavel").textContent = "Profissional responsável: " + (rProf.data ? rProf.data.nome : "—");
-    const rSes = await supa().from("clinica_sessoes").select("data,hora_inicio,status,tipo_atendimento").eq("paciente_vinculo_id", vinc.id).order("data", { ascending: false }).limit(10);
+    const rSes = await supa().from("clinica_sessoes").select("data,hora_inicio,status,tipo_atendimento,valor,pago").eq("paciente_vinculo_id", vinc.id).order("data", { ascending: false }).limit(10);
     const STATUS_LABEL = { agendado: "Agendado", realizado: "Realizado", cancelado: "Cancelado", faltou: "Faltou" };
-    document.getElementById("listaMinhasSessoes").innerHTML = (rSes.data || []).length ? '<div class="tabela-wrap"><table class="t"><thead><tr><th>Data</th><th>Hora</th><th>Tipo</th><th>Status</th></tr></thead><tbody>' +
-      rSes.data.map(function (s) { return "<tr><td>" + dataBR(s.data) + "</td><td>" + (s.hora_inicio ? s.hora_inicio.slice(0, 5) : "—") + "</td><td>" + (s.tipo_atendimento || "—") + "</td><td>" + STATUS_LABEL[s.status] + "</td></tr>"; }).join("") +
+    document.getElementById("listaMinhasSessoes").innerHTML = (rSes.data || []).length ? '<div class="tabela-wrap"><table class="t"><thead><tr><th>Data</th><th>Hora</th><th>Tipo</th><th>Status</th><th>Valor</th></tr></thead><tbody>' +
+      rSes.data.map(function (s) { return "<tr><td>" + dataBR(s.data) + "</td><td>" + (s.hora_inicio ? s.hora_inicio.slice(0, 5) : "—") + "</td><td>" + (s.tipo_atendimento || "—") + "</td><td>" + STATUS_LABEL[s.status] + "</td><td>" + (s.valor ? brl(s.valor) + (s.pago ? " · pago" : " · pendente") : "—") + "</td></tr>"; }).join("") +
       "</tbody></table></div>" : '<p class="vazio">Nenhuma sessão registrada ainda.</p>';
     document.getElementById("cartaoClinica").hidden = false;
   }

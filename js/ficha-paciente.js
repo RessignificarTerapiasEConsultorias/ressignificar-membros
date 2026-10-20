@@ -51,7 +51,7 @@
   });
 
   /* ===== SESSÕES ===== */
-  let sessoes = [], notasAbertas = null;
+  let sessoes = [], notasAbertas = null, mesAgenda = new Date();
   document.getElementById("sData").value = hojeISO();
   async function carregarSessoes() {
     const r = await supa().from("clinica_sessoes").select("*").eq("paciente_vinculo_id", vid).order("data", { ascending: false });
@@ -62,12 +62,38 @@
       return '<div class="sessao"><div class="sessao-topo"><b>' + dataBR(s.data) + (s.hora_inicio ? " às " + s.hora_inicio.slice(0, 5) : "") + '</b>' +
         '<span class="selo ' + STATUS_CLS[s.status] + '">' + STATUS_LABEL[s.status] + '</span></div>' +
         (s.tipo_atendimento ? '<span class="acao-info">' + esc(s.tipo_atendimento) + '</span>' : "") +
+        (s.valor ? '<span class="acao-info"> · ' + brl(s.valor) + (s.pago ? " · pago" : " · pendente") + '</span>' : "") +
         '<div class="acoes" style="margin-top:6px">' +
         '<select data-status-sessao="' + s.id + '">' + Object.keys(STATUS_LABEL).map(function (k) { return '<option value="' + k + '"' + (s.status === k ? " selected" : "") + ">" + STATUS_LABEL[k] + "</option>"; }).join("") + '</select>' +
-        '<button class="btn peq contorno" type="button" data-nota="' + s.id + '">Notas clínicas</button>' +
+        '<button class="btn peq contorno" type="button" data-nota="' + s.id + '">Notas e pagamento</button>' +
         '<button class="btn peq perigo" type="button" data-del-sessao="' + s.id + '">Apagar</button></div></div>';
     }).join("") : '<p class="vazio">Nenhuma sessão registrada ainda.</p>';
   }
+
+  /* ===== CALENDÁRIO VISUAL ===== */
+  function diasNoMes(ano, mes0) { return new Date(Date.UTC(ano, mes0 + 1, 0)).getUTCDate(); }
+  function desenharCalendarioAgenda() {
+    const ano = mesAgenda.getFullYear(), mes0 = mesAgenda.getMonth();
+    const nomeMes = MESES_LONGOS[mes0]; document.getElementById("tituloMesAgenda").textContent = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1) + " " + ano;
+    const n = diasNoMes(ano, mes0), hoje = hojeISO();
+    let html = "";
+    for (let d = 1; d <= n; d++) {
+      const dStr = ano + "-" + String(mes0 + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+      const doDia = sessoes.filter(function (s) { return s.data === dStr; });
+      html += '<div class="cal-dia' + (dStr === hoje ? " hoje" : "") + (dStr < hoje ? " passado" : "") + '"><div class="cal-num">' + d + "</div>" +
+        doDia.map(function (s) {
+          const cls = s.status === "realizado" ? "verde" : (s.status === "cancelado" || s.status === "faltou" ? "vermelho" : "amarelo");
+          return '<div class="cal-item ' + cls + '" data-nota-cal="' + s.id + '">' + (s.hora_inicio ? s.hora_inicio.slice(0, 5) + " " : "") + STATUS_LABEL[s.status] + '</div>';
+        }).join("") + "</div>";
+    }
+    document.getElementById("calendarioAgenda").innerHTML = html;
+  }
+  document.getElementById("mesAnteriorAgenda").addEventListener("click", function () { mesAgenda = new Date(mesAgenda.getFullYear(), mesAgenda.getMonth() - 1, 1); desenharCalendarioAgenda(); });
+  document.getElementById("mesProximoAgenda").addEventListener("click", function () { mesAgenda = new Date(mesAgenda.getFullYear(), mesAgenda.getMonth() + 1, 1); desenharCalendarioAgenda(); });
+  document.getElementById("calendarioAgenda").addEventListener("click", function (e) {
+    const b = e.target.closest("[data-nota-cal]"); if (!b) return;
+    abrirNota(b.dataset.notaCal);
+  });
   document.getElementById("formSessao").addEventListener("submit", async function (e) {
     e.preventDefault();
     const reg = {
@@ -78,22 +104,30 @@
     const r = await supa().from("clinica_sessoes").insert(reg);
     if (r.error) { aviso("Não foi possível salvar.", true); return; }
     aviso("Sessão salva!"); this.reset(); document.getElementById("sData").value = hojeISO(); document.getElementById("sStatus").value = "agendado";
-    await carregarSessoes(); desenharSessoes();
+    await carregarSessoes(); desenharSessoes(); desenharCalendarioAgenda();
   });
   document.getElementById("listaSessoes").addEventListener("change", async function (e) {
     const sel = e.target.closest("[data-status-sessao]"); if (!sel) return;
     await supa().from("clinica_sessoes").update({ status: sel.value }).eq("id", sel.dataset.statusSessao);
-    await carregarSessoes(); desenharSessoes();
+    await carregarSessoes(); desenharSessoes(); desenharCalendarioAgenda();
   });
+  async function abrirNota(sessaoId) {
+    notasAbertas = sessaoId;
+    const s = sessoes.find(function (x) { return x.id === sessaoId; });
+    const r = await supa().from("clinica_sessoes_notas").select("notas").eq("sessao_id", sessaoId).maybeSingle();
+    document.getElementById("textoNota").value = r.data ? (r.data.notas || "") : "";
+    document.getElementById("valorSessao").value = s && s.valor ? String(s.valor).replace(".", ",") : "";
+    const pago = s && s.pago;
+    document.getElementById("statusPagamentoSessao").textContent = pago ? "Pago" : "Pendente";
+    document.getElementById("statusPagamentoSessao").className = "selo " + (pago ? "ok" : "off");
+    document.getElementById("btMarcarPago").hidden = !!pago;
+    document.getElementById("btDesfazerPago").hidden = !pago;
+    document.getElementById("janelaNota").showModal();
+  }
   document.getElementById("listaSessoes").addEventListener("click", async function (e) {
     const bd = e.target.closest("[data-del-sessao]"), bn = e.target.closest("[data-nota]");
-    if (bd) { if (!confirm("Apagar esta sessão e a nota ligada a ela?")) return; await supa().from("clinica_sessoes").delete().eq("id", bd.dataset.delSessao); await carregarSessoes(); desenharSessoes(); }
-    if (bn) {
-      notasAbertas = bn.dataset.nota;
-      const r = await supa().from("clinica_sessoes_notas").select("notas").eq("sessao_id", notasAbertas).maybeSingle();
-      document.getElementById("textoNota").value = r.data ? (r.data.notas || "") : "";
-      document.getElementById("janelaNota").showModal();
-    }
+    if (bd) { if (!confirm("Apagar esta sessão e a nota ligada a ela?")) return; await supa().from("clinica_sessoes").delete().eq("id", bd.dataset.delSessao); await carregarSessoes(); desenharSessoes(); desenharCalendarioAgenda(); }
+    if (bn) abrirNota(bn.dataset.nota);
   });
   document.getElementById("btFecharNota").addEventListener("click", function () { document.getElementById("janelaNota").close(); });
   document.getElementById("btSalvarNota").addEventListener("click", async function () {
@@ -101,8 +135,26 @@
     if (r.error) { aviso("Não foi possível salvar.", true); return; }
     aviso("Nota salva!"); document.getElementById("janelaNota").close();
   });
+  document.getElementById("btMarcarPago").addEventListener("click", async function () {
+    const valor = lerValor(document.getElementById("valorSessao").value);
+    if (!(valor > 0)) { aviso("Informe o valor da sessão.", true); return; }
+    const b = this; b.disabled = true;
+    const r = await supa().rpc("clinica_marcar_sessao_paga", { p_sessao_id: notasAbertas, p_valor: valor });
+    b.disabled = false;
+    if (r.error) { aviso("Não foi possível marcar como pago.", true); return; }
+    aviso("Pagamento registrado e lançado na DRE!");
+    document.getElementById("janelaNota").close();
+    await carregarSessoes(); desenharSessoes(); desenharCalendarioAgenda();
+  });
+  document.getElementById("btDesfazerPago").addEventListener("click", async function () {
+    if (!confirm("Desfazer o pagamento? O lançamento sai da DRE.")) return;
+    const r = await supa().rpc("clinica_desfazer_pagamento_sessao", { p_sessao_id: notasAbertas });
+    if (r.error) { aviso("Não foi possível desfazer.", true); return; }
+    aviso("Pagamento desfeito."); document.getElementById("janelaNota").close();
+    await carregarSessoes(); desenharSessoes(); desenharCalendarioAgenda();
+  });
 
   ligarAbas(document.getElementById("abas"));
   await carregarAnamnese();
-  await carregarSessoes(); desenharSessoes();
+  await carregarSessoes(); desenharSessoes(); desenharCalendarioAgenda();
 })();
