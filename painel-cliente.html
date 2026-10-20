@@ -38,6 +38,11 @@
       <p class="ajuda">Suas áreas de trabalho, ações combinadas, sessões, testes e anamnese. Tudo sigiloso.</p>
       <a class="btn auto" href="terapia.html">Abrir meu processo</a>
     </div>
+    <div class="cartao" id="cartaoClinica" hidden>
+      <h2>Meu atendimento</h2>
+      <p class="ajuda" id="profissionalResponsavel"></p>
+      <div id="listaMinhasSessoes"></div>
+    </div>
     <div class="cartao" id="cartaoProjetos" hidden>
       <h2>Projetos de melhoria</h2>
       <p class="ajuda">Acompanhe os projetos de melhoria contínua da sua empresa, do problema até o resultado.</p>
@@ -84,6 +89,19 @@
   if ((s.data || []).some(function (x) { return x.tipo === "terapia"; })) document.getElementById("cartaoTerapia").hidden = false;
   if ((s.data || []).some(function (x) { return x.tipo === "mentoria"; })) document.getElementById("cartaoMentoria").hidden = false;
   if ((s.data || []).some(function (x) { return x.tipo === "consultoria_empresarial" || x.tipo === "mentoria"; })) document.getElementById("cartaoProjetos").hidden = false;
+
+  const rv = await supa().from("clinica_pacientes").select("id,profissional_perfil_id").eq("perfil_id", eu.id).eq("ativo", true);
+  if (rv.data && rv.data.length) {
+    const vinc = rv.data[0];
+    const rProf = await supa().from("perfis").select("nome").eq("id", vinc.profissional_perfil_id).maybeSingle();
+    document.getElementById("profissionalResponsavel").textContent = "Profissional responsável: " + (rProf.data ? rProf.data.nome : "—");
+    const rSes = await supa().from("clinica_sessoes").select("data,hora_inicio,status,tipo_atendimento").eq("paciente_vinculo_id", vinc.id).order("data", { ascending: false }).limit(10);
+    const STATUS_LABEL = { agendado: "Agendado", realizado: "Realizado", cancelado: "Cancelado", faltou: "Faltou" };
+    document.getElementById("listaMinhasSessoes").innerHTML = (rSes.data || []).length ? '<div class="tabela-wrap"><table class="t"><thead><tr><th>Data</th><th>Hora</th><th>Tipo</th><th>Status</th></tr></thead><tbody>' +
+      rSes.data.map(function (s) { return "<tr><td>" + dataBR(s.data) + "</td><td>" + (s.hora_inicio ? s.hora_inicio.slice(0, 5) : "—") + "</td><td>" + (s.tipo_atendimento || "—") + "</td><td>" + STATUS_LABEL[s.status] + "</td></tr>"; }).join("") +
+      "</tbody></table></div>" : '<p class="vazio">Nenhuma sessão registrada ainda.</p>';
+    document.getElementById("cartaoClinica").hidden = false;
+  }
   /* ---------- pagamentos do próprio cliente ---------- */
   const rc = await supa().from("cobrancas").select("id,contrato_id,descricao,vencimento,valor,pago_em").eq("perfil_id", eu.id).order("vencimento");
   const rk = await supa().from("contratos").select("id,servico,produto").eq("perfil_id", eu.id);

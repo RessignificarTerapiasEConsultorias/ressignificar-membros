@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ficha do paciente | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="painel-profissional.html">← Voltar</a>
+    <div class="cartao erro-pagina" id="falha" hidden><h2>Não foi possível abrir</h2><p class="ajuda" id="falhaMsg"></p></div>
+
+    <div id="area" hidden>
+      <h1 id="tituloPaciente">Ficha do paciente</h1>
+      <p class="sub" id="subPaciente"></p>
+
+      <div class="abas" id="abas" role="tablist">
+        <button class="aba" type="button" data-aba="anamnese" aria-selected="true">Anamnese</button>
+        <button class="aba" type="button" data-aba="agenda">Agenda e sessões</button>
+      </div>
+
+      <!-- ===== ANAMNESE ===== -->
+      <section data-painel="anamnese">
+        <div class="cartao">
+          <h2>Anamnese</h2>
+          <p class="ajuda">O paciente nunca vê esta aba — fica visível só para o profissional responsável, o dono da clínica e a equipe Ressignificar.</p>
+          <form id="formAnamnese" class="f">
+            <div><label for="anQueixa">Queixa principal</label><textarea id="anQueixa" rows="2"></textarea></div>
+            <div style="margin-top:12px"><label for="anHistorico">Histórico de saúde</label><textarea id="anHistorico" rows="3"></textarea></div>
+            <div class="grade g2" style="margin-top:12px">
+              <div><label for="anMedicamentos">Medicamentos em uso</label><textarea id="anMedicamentos" rows="2"></textarea></div>
+              <div><label for="anAlergias">Alergias</label><textarea id="anAlergias" rows="2"></textarea></div>
+            </div>
+            <div style="margin-top:12px"><label for="anFamiliar">Histórico familiar</label><textarea id="anFamiliar" rows="2"></textarea></div>
+            <div style="margin-top:12px"><label for="anObs">Observações</label><textarea id="anObs" rows="2"></textarea></div>
+            <div class="acoes"><button class="btn auto" type="submit">Salvar anamnese</button></div>
+          </form>
+          <p class="acao-info" id="anamneseInfo" style="margin-top:8px"></p>
+        </div>
+      </section>
+
+      <!-- ===== AGENDA E SESSÕES ===== -->
+      <section data-painel="agenda" hidden>
+        <div class="cartao">
+          <h2>Nova sessão</h2>
+          <form id="formSessao" class="f grade g3">
+            <div><label for="sData">Data</label><input id="sData" type="date" required></div>
+            <div><label for="sInicio">Hora início</label><input id="sInicio" type="time"></div>
+            <div><label for="sFim">Hora fim</label><input id="sFim" type="time"></div>
+            <div><label for="sTipo">Tipo de atendimento</label><input id="sTipo" maxlength="80" placeholder="Ex.: Consulta, Retorno"></div>
+            <div><label for="sStatus">Status</label><select id="sStatus"><option value="agendado">Agendado</option><option value="realizado">Realizado</option><option value="cancelado">Cancelado</option><option value="faltou">Faltou</option></select></div>
+            <div style="align-self:end"><button class="btn auto" type="submit">Salvar sessão</button></div>
+          </form>
+        </div>
+        <div class="cartao" style="margin-top:14px">
+          <h2>Sessões</h2>
+          <div id="listaSessoes"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<dialog class="janela" id="janelaNota">
+  <h2>Notas clínicas da sessão</h2>
+  <p class="ajuda">O paciente nunca vê esta nota.</p>
+  <div class="f"><textarea id="textoNota" rows="5"></textarea></div>
+  <div class="acoes"><button class="btn auto" type="button" id="btSalvarNota">Salvar nota</button><button class="btn auto contorno" type="button" id="btFecharNota">Fechar</button></div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/ficha-paciente.js"></script>
+</body>
+</html>

@@ -6,7 +6,8 @@ const PAINEL_DO_PAPEL = {
   master: "painel-master.html",
   suporte: "painel-suporte.html",
   cliente: "painel-cliente.html",
-  vendedor: "painel-vendedor.html"
+  vendedor: "painel-vendedor.html",
+  profissional: "painel-profissional.html"
 };
 
 /* SEGURANÇA: o login fica guardado só na aba aberta (sessionStorage).

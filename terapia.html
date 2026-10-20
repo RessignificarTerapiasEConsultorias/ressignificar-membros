@@ -34,7 +34,7 @@
         <button class="aba" type="button" data-aba="areas" aria-selected="false">Áreas e ações</button>
         <button class="aba" type="button" data-aba="sessoes" aria-selected="false">Sessões</button>
         <button class="aba" type="button" data-aba="testes" aria-selected="false">Testes</button>
-        <button class="aba" type="button" data-aba="anamnese" aria-selected="false">Anamnese</button>
+        <button class="aba so-master" type="button" data-aba="anamnese" aria-selected="false">Anamnese</button>
       </div>
 
       <!-- ===== VISÃO GERAL ===== -->
@@ -110,10 +110,10 @@
       </section>
 
       <!-- ===== ANAMNESE ===== -->
-      <section data-painel="anamnese" hidden>
+      <section data-painel="anamnese" class="so-master" hidden>
         <div class="cartao">
           <h2>Anamnese</h2>
-          <p class="ajuda" id="anamneseInfo">Responda com calma e com as suas palavras. Dá para voltar e completar depois.</p>
+          <p class="ajuda" id="anamneseInfo">Preenchimento do terapeuta. O cliente não tem acesso a esta aba.</p>
           <form id="formAnamnese" class="f" novalidate>
             <div id="camposAnamnese"></div>
             <div class="acoes"><button class="btn auto" type="submit">Salvar anamnese</button></div>

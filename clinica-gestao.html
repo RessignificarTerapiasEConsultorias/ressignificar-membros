@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Profissionais e pacientes | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="#">← Voltar</a>
+    <div class="cartao erro-pagina" id="falha" hidden><h2>Não foi possível abrir</h2><p class="ajuda" id="falhaMsg"></p></div>
+
+    <div id="area" hidden>
+      <h1 id="tituloClinica">Profissionais e pacientes</h1>
+      <p class="sub">A anamnese e as notas clínicas nunca aparecem para o paciente — só para o profissional responsável, o dono da clínica e a equipe Ressignificar.</p>
+
+      <div class="abas" id="abas" role="tablist">
+        <button class="aba" type="button" data-aba="profissionais" aria-selected="true">Profissionais</button>
+        <button class="aba" type="button" data-aba="pacientes">Pacientes</button>
+      </div>
+
+      <!-- ===== PROFISSIONAIS ===== -->
+      <section data-painel="profissionais">
+        <div class="cartao">
+          <h2>Ligar profissional à clínica</h2>
+          <p class="ajuda">Primeiro crie o acesso da pessoa como "Profissional" em Pessoas e acessos. Depois ligue aqui.</p>
+          <div class="f grade g3">
+            <div><label for="selProfissional">Profissional</label><select id="selProfissional"></select></div>
+            <div><label for="novaEspecialidade">Especialidade</label><input id="novaEspecialidade" maxlength="80" placeholder="Ex.: Psicóloga, Psiquiatra"></div>
+            <div style="align-self:end"><button class="btn auto" type="button" id="btLigarProfissional">Ligar à clínica</button></div>
+          </div>
+        </div>
+        <div class="cartao" style="margin-top:14px">
+          <h2>Profissionais desta clínica</h2>
+          <div id="listaProfissionais"></div>
+        </div>
+      </section>
+
+      <!-- ===== PACIENTES ===== -->
+      <section data-painel="pacientes" hidden>
+        <div class="cartao">
+          <h2>Ligar paciente a um profissional</h2>
+          <p class="ajuda">Primeiro crie o acesso da pessoa como "Cliente" em Pessoas e acessos. Depois ligue aqui ao profissional responsável.</p>
+          <div class="f grade g3">
+            <div><label for="selPaciente">Paciente</label><select id="selPaciente"></select></div>
+            <div><label for="selProfissionalPaciente">Profissional responsável</label><select id="selProfissionalPaciente"></select></div>
+            <div><label for="novoNascimento">Data de nascimento <span class="vazio">(opcional)</span></label><input id="novoNascimento" type="date"></div>
+          </div>
+          <div class="acoes"><button class="btn auto" type="button" id="btLigarPaciente">Ligar paciente</button></div>
+        </div>
+        <div class="cartao" style="margin-top:14px">
+          <h2>Pacientes desta clínica</h2>
+          <div id="listaPacientes"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/clinica-gestao.js"></script>
+</body>
+</html>

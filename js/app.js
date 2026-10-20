@@ -5,7 +5,7 @@ const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "O
 const MESES_LONGOS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const ROTULO_SERVICO = { consultoria_empresarial: "Consultoria empresarial", terapia: "Terapia", mentoria: "Mentoria" };
 const ROTULO_CANAL = { loja_fisica: "Loja física", digital: "Digital / online", servico: "Serviço", outro: "Outro" };
-const ROTULO_PAPEL = { master: "Master", suporte: "Suporte", cliente: "Cliente", vendedor: "Vendedor(a)" };
+const ROTULO_PAPEL = { master: "Master", suporte: "Suporte", cliente: "Cliente", vendedor: "Vendedor(a)", profissional: "Profissional" };
 
 function brl(v) { return MOEDA.format(Number(v) || 0); }
 function pct(v) { return (isFinite(v) ? (v * 100).toFixed(1).replace(".", ",") : "0,0") + "%"; }

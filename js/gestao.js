@@ -218,6 +218,7 @@
         '<a class="btn auto" href="dre.html?e=' + e.id + '">Abrir DRE</a>' +
         (e.tipo === "empresa" && (modulosAtivosPorEmpresa[e.id] || []).indexOf("vendas_vendedor") !== -1 ? '<a class="btn peq contorno" href="vendas.html?e=' + e.id + '">Vendas</a>' : "") +
         (e.tipo === "empresa" ? '<a class="btn peq contorno" href="modulos.html?e=' + e.id + '">Módulos</a>' : "") +
+        (e.tipo === "empresa" ? '<a class="btn peq contorno" href="clinica-gestao.html?e=' + e.id + '">Profissionais e pacientes</a>' : "") +
         '<button class="btn peq contorno" type="button" data-membros="' + e.id + '">Pessoas com acesso</button>' +
         (master ? '<button class="btn peq perigo" type="button" data-apagar="' + e.id + '">Apagar</button>' : "") +
         "</div></div>";

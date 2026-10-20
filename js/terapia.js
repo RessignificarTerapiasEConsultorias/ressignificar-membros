@@ -495,6 +495,6 @@
 
   await carregar();
   desenharTudo();
-  carregarAnamnese();
+  if (master) carregarAnamnese();
   if (fT) preencherDimsDoTeste();
 })();
