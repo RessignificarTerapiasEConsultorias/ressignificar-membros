@@ -14,7 +14,8 @@
 
   let projeto = null, charter = null, brainstorm = [], ishikawa = [], porques = [], pareto = [], acoes = [], perfisEquipe = [];
   let sipoc = null, swot = null, fmea = [], priorizacao = [], entregas = [], licoes = [], popsCliente = [];
-  let editandoAcaoId = null, grafPareto = null, grafPriorizacao = null, visaoAcoes = "tabela";
+  let contasEmpresa = [], lancamentosConta = [], cepPontos = [], hipoteses = [];
+  let editandoAcaoId = null, grafPareto = null, grafPriorizacao = null, grafDre = null, grafCep = null, visaoAcoes = "tabela";
 
   function esc(s) { return String(s || "").replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
 
@@ -45,6 +46,20 @@
     }
     const rpops = await supa().from("pops_documentos").select("id,titulo,origem_projeto_id").eq("perfil_id", projeto.perfil_id).eq("ativo", true);
     popsCliente = rpops.data || [];
+
+    if (projeto.empresa_id) {
+      const rcontas = await supa().from("contas").select("id,tipo,grupo,nome").eq("empresa_id", projeto.empresa_id).eq("ativo", true).order("nome");
+      contasEmpresa = rcontas.data || [];
+    } else contasEmpresa = [];
+    if (projeto.conta_vinculada_id) {
+      const rlanc = await supa().from("lancamentos").select("data,valor").eq("conta_id", projeto.conta_vinculada_id).order("data");
+      lancamentosConta = rlanc.data || [];
+    } else lancamentosConta = [];
+    const [rcep, rhip] = await Promise.all([
+      supa().from("projetos_cep_pontos").select("*").eq("projeto_id", pid).order("ordem"),
+      supa().from("projetos_hipotese").select("*").eq("projeto_id", pid).order("criado_em", { ascending: false })
+    ]);
+    cepPontos = rcep.data || []; hipoteses = rhip.data || [];
     return true;
   }
 
@@ -522,6 +537,184 @@
     await recarregarESeção("padronizacao");
   });
 
+  /* ===== MATEMÁTICA DO TESTE DE HIPÓTESE (t de Student, algoritmo padrão) ===== */
+  function gammln(xx) {
+    var cof = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+    var x = xx, y = xx, tmp = x + 5.5; tmp -= (x + 0.5) * Math.log(tmp);
+    var ser = 1.000000000190015;
+    for (var j = 0; j < 6; j++) { y += 1; ser += cof[j] / y; }
+    return -tmp + Math.log(2.5066282746310005 * ser / x);
+  }
+  function betacf(x, a, b) {
+    var MAXIT = 100, EPS = 3e-7, FPMIN = 1e-30;
+    var qab = a + b, qap = a + 1, qam = a - 1;
+    var c = 1, d = 1 - qab * x / qap;
+    if (Math.abs(d) < FPMIN) d = FPMIN;
+    d = 1 / d; var h = d;
+    for (var m = 1; m <= MAXIT; m++) {
+      var m2 = 2 * m;
+      var aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+      c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+      d = 1 / d; h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+      c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+      d = 1 / d; var del = d * c; h *= del;
+      if (Math.abs(del - 1) < EPS) break;
+    }
+    return h;
+  }
+  function betai(x, a, b) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    var bt = Math.exp(gammln(a + b) - gammln(a) - gammln(b) + a * Math.log(x) + b * Math.log(1 - x));
+    if (x < (a + 1) / (a + b + 2)) return bt * betacf(x, a, b) / a;
+    return 1 - bt * betacf(1 - x, b, a) / b;
+  }
+  function media(arr) { return arr.reduce(function (s, v) { return s + v; }, 0) / arr.length; }
+  function variancia(arr, m) { return arr.reduce(function (s, v) { return s + Math.pow(v - m, 2); }, 0) / (arr.length - 1); }
+  function parseAmostra(txt) { return txt.split(/[,;\s]+/).map(function (s) { return parseFloat(s.replace(",", ".")); }).filter(function (n) { return !isNaN(n); }); }
+
+  /* ===== DRE: ligar conta e comparar antes x depois ===== */
+  function preencherContasDre() {
+    const sel = document.getElementById("rsConta"); if (!sel) return;
+    if (!projeto.empresa_id) { sel.innerHTML = '<option value="">Projeto não ligado a uma empresa</option>'; sel.disabled = true; return; }
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">—</option>' + contasEmpresa.map(function (c) { return '<option value="' + c.id + '"' + (c.id === projeto.conta_vinculada_id ? " selected" : "") + '>' + esc(c.nome) + " (" + esc(c.grupo) + ")</option>"; }).join("");
+  }
+  document.getElementById("btLigarConta").addEventListener("click", async function () {
+    const id = document.getElementById("rsConta").value;
+    await supa().from("projetos_melhoria").update({ conta_vinculada_id: id || null, atualizado_em: new Date().toISOString() }).eq("id", pid);
+    aviso(id ? "Conta ligada ao projeto!" : "Conta desligada."); await recarregarESeção("resultados");
+  });
+  function desenharComparativoDre() {
+    const el = document.getElementById("comparativoDre");
+    if (!projeto.conta_vinculada_id) { el.innerHTML = '<p class="vazio">Ligue uma conta acima para ver o comparativo.</p>'; return; }
+    const porMes = {};
+    lancamentosConta.forEach(function (l) { const m = l.data.slice(0, 7); porMes[m] = (porMes[m] || 0) + (+l.valor); });
+    const meses = Object.keys(porMes).sort();
+    if (!meses.length) { el.innerHTML = '<p class="vazio">Nenhum lançamento nesta conta ainda.</p>'; return; }
+    const ultimoMes = porMes[meses[meses.length - 1]];
+    const primeiroMes = porMes[meses[0]];
+    const variacao = primeiroMes ? ((ultimoMes - primeiroMes) / Math.abs(primeiroMes)) * 100 : null;
+    el.innerHTML = '<div class="graf" style="height:220px"><canvas id="gDre"></canvas></div>' +
+      '<p class="acao-info" style="margin-top:8px">Linha de base do projeto: ' + (projeto.linha_base_valor !== null ? brl(projeto.linha_base_valor) : "—") +
+      " · Meta: " + (projeto.meta_valor !== null ? projeto.meta_valor : "—") +
+      " · Último mês (" + meses[meses.length - 1] + "): " + ultimoMes.toFixed(2) +
+      (variacao !== null ? " · variação desde " + meses[0] + ": " + variacao.toFixed(1) + "%" : "") + "</p>";
+    if (typeof Chart !== "undefined") {
+      if (grafDre) grafDre.destroy();
+      grafDre = new Chart(document.getElementById("gDre"), {
+        type: "bar", data: { labels: meses, datasets: [{ label: "Valor no mês", data: meses.map(function (m) { return porMes[m]; }), backgroundColor: "#C9A24A" }] },
+        options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+  }
+  function desenharGanho() {
+    const estimado = (charter && charter.ganho_esperado !== null && charter.ganho_esperado !== undefined) ? +charter.ganho_esperado : (projeto.ganho_estimado !== null ? +projeto.ganho_estimado : null);
+    const realizado = projeto.ganho_realizado !== null && projeto.ganho_realizado !== undefined ? +projeto.ganho_realizado : null;
+    document.getElementById("rsGanhoRealizado").value = realizado !== null ? realizado : "";
+    document.getElementById("kpisGanho").innerHTML = [
+      ["Ganho estimado", estimado !== null ? brl(estimado) : "—", "definido no Charter"],
+      ["Ganho realizado", realizado !== null ? brl(realizado) : "—", "confirmado pelo consultor"],
+      ["Diferença", (estimado !== null && realizado !== null) ? brl(realizado - estimado) : "—", "realizado menos estimado"]
+    ].map(function (k) { return '<div class="kpi"><small>' + k[0] + '</small><b>' + k[1] + '</b><span>' + k[2] + '</span></div>'; }).join("");
+  }
+  document.getElementById("btSalvarGanho").addEventListener("click", async function () {
+    const v = lerValor(document.getElementById("rsGanhoRealizado").value);
+    await supa().from("projetos_melhoria").update({ ganho_realizado: v, atualizado_em: new Date().toISOString() }).eq("id", pid);
+    aviso("Ganho realizado salvo!"); await recarregarESeção("resultados");
+  });
+
+  /* ===== CEP ===== */
+  document.getElementById("formCep").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const valor = lerValor(document.getElementById("cepValor").value);
+    if (!(valor || valor === 0)) { aviso("Escreva o valor.", true); return; }
+    const ordem = cepPontos.length + 1;
+    const r = await supa().from("projetos_cep_pontos").insert({ projeto_id: pid, ordem: ordem, data: document.getElementById("cepData").value || null, valor: valor });
+    if (r.error) { aviso("Não foi possível adicionar.", true); return; }
+    this.reset(); await recarregarESeção("resultados");
+  });
+  function desenharCep() {
+    if (cepPontos.length < 2) { document.getElementById("resumoCep").textContent = "Lance ao menos 2 pontos para calcular os limites de controle."; return; }
+    const valores = cepPontos.map(function (p) { return +p.valor; });
+    const xbar = media(valores);
+    const mrs = []; for (var i = 1; i < valores.length; i++) mrs.push(Math.abs(valores[i] - valores[i - 1]));
+    const mrbar = media(mrs);
+    const ucl = xbar + 2.66 * mrbar, lcl = xbar - 2.66 * mrbar;
+    const foraControle = valores.filter(function (v) { return v > ucl || v < lcl; }).length;
+    document.getElementById("resumoCep").textContent = "Média: " + xbar.toFixed(2) + " · LSC: " + ucl.toFixed(2) + " · LIC: " + lcl.toFixed(2) + " · " +
+      (foraControle ? foraControle + " ponto(s) fora de controle — processo instável." : "Nenhum ponto fora dos limites — processo estável.");
+    if (typeof Chart !== "undefined") {
+      if (grafCep) grafCep.destroy();
+      grafCep = new Chart(document.getElementById("gCep"), {
+        type: "line",
+        data: { labels: cepPontos.map(function (p) { return p.ordem; }), datasets: [
+          { label: "Valor", data: valores, borderColor: "#0B1F3A", backgroundColor: valores.map(function (v) { return (v > ucl || v < lcl) ? "#C0392B" : "#0B1F3A"; }), pointRadius: 5 },
+          { label: "Média", data: valores.map(function () { return xbar; }), borderColor: "#C9A24A", borderDash: [5, 4], pointRadius: 0 },
+          { label: "LSC", data: valores.map(function () { return ucl; }), borderColor: "#C0392B", borderDash: [2, 3], pointRadius: 0 },
+          { label: "LIC", data: valores.map(function () { return lcl; }), borderColor: "#C0392B", borderDash: [2, 3], pointRadius: 0 }
+        ] },
+        options: { maintainAspectRatio: false }
+      });
+    }
+  }
+
+  /* ===== TESTE DE HIPÓTESE ===== */
+  document.getElementById("formHipotese").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const antesTxt = document.getElementById("hpAntes").value.trim(), depoisTxt = document.getElementById("hpDepois").value.trim();
+    const antes = parseAmostra(antesTxt), depois = parseAmostra(depoisTxt);
+    if (antes.length < 2 || depois.length < 2) { aviso("Informe ao menos 2 valores em cada amostra.", true); return; }
+    const m1 = media(antes), m2 = media(depois), v1 = variancia(antes, m1), v2 = variancia(depois, m2);
+    const n1 = antes.length, n2 = depois.length;
+    const se = Math.sqrt(v1 / n1 + v2 / n2);
+    const t = se > 0 ? (m1 - m2) / se : 0;
+    const df = se > 0 ? Math.pow(v1 / n1 + v2 / n2, 2) / ((Math.pow(v1 / n1, 2) / (n1 - 1)) + (Math.pow(v2 / n2, 2) / (n2 - 1))) : 1;
+    const p = betai(df / (df + t * t), df / 2, 0.5);
+    const significativo = p < 0.05;
+    const r = await supa().from("projetos_hipotese").insert({
+      projeto_id: pid, amostra_antes: antesTxt, amostra_depois: depoisTxt, media_antes: m1, media_depois: m2,
+      estatistica_t: t, graus_liberdade: df, valor_p: p, significativo: significativo
+    });
+    if (r.error) { aviso("Não foi possível calcular.", true); return; }
+    this.reset(); await recarregarESeção("resultados");
+  });
+  function desenharHipoteses() {
+    document.getElementById("listaHipotese").innerHTML = hipoteses.length ? hipoteses.map(function (h) {
+      return '<div class="sessao"><div class="sessao-topo"><b>Média antes: ' + (+h.media_antes).toFixed(2) + " → Média depois: " + (+h.media_depois).toFixed(2) + '</b>' +
+        '<span class="selo ' + (h.significativo ? "ok" : "off") + '">' + (h.significativo ? "Diferença significativa" : "Sem diferença estatística") + '</span></div>' +
+        '<span class="acao-info">t = ' + (+h.estatistica_t).toFixed(3) + " · graus de liberdade ≈ " + (+h.graus_liberdade).toFixed(1) + " · p = " + (+h.valor_p).toFixed(4) + '</span>' +
+        '<p class="acao-info" style="margin-top:4px">' + (h.significativo ? "A diferença observada muito provavelmente não é acaso (p < 0,05): o projeto parece ter funcionado." : "Não há evidência estatística suficiente de que a diferença não seja acaso. Colete mais dados ou revise as ações.") + '</p></div>';
+    }).join("") : '<p class="vazio">Nenhum teste calculado ainda.</p>';
+  }
+
+  function desenharResultados() {
+    preencherContasDre(); desenharComparativoDre(); desenharGanho(); desenharCep(); desenharHipoteses();
+  }
+
+  /* ===== RELATÓRIO A3 ===== */
+  function montarA3() {
+    const das = acoes;
+    const concluidas = das.filter(function (a) { return a.status === "concluida"; }).length;
+    const pctGeral = das.length ? Math.round(das.reduce(function (s, a) { return s + a.percentual_conclusao; }, 0) / das.length) : 0;
+    document.getElementById("folhaA3").innerHTML =
+      '<h2>' + esc(projeto.titulo) + '</h2>' +
+      '<p class="acao-info">Etapa atual: ' + ETAPA_LABEL[projeto.etapa_atual] + " · Ciclo " + projeto.ciclo_atual + " · " + pctGeral + "% concluído</p>" +
+      '<div class="a3-grid">' +
+      '<div><div class="a3-bloco"><h4>1. Problema</h4><p>' + esc(charter && charter.problema || "—") + '</p></div>' +
+      '<div class="a3-bloco"><h4>2. Meta</h4><p>' + esc(charter && charter.meta || "—") + '</p></div>' +
+      '<div class="a3-bloco"><h4>3. Causa raiz</h4><p>' + esc((ishikawa.find(function (i) { return i.provavel_raiz; }) || {}).causa || (porques.find(function (p) { return p.causa_raiz; }) || {}).resposta || "—") + '</p></div>' +
+      '<div class="a3-bloco"><h4>4. Escopo</h4><p><b>Dentro:</b> ' + esc(charter && charter.escopo_dentro || "—") + '<br><b>Fora:</b> ' + esc(charter && charter.escopo_fora || "—") + '</p></div></div>' +
+      '<div><div class="a3-bloco"><h4>5. Ações principais</h4><ul>' + (das.length ? das.slice(0, 6).map(function (a) { return "<li>" + esc(a.acao) + " — " + STATUS_LABEL[a.status] + " (" + a.percentual_conclusao + "%)</li>"; }).join("") : "<li>—</li>") + '</ul></div>' +
+      '<div class="a3-bloco"><h4>6. Resultado</h4><p>Ganho estimado: ' + (charter && charter.ganho_esperado ? brl(charter.ganho_esperado) : "—") + '<br>Ganho realizado: ' + (projeto.ganho_realizado ? brl(projeto.ganho_realizado) : "—") + '</p></div>' +
+      '<div class="a3-bloco"><h4>7. Lições aprendidas</h4><ul>' + (licoes.length ? licoes.slice(0, 4).map(function (l) { return "<li>" + esc(l.texto) + "</li>"; }).join("") : "<li>—</li>") + '</ul></div>' +
+      '<div class="a3-bloco"><h4>8. Equipe e patrocinador</h4><p>' + esc(charter && charter.equipe || "—") + (charter && charter.patrocinador ? " · Patrocinador: " + esc(charter.patrocinador) : "") + '</p></div></div>' +
+      '</div>';
+  }
+  document.getElementById("btImprimirA3").addEventListener("click", function () { window.print(); });
+
   /* ===== CONTROLE DE ETAPA / CICLO ===== */
   document.getElementById("btAvancarEtapa").addEventListener("click", async function () {
     const idx = ETAPA_ORDEM.indexOf(projeto.etapa_atual);
@@ -558,6 +751,7 @@
     if (secao === "eap") desenharEap();
     if (secao === "licoes") desenharLicoes();
     if (secao === "padronizacao") desenharPadronizacao();
+    if (secao === "resultados") desenharResultados();
   }
   async function recarregarTudo() {
     const ok = await carregar(); if (!ok) return;
@@ -570,6 +764,8 @@
     if (nome === "priorizacao") desenharPriorizacao();
     if (nome === "eap") desenharEap();
     if (nome === "padronizacao") desenharPadronizacao();
+    if (nome === "resultados") desenharResultados();
+    if (nome === "a3") montarA3();
   });
 
   const ok = await carregar();

@@ -300,3 +300,17 @@ dialog.janela.janela-larga{max-width:780px;max-height:88vh;overflow-y:auto}
 .eap-barra-mini{width:80px;height:8px;background:#EEE8DC;border-radius:8px;overflow:hidden}
 .eap-barra-mini span{display:block;height:100%;background:var(--gold)}
 .eap-filhos{margin-left:24px;padding-left:12px;border-left:2px solid var(--line)}
+
+/* ===== Fase 3: Resultados, A3 ===== */
+.a3-folha{background:#fff;border:1px solid var(--line);border-radius:10px;padding:28px;max-width:900px}
+.a3-folha h2{font:700 20px var(--serif);color:var(--navy);border-bottom:2px solid var(--gold);padding-bottom:6px;margin:0 0 14px}
+.a3-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.a3-bloco{margin-bottom:16px}
+.a3-bloco h4{font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:var(--goldtxt);margin:0 0 6px}
+.a3-bloco p, .a3-bloco li{font-size:13.5px;color:var(--ink);margin:0 0 4px}
+@media print {
+  body * { visibility: hidden; }
+  .a3-folha, .a3-folha * { visibility: visible; }
+  .a3-folha { position: absolute; left: 0; top: 0; width: 100%; border: none; }
+  .no-print { display: none !important; }
+}

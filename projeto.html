@@ -39,9 +39,11 @@
       <button class="aba" type="button" data-aba="pareto">Pareto</button>
       <button class="aba" type="button" data-aba="priorizacao">Priorização</button>
       <button class="aba" type="button" data-aba="acoes">Plano de ação</button>
+      <button class="aba" type="button" data-aba="resultados">Resultados (Checar)</button>
       <button class="aba" type="button" data-aba="eap">EAP/WBS</button>
       <button class="aba" type="button" data-aba="licoes">Lições aprendidas</button>
       <button class="aba" type="button" data-aba="padronizacao">Padronização</button>
+      <button class="aba" type="button" data-aba="a3">Relatório A3</button>
     </div>
 
     <!-- ===== CHARTER ===== -->
@@ -250,6 +252,53 @@
       </div>
     </section>
 
+    <!-- ===== RESULTADOS (CHECAR) ===== -->
+    <section data-painel="resultados" hidden>
+      <div class="cartao">
+        <h2>Ligar à DRE</h2>
+        <p class="ajuda">Escolha a conta da DRE que representa o indicador deste projeto. O sistema busca sozinho o valor de cada mês para comparar antes e depois.</p>
+        <div class="grade g2">
+          <div><label for="rsConta">Conta da DRE</label><select id="rsConta"></select></div>
+          <div style="align-self:end"><button class="btn auto contorno" type="button" id="btLigarConta">Ligar conta</button></div>
+        </div>
+        <div id="comparativoDre" style="margin-top:16px"></div>
+      </div>
+
+      <div class="cartao" style="margin-top:14px">
+        <h2>Ganho financeiro</h2>
+        <div class="kpis" id="kpisGanho"></div>
+        <div class="grade g2" style="margin-top:12px">
+          <div><label for="rsGanhoRealizado">Ganho realizado (R$)</label><input id="rsGanhoRealizado" inputmode="decimal" placeholder="0,00"></div>
+          <div style="align-self:end"><button class="btn auto" type="button" id="btSalvarGanho">Salvar ganho realizado</button></div>
+        </div>
+      </div>
+
+      <div class="cartao" style="margin-top:14px">
+        <h2>CEP — Gráfico de controle (Indivíduos)</h2>
+        <p class="ajuda">Lance os valores do processo na ordem em que ocorreram. O sistema calcula os limites de controle sozinho.</p>
+        <form id="formCep" class="f grade g3">
+          <div><label for="cepData">Data <span class="vazio">(opcional)</span></label><input id="cepData" type="date"></div>
+          <div><label for="cepValor">Valor</label><input id="cepValor" inputmode="decimal" required></div>
+          <div style="align-self:end"><button class="btn auto" type="submit">Adicionar ponto</button></div>
+        </form>
+        <div class="graf" style="margin-top:14px"><canvas id="gCep"></canvas></div>
+        <p class="acao-info" id="resumoCep"></p>
+      </div>
+
+      <div class="cartao" style="margin-top:14px">
+        <h2>Teste de hipótese (antes × depois)</h2>
+        <p class="ajuda">Cole os valores de antes e depois, separados por vírgula. O sistema diz se a diferença é estatisticamente significativa.</p>
+        <form id="formHipotese" class="f">
+          <div class="grade g2">
+            <div><label for="hpAntes">Valores de antes</label><textarea id="hpAntes" rows="2" placeholder="Ex.: 12, 14, 11, 13, 15"></textarea></div>
+            <div><label for="hpDepois">Valores de depois</label><textarea id="hpDepois" rows="2" placeholder="Ex.: 8, 9, 7, 8, 10"></textarea></div>
+          </div>
+          <div class="acoes"><button class="btn auto" type="submit">Calcular</button></div>
+        </form>
+        <div id="listaHipotese" style="margin-top:14px"></div>
+      </div>
+    </section>
+
     <!-- ===== EAP/WBS ===== -->
     <section data-painel="eap" hidden>
       <div class="cartao">
@@ -291,6 +340,16 @@
         <p class="ajuda" style="margin-top:14px">Para criar um POP novo a partir deste projeto, acesse <a href="pops.html" target="_blank">POPs e manuais</a> e crie normalmente — ele pode ser vinculado aqui depois.</p>
         <div id="listaPopsLigados" style="margin-top:14px"></div>
       </div>
+    </section>
+
+    <!-- ===== RELATÓRIO A3 ===== -->
+    <section data-painel="a3" hidden>
+      <div class="cartao no-print">
+        <h2>Relatório A3</h2>
+        <p class="ajuda">Resumo de uma página para imprimir ou salvar como PDF (use "Salvar como PDF" na janela de impressão).</p>
+        <button class="btn auto" type="button" id="btImprimirA3">Imprimir / Salvar PDF</button>
+      </div>
+      <div class="a3-folha" id="folhaA3"></div>
     </section>
 
     <!-- Rodapé do ciclo PDCA -->
