@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Minhas Vendas | Ressignificar</title>
+<title>Minhas vendas | Ressignificar</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="img/favicon.png">
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/estilo.css">
 </head>
 <body>
@@ -16,22 +16,53 @@
     <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
     <div class="usuario">
       <span data-nome-usuario></span>
-      <span class="selo-papel" data-papel-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
       <button class="sair" data-sair>Sair</button>
     </div>
   </header>
   <main class="conteudo-painel">
-    <h1>Minhas vendas</h1>
-    <p class="sub">Aqui você vai lançar suas vendas e acompanhar a sua meta do mês.</p>
-    <div class="cartao-vazio">
-      <b>Em breve</b>
-      Seu login já está funcionando. A tela de lançar vendas e ver a meta chega nas próximas etapas.
+    <h1 id="ola">Minhas vendas</h1>
+    <p class="sub" id="lojaNome"></p>
+    <div class="cartao" id="semLoja" hidden><h2>Quase lá</h2><p class="ajuda">Seu acesso ainda não foi ligado a uma loja. Avise o responsável para liberar.</p></div>
+
+    <div id="area" hidden>
+      <div class="barra-periodo f">
+        <div id="blocoLoja" hidden><label for="selLoja">Loja</label><select id="selLoja"></select></div>
+        <div><label for="selMes">Mês</label><input id="selMes" type="month"></div>
+      </div>
+
+      <div class="cartao meta-card">
+        <div class="meta-topo"><div><small>Vendido no mês</small><b id="vendido">R$ 0,00</b></div><div style="text-align:right"><small>Meta do mês</small><b id="meta">–</b></div></div>
+        <div class="barra-meta"><span id="barra"></span></div>
+        <p id="ritmo" class="ajuda" style="margin:10px 0 0"></p>
+      </div>
+
+      <div class="cartao" id="cartaoForm">
+        <h2 id="tituloForm">Registrar venda</h2>
+        <form id="formVenda" class="f" novalidate>
+          <div class="campo-valor"><label for="vValor">Valor da venda (R$)</label><input id="vValor" inputmode="decimal" placeholder="0,00" required autocomplete="off"></div>
+          <div class="grade g2" style="margin-top:12px">
+            <div><label for="vItens">Peças / itens</label><input id="vItens" type="number" min="0" inputmode="numeric"></div>
+            <div><label for="vForma">Pagamento</label><select id="vForma"><option>Pix</option><option>Crédito</option><option>Débito</option><option>Dinheiro</option><option>Crediário</option><option>Outro</option></select></div>
+            <div><label for="vData">Data</label><input id="vData" type="date" required></div>
+            <div><label for="vObs">Observação</label><input id="vObs" maxlength="120" placeholder="Opcional"></div>
+          </div>
+          <div class="acoes"><button class="btn" type="submit" id="vSalvar">Registrar venda</button><button class="btn auto contorno" type="button" id="vCancelar" hidden>Cancelar edição</button></div>
+        </form>
+      </div>
+
+      <div class="cartao"><h2>Por semana</h2><div class="tabela-wrap"><table class="t"><thead><tr><th>Semana</th><th class="n">Vendido</th><th class="n">Da meta</th></tr></thead><tbody id="semanas"></tbody></table></div></div>
+      <div class="cartao"><h2>Vendas por dia</h2><div class="graf baixo"><canvas id="gDias"></canvas></div></div>
+      <div class="cartao"><h2>Minhas vendas do mês</h2><p class="ajuda">Você pode corrigir ou apagar uma venda nas primeiras 24 horas. Depois disso, peça ao responsável da loja.</p>
+        <div class="tabela-wrap"><table class="t"><thead><tr><th>Data</th><th class="n">Valor</th><th>Detalhes</th><th></th></tr></thead><tbody id="lista"></tbody></table></div></div>
     </div>
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/auth.js"></script>
-<script>protegerPagina("vendedor");</script>
+<script src="js/app.js"></script>
+<script src="js/vendedor.js"></script>
 </body>
 </html>

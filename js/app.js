@@ -92,3 +92,12 @@ function foneBR(t) {
   if (d.length === 10) return "(" + d.slice(0, 2) + ") " + d.slice(2, 6) + "-" + d.slice(6);
   return t || "";
 }
+
+/* ---------- semanas do mês (1–7, 8–14, 15–21, 22–28, 29 em diante) ---------- */
+function diasNoMes(ano, mes0) { return new Date(Date.UTC(ano, mes0 + 1, 0)).getUTCDate(); }
+function semanasDoMes(ano, mes0) {
+  const n = diasNoMes(ano, mes0), l = [];
+  for (let ini = 1; ini <= n; ini += 7) l.push({ ini: ini, fim: Math.min(ini + 6, n) });
+  return l;
+}
+function semanaDoDia(dia) { return Math.floor((dia - 1) / 7); }

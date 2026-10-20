@@ -99,7 +99,7 @@
     document.getElementById("cartaoPag").hidden = false;
   }
 
-  const e = await supa().from("empresas").select("id,nome,segmento,tipo").order("nome");
+  const e = await supa().from("empresas").select("id,nome,segmento,tipo,empresa_membros(perfil_id,funcao)").order("nome");
   const caixaE = document.getElementById("minhasEmpresas");
   if (!e.data || !e.data.length) {
     caixaE.innerHTML = '<p class="vazio">Ainda não há empresa ligada ao seu acesso. Assim que o Mauricio cadastrar, ela aparece aqui.</p>';
@@ -109,7 +109,8 @@
     return '<div class="cartao-empresa"><b>' + esc(x.nome) + "</b><div>" +
       '<span class="selo">' + (x.tipo === "pessoal" ? "Orçamento pessoal" : "Empresa") + "</span>" +
       (x.segmento ? '<span class="selo">' + esc(x.segmento) + "</span>" : "") +
-      '</div><a class="btn" href="dre.html?e=' + x.id + '">Abrir e lançar</a></div>';
+      '</div><a class="btn" href="dre.html?e=' + x.id + '">Abrir e lançar</a>' +
+      (x.tipo === "empresa" && (x.empresa_membros || []).some(function (m) { return m.perfil_id === eu.id && m.funcao === "dono"; }) ? '<a class="btn contorno" href="vendas.html?e=' + x.id + '">Vendas da equipe</a>' : "") + "</div>";
   }).join("");
 })();
 </script>

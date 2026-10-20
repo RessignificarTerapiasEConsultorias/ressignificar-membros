@@ -25,7 +25,7 @@
     <div class="cartao erro-pagina" id="falha" hidden><h2>Não foi possível abrir</h2><p class="ajuda" id="falhaMsg"></p></div>
 
     <div id="areaDre" hidden>
-      <div class="empresa-titulo"><h1 id="nomeEmpresa">DRE</h1><span class="selo" id="tipoEmpresa"></span></div>
+      <div class="empresa-titulo"><h1 id="nomeEmpresa">DRE</h1><span class="selo" id="tipoEmpresa"></span><a class="btn peq contorno" id="linkVendas" href="#" hidden>Vendas por vendedor</a></div>
       <p class="sub" id="subEmpresa"></p>
 
       <div class="barra-periodo f">
@@ -38,6 +38,8 @@
         <button class="aba" type="button" data-aba="dre" aria-selected="false">DRE</button>
         <button class="aba" type="button" data-aba="painel" aria-selected="false">Painel e leituras</button>
         <button class="aba" type="button" data-aba="cadastros" aria-selected="false">Produtos e contas</button>
+        <button class="aba" type="button" data-aba="lives" aria-selected="false" id="abaLives" hidden>Lives</button>
+        <button class="aba" type="button" data-aba="fluxo" aria-selected="false">Fluxo 30 dias</button>
       </div>
 
       <!-- ===== LANÇAR ===== -->
@@ -122,6 +124,279 @@
           <div class="tabela-wrap" style="margin-top:14px;max-height:520px"><table class="t"><thead><tr><th>Tipo</th><th>Grupo</th><th>Conta</th><th>Situação</th><th></th></tr></thead><tbody id="listaContas"></tbody></table></div>
         </div>
       </section>
+      <!-- ===== LIVES ===== -->
+      <section data-painel="lives" hidden>
+        <div class="duas-col">
+          <!-- Formulário -->
+          <div class="cartao">
+            <h2 id="tituloLive">Nova live</h2>
+            <form id="formLive" class="f" novalidate>
+              <div class="grade g2">
+                <div><label for="lData">Data</label><input id="lData" type="date" required></div>
+                <div><label for="lDia">Dia da semana</label><select id="lDia"><option value="">—</option><option>SEGUNDA</option><option>TERÇA</option><option>QUARTA</option><option>QUINTA</option><option>SEXTA</option><option>SÁBADO</option><option>DOMINGO</option></select></div>
+                <div><label for="lBruto">Valor bruto (R$)</label><input id="lBruto" inputmode="decimal" placeholder="0,00" required></div>
+                <div><label for="lDiasTraf">Dias de tráfego pago</label><input id="lDiasTraf" type="number" min="0" placeholder="0"></div>
+              </div>
+              <h3 style="margin:16px 0 8px;font-size:15px;color:var(--navy)">Custos operacionais</h3>
+              <div class="grade g2">
+                <div><label for="lTraf">Tráfego pago (R$)</label><input id="lTraf" inputmode="decimal" placeholder="0,00"></div>
+                <div><label for="lEner">Energia (R$)</label><input id="lEner" inputmode="decimal" placeholder="0,00"></div>
+                <div><label for="lSac">Sacolas (R$)</label><input id="lSac" inputmode="decimal" placeholder="0,00"></div>
+                <div><label for="lAlim">Alimentação (R$)</label><input id="lAlim" inputmode="decimal" placeholder="0,00"></div>
+                <div><label for="lBlog">Blogueira (R$)</label><input id="lBlog" inputmode="decimal" placeholder="0,00"></div>
+                <div><label for="lHora">Hora extra (R$)</label><input id="lHora" inputmode="decimal" placeholder="0,00"></div>
+              </div>
+              <h3 style="margin:16px 0 8px;font-size:15px;color:var(--navy)">Compras / CMV</h3>
+              <div class="grade g2">
+                <div><label for="lCompras">Valor de compra das peças (R$)</label><input id="lCompras" inputmode="decimal" placeholder="0,00"></div>
+                <div><label for="lObs">Observação</label><input id="lObs" maxlength="200" placeholder="Opcional"></div>
+              </div>
+              <div class="resumo-live" id="resumoLive" hidden>
+                <span>Líquido estimado: <b id="liquidoEst">R$ 0,00</b></span>
+                <span>ROI: <b id="roiEst">—</b></span>
+              </div>
+              <div class="acoes"><button class="btn auto" type="submit" id="lSalvar">Salvar live</button><button class="btn auto contorno" type="button" id="lCancelar" hidden>Cancelar</button></div>
+            </form>
+          </div>
+
+          <!-- Painel de totais -->
+          <div>
+            <div class="kpis" id="kpisLives"></div>
+            <div class="cartao" style="margin-top:14px"><div class="graf baixo"><canvas id="gLives"></canvas></div></div>
+          </div>
+        </div>
+
+        <!-- Tabela completa -->
+        <div class="cartao" style="margin-top:14px">
+          <h2>Histórico de lives</h2>
+          <div class="tabela-wrap"><table class="t" id="tabelaLives">
+            <thead><tr>
+              <th>Data</th><th>Dia</th>
+              <th class="n">Bruto</th><th class="n">Tráfego</th><th class="n">Energia</th>
+              <th class="n">Sacolas</th><th class="n">Aliment.</th><th class="n">Compras</th>
+              <th class="n">Blogueira</th><th class="n">H. Extra</th>
+              <th class="n">Líquido</th><th class="n">ROI</th><th></th>
+            </tr></thead>
+            <tbody id="listaLives"></tbody>
+            <tfoot id="totaisLives"></tfoot>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== FLUXO 30 DIAS ===== -->
+      <section data-painel="fluxo" hidden>
+
+        <!-- Navegação de mês -->
+        <div class="barra-periodo f" style="align-items:center;gap:12px">
+          <button class="btn peq contorno" type="button" id="fluxoMesAnterior">‹</button>
+          <b id="fluxoMesTitulo" style="font-size:17px;min-width:160px;text-align:center"></b>
+          <button class="btn peq contorno" type="button" id="fluxoMesProximo">›</button>
+        </div>
+
+        <!-- Calendário de 30 dias -->
+        <div class="cartao">
+          <h2>Calendário do mês</h2>
+          <p class="ajuda">🔴 Fatura de cartão a pagar &nbsp;·&nbsp; 🟡 Recebimento pendente &nbsp;·&nbsp; 🟠 Parcela de dívida &nbsp;·&nbsp; 🟢 Pago / recebido</p>
+          <div id="calendarioFluxo" class="calendario-fluxo"></div>
+        </div>
+
+        <!-- Abas internas -->
+        <div class="abas" id="abasFluxo" role="tablist" style="margin-top:20px">
+          <button class="aba" type="button" data-aba="cartoes" aria-selected="true">Cartões</button>
+          <button class="aba" type="button" data-aba="recebimentos" aria-selected="false">Recebimentos</button>
+          <button class="aba" type="button" data-aba="dividas" aria-selected="false">Dívidas</button>
+          <button class="aba" type="button" data-aba="projecao" aria-selected="false">Projeção</button>
+          <button class="aba" type="button" data-aba="meta" aria-selected="false">Meta e ações</button>
+        </div>
+
+        <!-- CARTÕES -->
+        <div data-painel-fluxo="cartoes">
+          <div class="duas-col">
+            <div class="cartao">
+              <h2 id="tituloCartao">Novo cartão</h2>
+              <form id="formCartao" class="f" novalidate>
+                <div class="grade g2">
+                  <div><label for="caNome">Nome do cartão</label><input id="caNome" maxlength="60" required placeholder="Ex.: Nubank, Itaú, Sicoob"></div>
+                  <div><label for="caBand">Bandeira</label><select id="caBand"><option value="">—</option><option>Visa</option><option>Mastercard</option><option>Elo</option><option>Hipercard</option><option>American Express</option><option>Outro</option></select></div>
+                  <div><label for="caVenc">Dia de vencimento</label><input id="caVenc" type="number" min="1" max="31" required placeholder="Ex.: 10"></div>
+                  <div><label for="caFech">Dia de fechamento</label><input id="caFech" type="number" min="1" max="31" placeholder="Ex.: 3 (opcional)"></div>
+                  <div><label for="caLimite">Limite (R$)</label><input id="caLimite" inputmode="decimal" placeholder="0,00"></div>
+                </div>
+                <div class="acoes"><button class="btn auto" type="submit" id="caSalvar">Salvar cartão</button><button class="btn auto contorno" type="button" id="caCancelar" hidden>Cancelar</button></div>
+              </form>
+            </div>
+            <div class="lista-sessoes" id="listaCartoes"></div>
+          </div>
+
+          <!-- Gastos no cartão -->
+          <div class="cartao" style="margin-top:14px">
+            <h2>Lançar gasto no cartão</h2>
+            <form id="formGasto" class="f" novalidate>
+              <div class="grade g2">
+                <div><label for="gaCartao">Cartão</label><select id="gaCartao" required></select></div>
+                <div><label for="gaDesc">Descrição</label><input id="gaDesc" maxlength="100" required placeholder="Ex.: Mercado, Posto, Roupa"></div>
+                <div><label for="gaCat">Categoria</label><input id="gaCat" list="catGastoLista" maxlength="60" placeholder="Ex.: Alimentação, Transporte"><datalist id="catGastoLista"><option>Alimentação</option><option>Transporte</option><option>Saúde</option><option>Vestuário</option><option>Lazer</option><option>Serviços</option><option>Outros</option></datalist></div>
+                <div><label for="gaValor">Valor total (R$)</label><input id="gaValor" inputmode="decimal" placeholder="0,00" required></div>
+                <div><label for="gaParcelas">Parcelas</label><input id="gaParcelas" type="number" min="1" value="1"></div>
+                <div><label for="gaData">Data da compra</label><input id="gaData" type="date" required></div>
+              </div>
+              <p class="ajuda" id="previewFatura" style="margin-top:8px"></p>
+              <div class="acoes"><button class="btn auto" type="submit">Lançar no cartão</button></div>
+            </form>
+          </div>
+
+          <!-- Gastos do mês -->
+          <div class="cartao" style="margin-top:14px">
+            <h2>Gastos no cartão — <span id="mesGastos"></span></h2>
+            <div class="tabela-wrap"><table class="t"><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Cartão</th><th class="n">Parcela</th><th class="n">Total</th><th></th></tr></thead><tbody id="listaGastos"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- RECEBIMENTOS -->
+        <div data-painel-fluxo="recebimentos" hidden>
+          <div class="duas-col">
+            <div class="cartao">
+              <h2 id="tituloRec">Novo recebimento</h2>
+              <form id="formRec" class="f" novalidate>
+                <div class="grade g2">
+                  <div><label for="reDesc">Descrição</label><input id="reDesc" maxlength="100" required placeholder="Ex.: Pagamento cliente João, Mensalidade plano"></div>
+                  <div><label for="reCat">Categoria</label><input id="reCat" list="catRecLista" maxlength="60" placeholder="Ex.: Consultoria, Mensalidade"><datalist id="catRecLista"><option>Consultoria</option><option>Mensalidade</option><option>Serviço</option><option>Produto</option><option>Outros</option></datalist></div>
+                  <div><label for="reValor">Valor (R$)</label><input id="reValor" inputmode="decimal" placeholder="0,00" required></div>
+                  <div><label for="reData">Data prevista</label><input id="reData" type="date" required></div>
+                </div>
+                <div class="acoes"><button class="btn auto" type="submit" id="reSalvar">Salvar recebimento</button><button class="btn auto contorno" type="button" id="reCancelar" hidden>Cancelar</button></div>
+              </form>
+            </div>
+            <div class="lista-sessoes" id="listaRecs"></div>
+          </div>
+        </div>
+
+        <!-- DÍVIDAS -->
+        <div data-painel-fluxo="dividas" hidden>
+          <div class="duas-col">
+            <div class="cartao">
+              <h2 id="tituloDivida">Nova dívida</h2>
+              <form id="formDivida" class="f" novalidate>
+                <div class="grade g2">
+                  <div><label for="diDesc">Descrição</label><input id="diDesc" maxlength="100" required placeholder="Ex.: Financiamento carro, Empréstimo banco"></div>
+                  <div><label for="diCat">Categoria</label><input id="diCat" list="catDivLista" maxlength="60" placeholder="Ex.: Financiamento, Empréstimo"><datalist id="catDivLista"><option>Financiamento</option><option>Empréstimo</option><option>Cartão parcelado</option><option>Outros</option></datalist></div>
+                  <div><label for="diTotal">Valor total (R$)</label><input id="diTotal" inputmode="decimal" placeholder="0,00" required></div>
+                  <div><label for="diParc">Número de parcelas</label><input id="diParc" type="number" min="1" required placeholder="Ex.: 48"></div>
+                  <div><label for="diData">Data da 1ª parcela</label><input id="diData" type="date" required></div>
+                  <div><label for="diPagas">Parcelas já pagas</label><input id="diPagas" type="number" min="0" value="0"></div>
+                </div>
+                <p class="ajuda" id="previewDivida" style="margin-top:8px"></p>
+                <div class="acoes"><button class="btn auto" type="submit" id="diSalvar">Salvar dívida</button><button class="btn auto contorno" type="button" id="diCancelar" hidden>Cancelar</button></div>
+              </form>
+            </div>
+            <div class="lista-sessoes" id="listaDividas"></div>
+          </div>
+        </div>
+
+        <!-- PROJEÇÃO MULTI-MESES -->
+        <div data-painel-fluxo="projecao" hidden>
+          <div class="cartao">
+            <h2>Projeção de meses</h2>
+            <p class="ajuda">Veja quanto vai entrar e sair nos próximos meses com base nos cartões, dívidas e recebimentos cadastrados.</p>
+            <div class="f grade g2" style="max-width:360px;margin-bottom:14px">
+              <div><label for="projMeses">Quantos meses à frente</label><select id="projMeses"><option value="3">3 meses</option><option value="6" selected>6 meses</option><option value="12">12 meses</option><option value="24">24 meses</option><option value="36">36 meses</option></select></div>
+            </div>
+            <div class="tabela-wrap"><table class="t" id="tabelaProjecao">
+              <thead><tr><th>Mês</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Saldo do mês</th><th class="n">Saldo acumulado</th></tr></thead>
+              <tbody id="bodyProjecao"></tbody>
+            </table></div>
+          </div>
+
+          <!-- Cadastrar receita/gasto futuro -->
+          <div class="duas-col" style="margin-top:14px">
+            <div class="cartao">
+              <h2>Cadastrar evento futuro</h2>
+              <p class="ajuda">Use para registrar serviços pagos adiantados, custos previstos, recebimentos futuros e qualquer fluxo que você já sabe que vai acontecer.</p>
+              <form id="formFuturo" class="f" novalidate>
+                <div><label for="fuTipo">Tipo</label>
+                  <select id="fuTipo" required>
+                    <option value="receita_a_receber">💰 Receita a receber (ainda não entrou)</option>
+                    <option value="receita_antecipada">💰 Receita antecipada (já entrou, serviço futuro)</option>
+                    <option value="custo_atendimento">🔴 Custo de atendimento futuro</option>
+                    <option value="custo_fixo_futuro">🔴 Custo fixo futuro</option>
+                    <option value="outro">📌 Outro</option>
+                  </select>
+                </div>
+                <div class="grade g2" style="margin-top:12px">
+                  <div><label for="fuDesc">Descrição</label><input id="fuDesc" maxlength="120" required placeholder="Ex.: Contrato mentoria, Passagem SP"></div>
+                  <div><label for="fuCat">Categoria</label><input id="fuCat" list="catFutLista" maxlength="60" placeholder="Ex.: Consultoria, Transporte"><datalist id="catFutLista"><option>Consultoria</option><option>Mentoria</option><option>Serviço</option><option>Viagem</option><option>Infraestrutura</option><option>Outros</option></datalist></div>
+                  <div><label for="fuValor">Valor (R$)</label><input id="fuValor" inputmode="decimal" placeholder="0,00" required></div>
+                  <div><label for="fuData">Data do evento</label><input id="fuData" type="date" required></div>
+                </div>
+                <!-- campos extras para receita antecipada -->
+                <div id="blocoCusto" hidden style="margin-top:12px">
+                  <p class="ajuda">Esta receita foi paga adiantada — informe quando e quanto você vai gastar para executar o serviço.</p>
+                  <div class="grade g2">
+                    <div><label for="fuDataCusto">Data do custo de execução</label><input id="fuDataCusto" type="date"></div>
+                    <div><label for="fuValorCusto">Custo estimado (R$)</label><input id="fuValorCusto" inputmode="decimal" placeholder="0,00"></div>
+                  </div>
+                </div>
+                <div class="acoes" style="margin-top:12px"><button class="btn auto" type="submit" id="fuSalvar">Salvar evento</button><button class="btn auto contorno" type="button" id="fuCancelar" hidden>Cancelar</button></div>
+              </form>
+            </div>
+            <div class="lista-sessoes" id="listaFuturos"></div>
+          </div>
+        </div>
+
+        <!-- META E AÇÕES -->
+        <div data-painel-fluxo="meta" hidden>
+          <!-- Painel da meta -->
+          <div class="cartao meta-card" id="painelMeta">
+            <div class="meta-topo">
+              <div><small>Receita no mês</small><b id="metaRealizado">R$ 0,00</b></div>
+              <div style="text-align:right"><small>Meta do mês</small><b id="metaValor">–</b></div>
+            </div>
+            <div class="barra-meta"><span id="metaBarra"></span></div>
+            <p id="metaRitmo" class="ajuda" style="margin:10px 0 0"></p>
+            <div id="alertaMeta" hidden style="margin-top:12px;padding:10px 14px;background:rgba(255,255,255,.12);border-radius:10px;font-size:14px"></div>
+          </div>
+
+          <!-- Definir meta -->
+          <div class="cartao" style="margin-top:14px">
+            <h2>Definir meta do mês</h2>
+            <form id="formMeta" class="f grade g2" style="max-width:480px" novalidate>
+              <div><label for="metaMes">Mês</label><input id="metaMes" type="month" required></div>
+              <div><label for="metaValorInput">Meta de receita (R$)</label><input id="metaValorInput" inputmode="decimal" placeholder="0,00" required></div>
+              <div style="align-self:end"><button class="btn auto" type="submit">Salvar meta</button></div>
+            </form>
+            <div id="tabelaMetas" style="margin-top:14px"></div>
+          </div>
+
+          <!-- Ações de meta -->
+          <div class="cartao" style="margin-top:14px" id="secaoAcoesMeta">
+            <h2>Ações corretivas</h2>
+            <p class="ajuda">Quando a meta estiver em risco, cadastre aqui o que vai ser feito para reverter. O sistema acompanha o andamento e avisa quando precisar de novas ações ou prazos mais curtos.</p>
+            <button class="btn auto contorno" type="button" id="btNovaAcaoMeta" style="margin-bottom:14px">+ Nova ação</button>
+            <div id="formAcaoMetaWrap" hidden>
+              <form id="formAcaoMeta" class="f" novalidate>
+                <div class="grade g2">
+                  <div><label for="amProb">1. Problema</label><input id="amProb" maxlength="200" required placeholder="O que está impedindo bater a meta?"></div>
+                  <div><label for="amCausa">2. Causa raiz</label><input id="amCausa" maxlength="200" placeholder="Por que isso está acontecendo?"></div>
+                  <div><label for="amAcao">3. Ação</label><input id="amAcao" maxlength="200" required placeholder="O que vai ser feito?"></div>
+                  <div><label for="amComo">4. Como executar</label><input id="amComo" maxlength="300" placeholder="Passo a passo resumido"></div>
+                  <div><label for="amRecursos">5. O que vai precisar</label><input id="amRecursos" maxlength="200" placeholder="Recursos, ferramentas, pessoas"></div>
+                  <div><label for="amDono">6. Dono da ação</label><input id="amDono" maxlength="100" placeholder="Quem vai executar?"></div>
+                  <div><label for="amPrazo">7. Prazo</label><input id="amPrazo" type="date"></div>
+                  <div><label for="amStatus">8. Status</label><select id="amStatus"><option value="a_fazer">A fazer</option><option value="em_andamento">Em andamento</option><option value="concluida">Concluída</option><option value="atrasada">Atrasada</option></select></div>
+                  <div><label for="amResultado">9. Trouxe resultado?</label><input id="amResultado" maxlength="200" placeholder="Descreva o impacto (preencha após concluir)"></div>
+                </div>
+                <div class="acoes"><button class="btn auto" type="submit" id="amSalvar">Salvar ação</button><button class="btn auto contorno" type="button" id="amCancelar">Cancelar</button></div>
+              </form>
+            </div>
+            <div class="tabela-wrap" style="margin-top:8px"><table class="t" id="tabelaAcoesMeta">
+              <thead><tr><th>#</th><th>Problema</th><th>Causa raiz</th><th>Ação</th><th>Como executar</th><th>Recursos</th><th>Dono</th><th>Prazo</th><th>Status</th><th>Resultado</th><th></th></tr></thead>
+              <tbody id="listaAcoesMeta"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+      </section>
+
     </div>
   </main>
 </div>
@@ -130,6 +405,7 @@
 <script src="js/config.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/app.js"></script>
+<script src="js/fluxo.js"></script>
 <script src="js/dre.js"></script>
 </body>
 </html>

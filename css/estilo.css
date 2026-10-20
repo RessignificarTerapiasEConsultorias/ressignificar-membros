@@ -208,3 +208,48 @@ details>summary::-webkit-details-marker{display:none}
 .inclui{list-style:none;display:grid;gap:5px;font-size:14.5px}
 .inclui li{padding-left:20px;position:relative}
 .inclui li::before{content:"✓";position:absolute;left:0;color:#1FA855;font-weight:700}
+
+/* ================= FASE 8: vendas ================= */
+.meta-card{background:var(--navy);color:#fff;border-color:var(--navy)}
+.meta-topo{display:flex;justify-content:space-between;gap:12px}
+.meta-topo small{display:block;color:#C7D0E2;font-size:13px;font-weight:600}
+.meta-topo b{display:block;font:600 clamp(22px,6vw,32px)/1.2 var(--serif);color:var(--gold2)}
+.meta-card .ajuda{color:#DCE3F1}
+.barra-meta{height:14px;border-radius:14px;background:rgba(255,255,255,.15);overflow:hidden;margin-top:14px}
+.barra-meta span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:14px;transition:width .6s}
+.barra-meta.batida span{background:linear-gradient(90deg,#1FA855,#5BD38A)}
+.mini-barra{display:inline-block;width:70px;height:8px;border-radius:8px;background:#EEE8DC;overflow:hidden;vertical-align:middle;margin-left:6px}
+.mini-barra span{display:block;height:100%;background:var(--gold)}
+.meta-input{width:130px;padding:7px 9px;border-radius:8px;border:1.5px solid #CFC6B3;font-size:14.5px}
+#semanas td{white-space:normal;padding:9px 8px}#semanas .vazio{font-size:12.5px}#semanas td:first-child{min-width:84px}
+
+/* ===== Lives ===== */
+.resumo-live{display:flex;gap:16px;margin:14px 0 0;padding:12px 14px;background:#F4EFE5;border-radius:10px;font-size:14.5px}
+.resumo-live b{color:var(--navy)}
+
+/* ===== Fluxo 30 dias ===== */
+.calendario-fluxo{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+@media(max-width:700px){.calendario-fluxo{grid-template-columns:repeat(4,1fr)}}
+.cal-dia{border:1.5px solid var(--line);border-radius:10px;padding:7px 6px;min-height:72px;background:#fff;font-size:13px}
+.cal-dia.hoje{border-color:var(--gold);background:#FBF3DF}
+.cal-dia.passado{opacity:.6}
+.cal-num{font-weight:700;font-size:15px;margin-bottom:4px;color:var(--navy)}
+.cal-item{border-radius:6px;padding:3px 6px;margin-top:3px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.cal-item.vermelho{background:#FDECEA;color:#8C2016;border-left:3px solid #C0392B}
+.cal-item.amarelo{background:#FEF9E7;color:#7D6608;border-left:3px solid #D4AC0D}
+.cal-item.laranja{background:#FEF0E6;color:#7E3800;border-left:3px solid #E67E22}
+.cal-item.verde{background:#EAFAF1;color:#1D6A3E;border-left:3px solid #27AE60}
+.badge-status{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12.5px;font-weight:700;cursor:pointer}
+.badge-status.vermelho{background:#FDECEA;color:#8C2016}
+.badge-status.amarelo{background:#FEF9E7;color:#7D6608}
+.badge-status.laranja{background:#FEF0E6;color:#7E3800}
+.badge-status.verde{background:#EAFAF1;color:#1D6A3E}
+
+/* ===== Projeção e Meta ===== */
+.proj-positivo{color:#1D6A3E;font-weight:700}
+.proj-negativo{color:#8C2016;font-weight:700}
+.proj-neutro{color:var(--muted)}
+#tabelaProjecao tbody tr.mes-atual{background:#FBF3DF;font-weight:600}
+.tipo-receita{color:#1D6A3E}
+.tipo-custo{color:#8C2016}
+.tipo-antecipada{color:#7D6608}

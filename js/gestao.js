@@ -209,6 +209,7 @@
         '<div class="vazio">Acesso: ' + (membros || "ninguém além da equipe") + "</div>" +
         '<div class="acoes">' +
         '<a class="btn auto" href="dre.html?e=' + e.id + '">Abrir DRE</a>' +
+        (e.tipo === "empresa" ? '<a class="btn peq contorno" href="vendas.html?e=' + e.id + '">Vendas</a>' : "") +
         '<button class="btn peq contorno" type="button" data-membros="' + e.id + '">Pessoas com acesso</button>' +
         (master ? '<button class="btn peq perigo" type="button" data-apagar="' + e.id + '">Apagar</button>' : "") +
         "</div></div>";

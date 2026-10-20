@@ -44,6 +44,15 @@
     document.querySelector('[data-rot="g1"]').textContent = "Renda x gastos por mês";
     document.querySelector('[data-rot="g2"]').textContent = "Sobra por mês";
   }
+  if (!pessoal) {
+    const lv = document.getElementById("linkVendas"); lv.href = "vendas.html?e=" + eid; lv.hidden = false;
+    // Mostrar aba lives se a empresa tiver lives cadastradas
+    supa().from("lives_loja").select("id").eq("empresa_id", eid).limit(1).then(function(r) {
+      if (r.data && r.data.length) document.getElementById("abaLives").hidden = false;
+    });
+    // Também mostra a aba se for empresa tipo loja
+    if (empresa.tipo === "empresa") document.getElementById("abaLives").hidden = false;
+  }
   document.getElementById("areaDre").hidden = false;
 
   /* ---------- estado ---------- */
@@ -484,11 +493,182 @@
     desenharDre(d);
     desenharKpis(d);
     desenharLeituras(d);
-    if (abaAtual === "painel") desenharGraficos(d);
+    if (abaAtual === "painel") desenharGraficos(calcular());
   }
-  ligarAbas(document.getElementById("abas"), function (nome) {
+
+  /* ================= LIVES ================= */
+  var lives = [], editLiveId = null, grafLives = null;
+
+  async function carregarLives() {
+    var r = await supa().from("lives_loja").select("*").eq("empresa_id", eid).order("data");
+    lives = r.data || [];
+  }
+
+  function calcLive(l) {
+    var custos = [+l.custo_trafego||0,+l.custo_energia||0,+l.custo_sacolas||0,+l.custo_alimentacao||0,+l.valor_compras||0,+l.custo_blogueira||0,+l.custo_hora_extra||0];
+    var totalCusto = custos.reduce(function(a,b){return a+b;},0);
+    var liq = +l.total_liquido||0;
+    var roi = totalCusto > 0 ? liq / totalCusto : null;
+    return { liq: liq, roi: roi, totalCusto: totalCusto };
+  }
+
+  function desenharLives() {
+    var totalBruto=0, totalLiq=0, totalCusto=0;
+    lives.forEach(function(l){ var c=calcLive(l); totalBruto+=+l.valor_bruto; totalLiq+=c.liq; totalCusto+=c.totalCusto; });
+    var nLives = lives.length;
+    document.getElementById("kpisLives").innerHTML = [
+      ["Lives realizadas", nLives, "total importado"],
+      ["Receita bruta total", brl(totalBruto), "soma das lives"],
+      ["Líquido total", brl(totalLiq), "após todos os custos"],
+      ["ROI médio", totalCusto>0?pct(totalLiq/totalCusto):"—", "líquido ÷ custos op."]
+    ].map(function(k){return '<div class="kpi"><small>'+k[0]+'</small><b>'+k[1]+'</b><span>'+k[2]+'</span></div>';}).join("");
+
+    if (typeof Chart !== "undefined") {
+      if (grafLives) grafLives.destroy();
+      var labels = lives.map(function(l){return dataBR(l.data);});
+      grafLives = new Chart(document.getElementById("gLives"), {type:"bar",
+        data:{labels:labels,datasets:[
+          {label:"Bruto",data:lives.map(function(l){return +l.valor_bruto;}),backgroundColor:"#C9A24A",borderRadius:3},
+          {label:"Líquido",data:lives.map(function(l){return +l.total_liquido||0;}),backgroundColor:"#1FA855",borderRadius:3}
+        ]},
+        options:{maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{callback:function(v){return "R$ "+Number(v).toLocaleString("pt-BR",{maximumFractionDigits:0});}}}}}
+      });
+    }
+
+    document.getElementById("listaLives").innerHTML = lives.length ? lives.map(function(l){
+      var c=calcLive(l);
+      return "<tr>"+
+        "<td>"+dataBR(l.data)+"</td>"+
+        "<td>"+(l.dia_semana||"—")+"</td>"+
+        '<td class="n"><b>'+brl(l.valor_bruto)+'</b></td>'+
+        '<td class="n">'+brl(l.custo_trafego)+'</td>'+
+        '<td class="n">'+brl(l.custo_energia)+'</td>'+
+        '<td class="n">'+brl(l.custo_sacolas)+'</td>'+
+        '<td class="n">'+brl(l.custo_alimentacao)+'</td>'+
+        '<td class="n">'+brl(l.valor_compras)+'</td>'+
+        '<td class="n">'+brl(l.custo_blogueira)+'</td>'+
+        '<td class="n">'+brl(l.custo_hora_extra)+'</td>'+
+        '<td class="n"><b class="'+(c.liq>=0?"v-receita":"v-despesa")+'">'+brl(c.liq)+'</b></td>'+
+        '<td class="n">'+(c.roi!==null?pct(c.roi):"—")+'</td>'+
+        '<td><button class="btn peq contorno" type="button" data-edlive="'+l.id+'">Editar</button> '+
+        '<button class="btn peq perigo" type="button" data-dellive="'+l.id+'">Apagar</button></td>'+
+        "</tr>";
+    }).join("") : '<tr><td colspan="13" class="vazio">Nenhuma live cadastrada.</td></tr>';
+
+    document.getElementById("totaisLives").innerHTML = nLives ?
+      "<tr style='font-weight:700;background:#F4EFE5'>"+
+      "<td colspan='2'>TOTAL ("+nLives+" lives)</td>"+
+      "<td class='n'>"+brl(totalBruto)+"</td>"+
+      "<td class='n'>"+brl(lives.reduce(function(s,l){return s+(+l.custo_trafego||0);},0))+"</td>"+
+      "<td class='n'>"+brl(lives.reduce(function(s,l){return s+(+l.custo_energia||0);},0))+"</td>"+
+      "<td class='n'>"+brl(lives.reduce(function(s,l){return s+(+l.custo_sacolas||0);},0))+"</td>"+
+      "<td class='n'>"+brl(lives.reduce(function(s,l){return s+(+l.custo_alimentacao||0);},0))+"</td>"+
+      "<td class='n'>"+brl(lives.reduce(function(s,l){return s+(+l.valor_compras||0);},0))+"</td>"+
+      "<td class='n'>"+brl(lives.reduce(function(s,l){return s+(+l.custo_blogueira||0);},0))+"</td>"+
+      "<td class='n'>"+brl(lives.reduce(function(s,l){return s+(+l.custo_hora_extra||0);},0))+"</td>"+
+      "<td class='n'><b>"+brl(totalLiq)+"</b></td>"+
+      "<td class='n'>"+(totalCusto>0?pct(totalLiq/totalCusto):"—")+"</td><td></td></tr>" : "";
+  }
+
+  function atualizarResumoLive() {
+    var bruto = lerValor(document.getElementById("lBruto").value)||0;
+    var custos = ["lTraf","lEner","lSac","lAlim","lCompras","lBlog","lHora"].reduce(function(s,id){return s+(lerValor(document.getElementById(id).value)||0);},0);
+    var liq = bruto - custos;
+    var roi = custos > 0 ? liq/custos : null;
+    var r = document.getElementById("resumoLive");
+    r.hidden = !bruto;
+    document.getElementById("liquidoEst").textContent = brl(liq);
+    document.getElementById("roiEst").textContent = roi!==null ? pct(roi) : "—";
+  }
+
+  ["lBruto","lTraf","lEner","lSac","lAlim","lCompras","lBlog","lHora"].forEach(function(id){
+    document.getElementById(id).addEventListener("input", atualizarResumoLive);
+  });
+
+  function limparFormLive() {
+    editLiveId = null;
+    document.getElementById("formLive").reset();
+    document.getElementById("lData").value = hojeISO();
+    document.getElementById("tituloLive").textContent = "Nova live";
+    document.getElementById("lSalvar").textContent = "Salvar live";
+    document.getElementById("lCancelar").hidden = true;
+    document.getElementById("resumoLive").hidden = true;
+  }
+
+  document.getElementById("lCancelar").addEventListener("click", limparFormLive);
+
+  document.getElementById("formLive").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    var bruto = lerValor(document.getElementById("lBruto").value);
+    if (!(bruto > 0)) { aviso("Informe o valor bruto da live.", true); return; }
+    var reg = {
+      empresa_id: eid,
+      data: document.getElementById("lData").value,
+      dia_semana: document.getElementById("lDia").value || null,
+      valor_bruto: bruto,
+      dias_trafego: parseInt(document.getElementById("lDiasTraf").value)||null,
+      custo_trafego:    lerValor(document.getElementById("lTraf").value)||0,
+      custo_energia:    lerValor(document.getElementById("lEner").value)||0,
+      custo_sacolas:    lerValor(document.getElementById("lSac").value)||0,
+      custo_alimentacao:lerValor(document.getElementById("lAlim").value)||0,
+      valor_compras:    lerValor(document.getElementById("lCompras").value)||0,
+      custo_blogueira:  lerValor(document.getElementById("lBlog").value)||0,
+      custo_hora_extra: lerValor(document.getElementById("lHora").value)||0,
+      observacao: document.getElementById("lObs").value.trim()||null,
+      criado_por: (await supa().auth.getUser()).data.user.id
+    };
+    var b = document.getElementById("lSalvar"); b.disabled = true;
+    var r = editLiveId
+      ? await supa().from("lives_loja").update(reg).eq("id", editLiveId)
+      : await supa().from("lives_loja").insert(reg);
+    b.disabled = false;
+    if (r.error) { aviso("Não foi possível salvar.", true); return; }
+    aviso(editLiveId ? "Live atualizada." : "Live salva!");
+    limparFormLive();
+    await carregarLives(); desenharLives();
+  });
+
+  document.getElementById("tabelaLives").addEventListener("click", async function(e) {
+    var be = e.target.closest("[data-edlive]"), bd = e.target.closest("[data-dellive]");
+    if (be) {
+      var l = lives.find(function(x){return x.id===be.dataset.edlive;}); if (!l) return;
+      editLiveId = l.id;
+      document.getElementById("lData").value = l.data;
+      document.getElementById("lDia").value = l.dia_semana||"";
+      document.getElementById("lBruto").value = String(l.valor_bruto).replace(".",",");
+      document.getElementById("lDiasTraf").value = l.dias_trafego||"";
+      document.getElementById("lTraf").value = l.custo_trafego||"";
+      document.getElementById("lEner").value = l.custo_energia||"";
+      document.getElementById("lSac").value = l.custo_sacolas||"";
+      document.getElementById("lAlim").value = l.custo_alimentacao||"";
+      document.getElementById("lCompras").value = l.valor_compras||"";
+      document.getElementById("lBlog").value = l.custo_blogueira||"";
+      document.getElementById("lHora").value = l.custo_hora_extra||"";
+      document.getElementById("lObs").value = l.observacao||"";
+      document.getElementById("tituloLive").textContent = "Editando live de "+dataBR(l.data);
+      document.getElementById("lSalvar").textContent = "Salvar alteração";
+      document.getElementById("lCancelar").hidden = false;
+      atualizarResumoLive();
+      document.getElementById("formLive").scrollIntoView({behavior:"smooth",block:"start"});
+    }
+    if (bd) {
+      var l = lives.find(function(x){return x.id===bd.dataset.dellive;});
+      if (!l||!confirm("Apagar a live de "+dataBR(l.data)+"?")) return;
+      var r = await supa().from("lives_loja").delete().eq("id",l.id);
+      if (r.error) { aviso("Não foi possível apagar.",true); return; }
+      aviso("Live apagada."); await carregarLives(); desenharLives();
+    }
+  });
+
+  var fluxoIniciado = false;
+  ligarAbas(document.getElementById("abas"), async function (nome) {
     abaAtual = nome;
     if (nome === "painel") desenharGraficos(calcular());
+    if (nome === "lives") { await carregarLives(); desenharLives(); }
+    if (nome === "fluxo" && !fluxoIniciado) {
+      fluxoIniciado = true;
+      await window.iniciarFluxo(pessoal ? null : eid, eu.id);
+    }
   });
 
   await carregarCadastros();
