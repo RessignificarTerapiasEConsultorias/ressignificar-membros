@@ -112,7 +112,7 @@
           </form>
           <div class="tabela-wrap" style="margin-top:14px"><table class="t"><thead><tr><th>Produto</th><th>Canal</th><th>Situação</th><th></th></tr></thead><tbody id="listaProdutos"></tbody></table></div>
         </div>
-        <div class="cartao so-gestor">
+        <div class="cartao">
           <h2>Plano de contas</h2>
           <p class="ajuda">Contas desativadas somem da lista de lançamento, mas continuam na DRE com o histórico.</p>
           <form id="formConta" class="f grade g4" novalidate>
@@ -206,6 +206,7 @@
           <button class="aba" type="button" data-aba="recebimentos" aria-selected="false">Recebimentos</button>
           <button class="aba" type="button" data-aba="dividas" aria-selected="false">Dívidas</button>
           <button class="aba" type="button" data-aba="projecao" aria-selected="false">Projeção</button>
+          <button class="aba" type="button" data-aba="servicos" aria-selected="false">Serviços futuros</button>
           <button class="aba" type="button" data-aba="meta" aria-selected="false">Meta e ações</button>
         </div>
 
@@ -341,6 +342,69 @@
             </div>
             <div class="lista-sessoes" id="listaFuturos"></div>
           </div>
+        </div>
+
+        <!-- SERVIÇOS FUTUROS -->
+        <div data-painel-fluxo="servicos" hidden>
+          <div class="cartao">
+            <h2>Serviços agendados</h2>
+            <p class="ajuda">Para quando o cliente paga antes e o atendimento acontece depois. Cadastre o que você vai usar no dia e o sistema projeta o custo corrigido pela inflação até lá.</p>
+            <div class="kpis" id="kpisServicos"></div>
+          </div>
+
+          <div class="duas-col" style="margin-top:14px">
+            <!-- Catálogo de itens de custo -->
+            <div class="cartao">
+              <h2 id="tituloItem">Itens que você usa</h2>
+              <p class="ajuda">Cadastre uma vez o que usa nos atendimentos — creme, secador, energia, freelancer — com o custo de hoje e quanto espera que suba por ano.</p>
+              <form id="formItem" class="f" novalidate>
+                <div class="grade g2">
+                  <div><label for="itNome">Item</label><input id="itNome" maxlength="80" required placeholder="Ex.: Freelancer, Creme hidratante"></div>
+                  <div><label for="itCat">Categoria</label><input id="itCat" list="catItemLista" maxlength="60" placeholder="Ex.: Mão de obra, Produto"><datalist id="catItemLista"><option>Mão de obra</option><option>Produto</option><option>Energia</option><option>Aluguel</option><option>Aplicativo</option><option>Transporte</option><option>Outros</option></datalist></div>
+                  <div><label for="itCusto">Custo hoje (R$)</label><input id="itCusto" inputmode="decimal" placeholder="0,00" required></div>
+                  <div><label for="itInfl">Aumento esperado (% ao ano)</label><input id="itInfl" inputmode="decimal" placeholder="Ex.: 8" value="0"></div>
+                  <div><label for="itUnid">Unidade</label><input id="itUnid" maxlength="30" placeholder="unidade, hora, kg" value="unidade"></div>
+                </div>
+                <div class="acoes"><button class="btn auto" type="submit" id="itSalvar">Salvar item</button><button class="btn auto contorno" type="button" id="itCancelar" hidden>Cancelar</button></div>
+              </form>
+              <div class="tabela-wrap" style="margin-top:14px"><table class="t"><thead><tr><th>Item</th><th>Categoria</th><th class="n">Custo hoje</th><th class="n">% ano</th><th></th></tr></thead><tbody id="listaItens"></tbody></table></div>
+            </div>
+
+            <!-- Cadastrar serviço agendado -->
+            <div class="cartao">
+              <h2 id="tituloServico">Novo serviço agendado</h2>
+              <form id="formServico" class="f" novalidate>
+                <div class="grade g2">
+                  <div><label for="svCliente">Cliente</label><input id="svCliente" maxlength="100" required placeholder="Ex.: Noiva Ana Paula"></div>
+                  <div><label for="svDesc">Serviço</label><input id="svDesc" maxlength="150" required placeholder="Ex.: Pacote noiva completo"></div>
+                  <div><label for="svTotal">Valor total (R$)</label><input id="svTotal" inputmode="decimal" placeholder="0,00" required></div>
+                  <div><label for="svPago">Já pago (R$)</label><input id="svPago" inputmode="decimal" placeholder="0,00"></div>
+                  <div><label for="svDataPag">Data do pagamento</label><input id="svDataPag" type="date"></div>
+                  <div><label for="svDataExec">Data da execução</label><input id="svDataExec" type="date" required></div>
+                </div>
+                <div class="acoes"><button class="btn auto" type="submit" id="svSalvar">Salvar serviço</button><button class="btn auto contorno" type="button" id="svCancelar" hidden>Cancelar</button></div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Lista de serviços com composição de custo -->
+          <div class="cartao" style="margin-top:14px">
+            <h2>Serviços e custos projetados</h2>
+            <div id="listaServicos"></div>
+          </div>
+
+          <!-- Janela para montar itens de um serviço -->
+          <dialog class="janela" id="janelaItensServico">
+            <h2 id="jisTitulo">Custos do serviço</h2>
+            <p class="ajuda" id="jisSub"></p>
+            <form id="formAddItemServico" class="f grade g3" novalidate>
+              <div><label for="jisItem">Item</label><select id="jisItem"></select></div>
+              <div><label for="jisQtd">Quantidade</label><input id="jisQtd" inputmode="decimal" value="1"></div>
+              <div style="align-self:end"><button class="btn auto" type="submit">Adicionar</button></div>
+            </form>
+            <div class="tabela-wrap" style="margin-top:14px"><table class="t"><thead><tr><th>Item</th><th class="n">Qtd</th><th class="n">Custo hoje</th><th class="n">% ano</th><th class="n">Custo na data</th><th></th></tr></thead><tbody id="jisLista"></tbody><tfoot id="jisTotais"></tfoot></table></div>
+            <div class="acoes"><button class="btn auto contorno" type="button" id="jisFechar">Fechar</button></div>
+          </dialog>
         </div>
 
         <!-- META E AÇÕES -->

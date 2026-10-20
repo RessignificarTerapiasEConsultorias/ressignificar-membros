@@ -32,6 +32,15 @@
       </form>
     </div>
     <div class="cartao">
+      <h2>E-mail de acesso</h2>
+      <p class="ajuda">Este é o e-mail que você usa para entrar. Ao trocar, o login muda na hora.</p>
+      <form id="formEmail" class="f" novalidate>
+        <label for="emailNovo">Novo e-mail</label>
+        <input id="emailNovo" type="email" maxlength="120" required placeholder="nome@exemplo.com">
+        <div class="acoes"><button class="btn auto" type="submit">Salvar e-mail</button></div>
+      </form>
+    </div>
+    <div class="cartao">
       <h2>Lembretes por e-mail</h2>
       <p class="ajuda">Avisos de pagamento, de ações com prazo vencido e de DRE sem lançamento.</p>
       <div class="checks"><label><input type="checkbox" id="querLembretes"> Quero receber lembretes por e-mail</label></div>
@@ -81,6 +90,21 @@
     if (!r.ok) { aviso(r.erro, true); return; }
     document.querySelectorAll("[data-nome-usuario]").forEach(function (el) { el.textContent = nome; });
     aviso("Nome salvo.");
+  });
+
+  document.getElementById("emailNovo").value = eu.email || "";
+  document.getElementById("formEmail").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const email = document.getElementById("emailNovo").value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { aviso("E-mail inválido.", true); return; }
+    if (email === eu.email) { aviso("Esse já é o seu e-mail."); return; }
+    if (!confirm("Trocar o e-mail de acesso para " + email + "?\nVocê vai usar esse e-mail no próximo login.")) return;
+    const b = this.querySelector("[type=submit]"); b.disabled = true;
+    const r = await chamarServidor({ acao: "meu_email", email: email });
+    b.disabled = false;
+    if (!r.ok) { aviso(r.erro, true); return; }
+    aviso("E-mail trocado! Use o novo no próximo login.");
+    document.getElementById("meuEmail").textContent = email;
   });
 
   document.getElementById("formSenha").addEventListener("submit", async function (e) {

@@ -112,6 +112,7 @@
       document.getElementById("edNome").value = p.nome;
       document.getElementById("edPapel").value = p.papel;
       document.getElementById("edTelefone").value = p.telefone ? foneBR(p.telefone) : "";
+      document.getElementById("edEmailInput").value = p.email || "";
       document.getElementById("edAtivo").checked = p.ativo;
       document.getElementById("edSenha").value = "";
     }
@@ -131,8 +132,10 @@
         const telefone = document.getElementById("edTelefone").value;
         const telAtual = p.telefone || "";
         const normal = function (t) { const d = String(t || "").replace(/\D/g, ""); return (d.length === 10 || d.length === 11) ? "55" + d : d; };
-        if (nome !== p.nome || papel !== p.papel || normal(telefone) !== normal(telAtual)) {
-          const r = await chamarServidor({ acao: "editar", perfil_id: p.id, nome: nome, papel: papel, telefone: telefone });
+        const email = document.getElementById("edEmailInput").value.trim();
+        if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { aviso("E-mail inválido.", true); return; }
+        if (nome !== p.nome || papel !== p.papel || normal(telefone) !== normal(telAtual) || (email && email !== p.email)) {
+          const r = await chamarServidor({ acao: "editar", perfil_id: p.id, nome: nome, papel: papel, telefone: telefone, email: email !== p.email ? email : undefined });
           if (!r.ok) { aviso(r.erro, true); return; }
         }
         const ativo = document.getElementById("edAtivo").checked;

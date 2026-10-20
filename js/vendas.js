@@ -38,7 +38,7 @@
       buscarTudo(function () { return supa().from("vendas").select("id,vendedor_id,data,valor,itens,forma_pagamento,observacao").eq("empresa_id", eid).gte("data", pr.ini).lte("data", pr.fim).order("data", { ascending: false }); }),
       supa().from("metas_vendedor").select("id,vendedor_id,valor_meta").eq("empresa_id", eid).eq("mes_referencia", pr.ini)
     ];
-    if (gestor) pedidos.push(supa().from("perfis").select("id,nome,papel,ativo").eq("papel", "vendedor").order("nome"));
+    if (gestor) pedidos.push(supa().from("perfis").select("id,nome,papel,ativo").in("papel", ["vendedor", "master", "suporte", "cliente"]).order("nome"));
     const r = await Promise.all(pedidos);
     vinc = r[0].data || []; vendas = r[1] || []; metas = r[2].data || [];
     if (gestor) perfisVend = (r[3].data || []).filter(function (p) { return p.ativo; });
@@ -96,10 +96,11 @@
 
     if (gestor) {
       const ligados = vinc.map(function (v) { return v.perfil_id; });
-      document.getElementById("addVend").innerHTML = perfisVend.filter(function (p) { return ligados.indexOf(p.id) === -1; }).map(function (p) { return '<option value="' + p.id + '">' + esc(p.nome) + "</option>"; }).join("") || '<option value="">Nenhum vendedor disponível</option>';
+      document.getElementById("addVend").innerHTML = perfisVend.filter(function (p) { return ligados.indexOf(p.id) === -1; }).map(function (p) { return '<option value="' + p.id + '">' + esc(p.nome) + (p.papel !== "vendedor" ? " (" + ROTULO_PAPEL[p.papel] + ")" : "") + "</option>"; }).join("") || '<option value="">Nenhuma pessoa disponível</option>';
       document.getElementById("listaVinc").innerHTML = vinc.length ? vinc.map(function (v) {
         return "<tr><td>" + esc(v.nome) + "</td><td>" + (v.ativo ? '<span class="selo ok">Ativo</span>' : '<span class="selo off">Inativo</span>') + "</td>" +
-          '<td><button class="btn peq contorno" type="button" data-vinc="' + v.perfil_id + '" data-ativo="' + (v.ativo ? "1" : "") + '">' + (v.ativo ? "Desligar da loja" : "Religar") + "</button></td></tr>";
+          '<td><button class="btn peq contorno" type="button" data-vinc="' + v.perfil_id + '" data-ativo="' + (v.ativo ? "1" : "") + '">' + (v.ativo ? "Desligar da loja" : "Religar") + "</button> " +
+          '<button class="btn peq perigo" type="button" data-excluir-vinc="' + v.perfil_id + '">Excluir</button></td></tr>';
       }).join("") : '<tr><td class="vazio">Nenhum vendedor ligado.</td></tr>';
     }
   }
@@ -148,6 +149,19 @@
     if (bv) {
       const { error } = await supa().from("vendedores_loja").update({ ativo: !bv.dataset.ativo }).eq("empresa_id", eid).eq("perfil_id", bv.dataset.vinc);
       if (error) { aviso("Não foi possível alterar.", true); return; }
+      await carregar();
+    }
+    const bx = e.target.closest("[data-excluir-vinc]");
+    if (bx) {
+      const v = vinc.find(function (x) { return x.perfil_id === bx.dataset.excluirVinc; });
+      const temVendas = vendas.some(function (x) { return x.vendedor_id === bx.dataset.excluirVinc; });
+      const msg = temVendas
+        ? "Excluir " + (v ? v.nome : "este vendedor") + " desta loja?\n\nAs vendas já lançadas continuam no histórico, mas a pessoa volta para a lista de vendedores disponíveis."
+        : "Excluir " + (v ? v.nome : "este vendedor") + " desta loja?\n\nA pessoa volta para a lista de vendedores disponíveis.";
+      if (!confirm(msg)) return;
+      const { error } = await supa().from("vendedores_loja").delete().eq("empresa_id", eid).eq("perfil_id", bx.dataset.excluirVinc);
+      if (error) { aviso("Não foi possível excluir.", true); return; }
+      aviso("Vendedor removido da loja.");
       await carregar();
     }
   });

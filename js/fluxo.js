@@ -42,6 +42,11 @@ window.iniciarFluxo = async function(eid, pid) {
     abaFluxo = b.dataset.aba;
     document.querySelectorAll("#abasFluxo [data-aba]").forEach(function(x) { x.setAttribute("aria-selected", x.dataset.aba === abaFluxo ? "true" : "false"); });
     document.querySelectorAll("[data-painel-fluxo]").forEach(function(x) { x.hidden = x.dataset.painelFluxo !== abaFluxo; });
+    if (abaFluxo === "servicos" && !servicos.length && !itensCusto.length) {
+      carregarServicos().then(desenharServicos);
+    } else if (abaFluxo === "servicos") { desenharServicos(); }
+    if (abaFluxo === "projecao") desenharProjecao();
+    if (abaFluxo === "meta") desenharMeta();
   });
 
   // ── carregar tudo ──
@@ -123,6 +128,15 @@ window.iniciarFluxo = async function(eid, pid) {
     return recebimentos.filter(function(r){return r.data_prevista===diaStr;});
   }
 
+  // ── gastos de cartão feitos num dia (compra) ──
+  function comprasDoDia(diaStr) {
+    return gastos.filter(function(g){ return g.data_compra === diaStr; }).map(function(g){
+      var c = cartoes.find(function(x){return x.id===g.cartao_id;})||{nome:"?",dia_vencimento:"?"};
+      var mesFat = new Date(g.mes_primeira_fatura+"T12:00:00");
+      return { gasto:g, cartao:c, mesFatura:mesFat };
+    });
+  }
+
   // ── desenhar calendário ──
   function desenharCalendario() {
     var cal = document.getElementById("calendarioFluxo");
@@ -136,8 +150,14 @@ window.iniciarFluxo = async function(eid, pid) {
       var fats = faturasDoDia(dStr);
       var recs = recsDoDia(dStr);
       var divs = dividasNoDia(dStr);
+      var compras = comprasDoDia(dStr);
       html += '<div class="cal-dia' + (eHoje?" hoje":"") + (passado?" passado":"") + '">';
       html += '<div class="cal-num">' + d + '</div>';
+      compras.forEach(function(cp) {
+        var label = "💳 " + cp.gasto.descricao + " " + brl(cp.gasto.valor_total);
+        var tip = "Compra no " + cp.cartao.nome + " · paga na fatura de " + mesLabel(cp.mesFatura) + " (dia " + cp.cartao.dia_vencimento + ")";
+        html += '<div class="cal-item roxo" title="' + esc(tip) + '">' + esc(label) + '</div>';
+      });
       fats.forEach(function(f) {
         var cls = f.pago ? "verde" : (passado ? "vermelho" : "vermelho");
         var label = f.cartao.nome + " " + brl(f.total);
@@ -710,6 +730,192 @@ window.iniciarFluxo = async function(eid, pid) {
     }
   });
 
+  // ── SERVIÇOS FUTUROS COM CUSTOS PROJETADOS ──
+  var itensCusto = [], servicos = [], servicoItens = [], editItemId = null, editServicoId = null, servicoAberto = null;
+
+  async function carregarServicos() {
+    var [ri, rs] = await Promise.all([
+      filtro(supa().from("itens_custo").select("*").eq("ativo", true).order("nome")),
+      filtro(supa().from("servicos_agendados").select("*").order("data_execucao"))
+    ]);
+    itensCusto = ri.data || []; servicos = rs.data || [];
+    if (servicos.length) {
+      var rsi = await supa().from("servico_itens").select("*").in("servico_id", servicos.map(function(s){return s.id;}));
+      servicoItens = rsi.data || [];
+    } else servicoItens = [];
+  }
+
+  // custo corrigido pela inflação até a data de execução
+  function custoNaData(custoHoje, inflacaoAnual, dataExec) {
+    var anos = (new Date(dataExec+"T12:00:00") - hoje) / (365.25*24*3600*1000);
+    if (anos <= 0) return custoHoje;
+    return custoHoje * Math.pow(1 + (inflacaoAnual||0)/100, anos);
+  }
+
+  function custoTotalServico(s) {
+    return servicoItens.filter(function(i){return i.servico_id===s.id;})
+      .reduce(function(t,i){ return t + custoNaData(+i.custo_unitario_hoje, +i.inflacao_anual, s.data_execucao) * (+i.quantidade); }, 0);
+  }
+
+  function desenharServicos() {
+    // KPIs
+    var futuros = servicos.filter(function(s){return s.status!=="cancelado";});
+    var totalReceber = futuros.reduce(function(t,s){return t + (+s.valor_total - +s.valor_pago);},0);
+    var totalPago = futuros.reduce(function(t,s){return t + (+s.valor_pago);},0);
+    var totalCusto = futuros.reduce(function(t,s){return t + custoTotalServico(s);},0);
+    var margem = totalPago + totalReceber - totalCusto;
+    document.getElementById("kpisServicos").innerHTML = [
+      ["Serviços agendados", futuros.length, "a executar"],
+      ["Já recebido", brl(totalPago), "pagamentos antecipados"],
+      ["A receber", brl(totalReceber), "saldo dos contratos"],
+      ["Custo projetado", brl(totalCusto), "corrigido pela inflação"],
+      ["Margem prevista", '<span class="'+(margem>=0?"sobe":"")+'">'+brl(margem)+"</span>", "receita menos custo"]
+    ].map(function(k){return '<div class="kpi"><small>'+k[0]+'</small><b>'+k[1]+'</b><span>'+k[2]+'</span></div>';}).join("");
+
+    // itens de custo
+    document.getElementById("listaItens").innerHTML = itensCusto.length ? itensCusto.map(function(i){
+      return "<tr><td><b>"+esc(i.nome)+"</b>"+(i.unidade&&i.unidade!=="unidade"?' <span class="vazio" style="padding:0">/'+esc(i.unidade)+"</span>":"")+"</td>" +
+        "<td>"+(i.categoria?esc(i.categoria):"—")+"</td>" +
+        '<td class="n">'+brl(i.custo_atual)+"</td>" +
+        '<td class="n">'+(i.inflacao_anual?(+i.inflacao_anual).toFixed(1)+"%":"—")+"</td>" +
+        '<td><button class="btn peq contorno" type="button" data-ed-item="'+i.id+'">Editar</button> <button class="btn peq perigo" type="button" data-del-item="'+i.id+'">Apagar</button></td></tr>';
+    }).join("") : '<tr><td colspan="5" class="vazio">Nenhum item cadastrado.</td></tr>';
+
+    // serviços
+    document.getElementById("listaServicos").innerHTML = servicos.length ? servicos.map(function(s){
+      var custo = custoTotalServico(s);
+      var receita = +s.valor_total;
+      var margem = receita - custo;
+      var nItens = servicoItens.filter(function(i){return i.servico_id===s.id;}).length;
+      var saldo = receita - (+s.valor_pago);
+      var diasAte = Math.round((new Date(s.data_execucao+"T12:00:00") - hoje)/86400000);
+      return '<div class="sessao"><div class="sessao-topo"><b>'+esc(s.cliente_nome)+' — '+esc(s.descricao)+'</b>' +
+        '<span class="selo'+(s.status==="executado"?" ok":"")+'">'+({agendado:"Agendado",em_preparacao:"Em preparação",executado:"Executado",cancelado:"Cancelado"}[s.status])+'</span></div>' +
+        '<div class="grade g3" style="gap:10px;margin:8px 0">' +
+          '<div><small class="acao-info">Valor</small><br><b>'+brl(receita)+'</b>'+(saldo>0?'<br><span class="acao-info">falta '+brl(saldo)+'</span>':'<br><span class="acao-info v-receita">quitado</span>')+'</div>' +
+          '<div><small class="acao-info">Custo projetado</small><br><b class="v-despesa">'+brl(custo)+'</b><br><span class="acao-info">'+nItens+(nItens===1?" item":" itens")+'</span></div>' +
+          '<div><small class="acao-info">Margem prevista</small><br><b class="'+(margem>=0?"v-receita":"v-despesa")+'">'+brl(margem)+'</b><br><span class="acao-info">'+(receita>0?pct(margem/receita):"—")+'</span></div>' +
+        '</div>' +
+        '<span class="acao-info">Execução em '+dataBR(s.data_execucao)+(diasAte>0?" · faltam "+diasAte+" dias":(diasAte===0?" · é hoje!":" · já passou"))+(s.data_pagamento?" · pago em "+dataBR(s.data_pagamento):"")+'</span>' +
+        '<div class="acoes" style="margin-top:8px">' +
+        '<button class="btn peq" type="button" data-itens-serv="'+s.id+'">Montar custos</button>' +
+        '<button class="btn peq contorno" type="button" data-ed-serv="'+s.id+'">Editar</button>' +
+        '<button class="btn peq perigo" type="button" data-del-serv="'+s.id+'">Apagar</button></div></div>';
+    }).join("") : '<p class="vazio">Nenhum serviço agendado. Cadastre acima.</p>';
+  }
+
+  // form item de custo
+  function limparFormItem(){ editItemId=null; document.getElementById("formItem").reset(); document.getElementById("itUnid").value="unidade"; document.getElementById("itInfl").value="0"; document.getElementById("itSalvar").textContent="Salvar item"; document.getElementById("itCancelar").hidden=true; }
+  document.getElementById("itCancelar").addEventListener("click", limparFormItem);
+  document.getElementById("formItem").addEventListener("submit", async function(e){
+    e.preventDefault();
+    var nome=document.getElementById("itNome").value.trim(), custo=lerValor(document.getElementById("itCusto").value);
+    if(!nome||!(custo>=0)){aviso("Preencha o nome e o custo.",true);return;}
+    var reg={perfil_id:pid,empresa_id:eid||null,nome:nome,categoria:document.getElementById("itCat").value.trim()||null,
+      custo_atual:custo,inflacao_anual:lerValor(document.getElementById("itInfl").value)||0,unidade:document.getElementById("itUnid").value.trim()||"unidade"};
+    var b=document.getElementById("itSalvar"); b.disabled=true;
+    var r=editItemId?await supa().from("itens_custo").update(reg).eq("id",editItemId):await supa().from("itens_custo").insert(reg);
+    b.disabled=false;
+    if(r.error){aviso("Não foi possível salvar.",true);return;}
+    aviso(editItemId?"Item atualizado.":"Item salvo!"); limparFormItem(); await carregarServicos(); desenharServicos();
+  });
+  document.getElementById("listaItens").addEventListener("click", async function(e){
+    var be=e.target.closest("[data-ed-item]"), bd=e.target.closest("[data-del-item]");
+    if(be){
+      var i=itensCusto.find(function(x){return x.id===be.dataset.edItem;}); if(!i) return;
+      editItemId=i.id; document.getElementById("itNome").value=i.nome; document.getElementById("itCat").value=i.categoria||"";
+      document.getElementById("itCusto").value=String(i.custo_atual).replace(".",","); document.getElementById("itInfl").value=i.inflacao_anual||0;
+      document.getElementById("itUnid").value=i.unidade||"unidade";
+      document.getElementById("itSalvar").textContent="Salvar alteração"; document.getElementById("itCancelar").hidden=false;
+      document.getElementById("formItem").scrollIntoView({behavior:"smooth",block:"start"});
+    }
+    if(bd){
+      var i=itensCusto.find(function(x){return x.id===bd.dataset.delItem;}); if(!i||!confirm("Apagar o item \""+i.nome+"\"?")) return;
+      await supa().from("itens_custo").delete().eq("id",i.id); aviso("Item apagado."); await carregarServicos(); desenharServicos();
+    }
+  });
+
+  // form serviço
+  function limparFormServico(){ editServicoId=null; document.getElementById("formServico").reset(); document.getElementById("svSalvar").textContent="Salvar serviço"; document.getElementById("svCancelar").hidden=true; }
+  document.getElementById("svCancelar").addEventListener("click", limparFormServico);
+  document.getElementById("formServico").addEventListener("submit", async function(e){
+    e.preventDefault();
+    var cli=document.getElementById("svCliente").value.trim(), desc=document.getElementById("svDesc").value.trim();
+    var total=lerValor(document.getElementById("svTotal").value), exec=document.getElementById("svDataExec").value;
+    if(!cli||!desc||!(total>0)||!exec){aviso("Preencha cliente, serviço, valor e data de execução.",true);return;}
+    var reg={perfil_id:pid,empresa_id:eid||null,cliente_nome:cli,descricao:desc,valor_total:total,
+      valor_pago:lerValor(document.getElementById("svPago").value)||0,
+      data_pagamento:document.getElementById("svDataPag").value||null,data_execucao:exec};
+    var b=document.getElementById("svSalvar"); b.disabled=true;
+    var r=editServicoId?await supa().from("servicos_agendados").update(reg).eq("id",editServicoId):await supa().from("servicos_agendados").insert(reg);
+    b.disabled=false;
+    if(r.error){aviso("Não foi possível salvar.",true);return;}
+    aviso(editServicoId?"Serviço atualizado.":"Serviço agendado!"); limparFormServico(); await carregarServicos(); desenharServicos();
+  });
+  document.getElementById("listaServicos").addEventListener("click", async function(e){
+    var bi=e.target.closest("[data-itens-serv]"), be=e.target.closest("[data-ed-serv]"), bd=e.target.closest("[data-del-serv]");
+    if(bi){ abrirItensServico(bi.dataset.itensServ); }
+    if(be){
+      var s=servicos.find(function(x){return x.id===be.dataset.edServ;}); if(!s) return;
+      editServicoId=s.id;
+      document.getElementById("svCliente").value=s.cliente_nome; document.getElementById("svDesc").value=s.descricao;
+      document.getElementById("svTotal").value=String(s.valor_total).replace(".",","); document.getElementById("svPago").value=s.valor_pago?String(s.valor_pago).replace(".",","):"";
+      document.getElementById("svDataPag").value=s.data_pagamento||""; document.getElementById("svDataExec").value=s.data_execucao;
+      document.getElementById("svSalvar").textContent="Salvar alteração"; document.getElementById("svCancelar").hidden=false;
+      document.getElementById("formServico").scrollIntoView({behavior:"smooth",block:"start"});
+    }
+    if(bd){
+      var s=servicos.find(function(x){return x.id===bd.dataset.delServ;}); if(!s||!confirm("Apagar o serviço de "+s.cliente_nome+"?")) return;
+      await supa().from("servicos_agendados").delete().eq("id",s.id); aviso("Serviço apagado."); await carregarServicos(); desenharServicos();
+    }
+  });
+
+  // janela de composição de custos
+  var jis = document.getElementById("janelaItensServico");
+  function abrirItensServico(sid){
+    servicoAberto = servicos.find(function(x){return x.id===sid;}); if(!servicoAberto) return;
+    document.getElementById("jisTitulo").textContent = servicoAberto.cliente_nome + " — " + servicoAberto.descricao;
+    document.getElementById("jisSub").textContent = "Execução em " + dataBR(servicoAberto.data_execucao) + ". Os custos abaixo já vêm corrigidos pela inflação até essa data.";
+    document.getElementById("jisItem").innerHTML = itensCusto.length ? itensCusto.map(function(i){return '<option value="'+i.id+'">'+esc(i.nome)+" ("+brl(i.custo_atual)+")</option>";}).join("") : '<option value="">Cadastre itens primeiro</option>';
+    desenharItensServico();
+    jis.showModal();
+  }
+  function desenharItensServico(){
+    if(!servicoAberto) return;
+    var itens = servicoItens.filter(function(i){return i.servico_id===servicoAberto.id;});
+    var totalHoje=0, totalFuturo=0;
+    document.getElementById("jisLista").innerHTML = itens.length ? itens.map(function(i){
+      var cHoje = (+i.custo_unitario_hoje)*(+i.quantidade);
+      var cFut = custoNaData(+i.custo_unitario_hoje,+i.inflacao_anual,servicoAberto.data_execucao)*(+i.quantidade);
+      totalHoje+=cHoje; totalFuturo+=cFut;
+      return "<tr><td><b>"+esc(i.nome_item)+"</b></td><td class='n'>"+(+i.quantidade)+"</td>" +
+        "<td class='n'>"+brl(i.custo_unitario_hoje)+"</td>" +
+        "<td class='n'>"+(i.inflacao_anual?(+i.inflacao_anual).toFixed(1)+"%":"—")+"</td>" +
+        "<td class='n'><b>"+brl(cFut)+"</b></td>" +
+        "<td><button class='btn peq perigo' type='button' data-del-si='"+i.id+"'>Remover</button></td></tr>";
+    }).join("") : "<tr><td colspan='6' class='vazio'>Nenhum item adicionado.</td></tr>";
+    document.getElementById("jisTotais").innerHTML = itens.length ?
+      "<tr style='font-weight:700;background:#F4EFE5'><td colspan='2'>TOTAL</td><td class='n'>"+brl(totalHoje)+"</td><td></td><td class='n'><b>"+brl(totalFuturo)+"</b></td><td></td></tr>" +
+      "<tr><td colspan='6' class='acao-info'>Diferença pela inflação: "+brl(totalFuturo-totalHoje)+"</td></tr>" : "";
+  }
+  document.getElementById("jisFechar").addEventListener("click", function(){ jis.close(); desenharServicos(); });
+  document.getElementById("formAddItemServico").addEventListener("submit", async function(e){
+    e.preventDefault();
+    var itemId=document.getElementById("jisItem").value, qtd=lerValor(document.getElementById("jisQtd").value)||1;
+    if(!itemId||!servicoAberto){aviso("Escolha um item.",true);return;}
+    var it=itensCusto.find(function(x){return x.id===itemId;});
+    var r=await supa().from("servico_itens").insert({servico_id:servicoAberto.id,item_custo_id:it.id,nome_item:it.nome,
+      quantidade:qtd,custo_unitario_hoje:it.custo_atual,inflacao_anual:it.inflacao_anual||0});
+    if(r.error){aviso("Não foi possível adicionar.",true);return;}
+    document.getElementById("jisQtd").value="1";
+    await carregarServicos(); desenharItensServico();
+  });
+  document.getElementById("jisLista").addEventListener("click", async function(e){
+    var bd=e.target.closest("[data-del-si]"); if(!bd) return;
+    await supa().from("servico_itens").delete().eq("id",bd.dataset.delSi);
+    await carregarServicos(); desenharItensServico();
+  });
+
   // ── desenhar tudo ──
   function desenharFluxo() {
     desenharCalendario();
@@ -719,6 +925,7 @@ window.iniciarFluxo = async function(eid, pid) {
     desenharDividas();
     if (abaFluxo==="projecao") desenharProjecao();
     if (abaFluxo==="meta") desenharMeta();
+    if (abaFluxo==="servicos") desenharServicos();
   }
 
   // no calendário mostrar só receitas e custos futuros (não todos os recebimentos)
