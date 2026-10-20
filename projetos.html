@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Projetos de melhoria | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <span class="selo-papel" data-papel-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="painel-cliente.html">← Voltar ao painel</a>
+    <h1>Projetos de melhoria</h1>
+    <p class="sub">Do problema até a solução comprovada, com PDCA e as ferramentas do Lean Six Sigma.</p>
+
+    <div class="cartao so-gestor" id="cartaoNovo">
+      <h2>Novo projeto</h2>
+      <form id="formNovoProjeto" class="f" novalidate>
+        <div class="grade g2">
+          <div class="so-master"><label for="npCliente">Cliente</label><select id="npCliente"></select></div>
+          <div><label for="npTitulo">Título do projeto</label><input id="npTitulo" maxlength="150" required placeholder="Ex.: Reduzir devoluções em 30% até dezembro"></div>
+        </div>
+        <div class="grade g2" style="margin-top:12px">
+          <div><label for="npIndicador">Indicador relacionado <span class="vazio">(opcional)</span></label><input id="npIndicador" maxlength="100" placeholder="Ex.: Taxa de devolução, Margem líquida"></div>
+          <div></div>
+          <div><label for="npLinhaBase">Valor atual (linha de base)</label><input id="npLinhaBase" inputmode="decimal" placeholder="Ex.: 12"></div>
+          <div><label for="npMeta">Meta do indicador</label><input id="npMeta" inputmode="decimal" placeholder="Ex.: 8"></div>
+        </div>
+        <div class="acoes"><button class="btn auto" type="submit">Criar projeto</button></div>
+      </form>
+    </div>
+
+    <div class="sugestoes" id="filtroStatusProjeto" style="margin:16px 0">
+      <button type="button" data-f="ativo">Em andamento</button>
+      <button type="button" data-f="concluido">Concluídos</button>
+      <button type="button" data-f="todos">Todos</button>
+    </div>
+    <div id="listaProjetos"></div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/projetos-lista.js"></script>
+</body>
+</html>

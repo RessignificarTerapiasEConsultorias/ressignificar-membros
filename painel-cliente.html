@@ -38,6 +38,11 @@
       <p class="ajuda">Suas áreas de trabalho, ações combinadas, sessões, testes e anamnese. Tudo sigiloso.</p>
       <a class="btn auto" href="terapia.html">Abrir meu processo</a>
     </div>
+    <div class="cartao" id="cartaoProjetos" hidden>
+      <h2>Projetos de melhoria</h2>
+      <p class="ajuda">Acompanhe os projetos de melhoria contínua da sua empresa, do problema até o resultado.</p>
+      <a class="btn auto contorno" href="projetos.html">Ver projetos</a>
+    </div>
     <div class="cartao" id="cartaoMentoria" hidden>
       <h2>Sua mentoria</h2>
       <p class="ajuda">Registre os seus ganhos, acompanhe as ações, o retorno sobre o investimento e as suas lives.</p>
@@ -77,6 +82,7 @@
     : '<p class="vazio">Nenhum serviço ativo no momento.</p>';
   if ((s.data || []).some(function (x) { return x.tipo === "terapia"; })) document.getElementById("cartaoTerapia").hidden = false;
   if ((s.data || []).some(function (x) { return x.tipo === "mentoria"; })) document.getElementById("cartaoMentoria").hidden = false;
+  if ((s.data || []).some(function (x) { return x.tipo === "consultoria_empresarial" || x.tipo === "mentoria"; })) document.getElementById("cartaoProjetos").hidden = false;
   /* ---------- pagamentos do próprio cliente ---------- */
   const rc = await supa().from("cobrancas").select("id,contrato_id,descricao,vencimento,valor,pago_em").eq("perfil_id", eu.id).order("vencimento");
   const rk = await supa().from("contratos").select("id,servico,produto").eq("perfil_id", eu.id);

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Projeto de melhoria | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" href="projetos.html">← Voltar aos projetos</a>
+    <div class="empresa-titulo"><h1 id="tituloProjeto">Projeto</h1><span class="selo" id="etapaSelo"></span></div>
+    <p class="sub" id="subIndicador"></p>
+
+    <!-- Trilho do PDCA -->
+    <div class="pdca-trilho" id="trilhoPdca"></div>
+
+    <div class="abas" id="abas" role="tablist">
+      <button class="aba" type="button" data-aba="charter" aria-selected="true">Charter</button>
+      <button class="aba" type="button" data-aba="brainstorm">Brainstorming</button>
+      <button class="aba" type="button" data-aba="ishikawa">Ishikawa</button>
+      <button class="aba" type="button" data-aba="porques">5 Porquês</button>
+      <button class="aba" type="button" data-aba="pareto">Pareto</button>
+      <button class="aba" type="button" data-aba="acoes">Plano de ação</button>
+    </div>
+
+    <!-- ===== CHARTER ===== -->
+    <section data-painel="charter">
+      <div class="cartao">
+        <h2>Termo de abertura do projeto</h2>
+        <form id="formCharter" class="f" novalidate>
+          <div><label for="chProblema">Problema</label><textarea id="chProblema" rows="2" placeholder="Qual é o problema que motivou este projeto?"></textarea></div>
+          <div style="margin-top:12px"><label for="chMeta">Meta</label><textarea id="chMeta" rows="2" placeholder="O que queremos alcançar, em números"></textarea></div>
+          <div class="grade g2" style="margin-top:12px">
+            <div><label for="chDentro">Escopo — dentro</label><textarea id="chDentro" rows="2"></textarea></div>
+            <div><label for="chFora">Escopo — fora</label><textarea id="chFora" rows="2"></textarea></div>
+          </div>
+          <div class="grade g2" style="margin-top:12px">
+            <div><label for="chEquipe">Equipe envolvida</label><input id="chEquipe" maxlength="200"></div>
+            <div><label for="chPatrocinador">Patrocinador</label><input id="chPatrocinador" maxlength="100"></div>
+          </div>
+          <div class="grade g2" style="margin-top:12px">
+            <div><label for="chPrazo">Prazo do projeto</label><input id="chPrazo" type="date"></div>
+            <div><label for="chGanho">Ganho esperado (R$)</label><input id="chGanho" inputmode="decimal" placeholder="0,00"></div>
+          </div>
+          <div class="acoes"><button class="btn auto" type="submit">Salvar charter</button></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== BRAINSTORM ===== -->
+    <section data-painel="brainstorm" hidden>
+      <div class="cartao">
+        <h2>Brainstorming</h2>
+        <p class="ajuda">Registre ideias livremente. Depois, vote nas melhores para priorizar.</p>
+        <form id="formBrainstorm" class="f grade g2" novalidate>
+          <div><label for="bsIdeia">Ideia</label><input id="bsIdeia" maxlength="200" required></div>
+          <div><label for="bsGrupo">Agrupamento <span class="vazio">(opcional)</span></label><input id="bsGrupo" maxlength="60" placeholder="Ex.: Processo, Pessoas, Sistema"></div>
+          <div style="align-self:end"><button class="btn auto" type="submit">Adicionar ideia</button></div>
+        </form>
+        <div class="tabela-wrap" style="margin-top:14px"><table class="t"><thead><tr><th>Ideia</th><th>Agrupamento</th><th class="n">Votos</th><th></th></tr></thead><tbody id="listaBrainstorm"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ===== ISHIKAWA ===== -->
+    <section data-painel="ishikawa" hidden>
+      <div class="cartao">
+        <h2>Diagrama de Ishikawa (6M)</h2>
+        <p class="ajuda">Liste as causas possíveis em cada categoria. Marque as que parecem ser a causa raiz.</p>
+        <form id="formIshikawa" class="f grade g3" novalidate>
+          <div><label for="ikCategoria">Categoria</label><select id="ikCategoria">
+            <option value="metodo">Método</option><option value="maquina">Máquina</option><option value="mao_de_obra">Mão de obra</option>
+            <option value="material">Material</option><option value="medicao">Medição</option><option value="meio_ambiente">Meio ambiente</option>
+          </select></div>
+          <div><label for="ikCausa">Causa possível</label><input id="ikCausa" maxlength="200" required></div>
+          <div style="align-self:end"><button class="btn auto" type="submit">Adicionar causa</button></div>
+        </form>
+        <div id="colunasIshikawa" class="grade g3" style="margin-top:14px;gap:12px"></div>
+      </div>
+    </section>
+
+    <!-- ===== 5 PORQUÊS ===== -->
+    <section data-painel="porques" hidden>
+      <div class="cartao">
+        <h2>5 Porquês</h2>
+        <p class="ajuda">Pergunte "por quê" repetidamente até chegar na causa raiz.</p>
+        <div id="listaPorques"></div>
+        <button class="btn peq contorno" type="button" id="btAddPorque" style="margin-top:8px">+ Adicionar porquê</button>
+      </div>
+    </section>
+
+    <!-- ===== PARETO ===== -->
+    <section data-painel="pareto" hidden>
+      <div class="cartao">
+        <h2>Pareto (80/20)</h2>
+        <p class="ajuda">Liste as categorias e seus valores (ocorrências, custo, tempo) para priorizar o que mais pesa.</p>
+        <form id="formPareto" class="f grade g3" novalidate>
+          <div><label for="ptCategoria">Categoria</label><input id="ptCategoria" maxlength="100" required></div>
+          <div><label for="ptValor">Valor</label><input id="ptValor" inputmode="decimal" required></div>
+          <div style="align-self:end"><button class="btn auto" type="submit">Adicionar</button></div>
+        </form>
+        <div class="graf" style="margin-top:14px"><canvas id="gPareto"></canvas></div>
+        <div class="tabela-wrap" style="margin-top:14px"><table class="t"><thead><tr><th>Categoria</th><th class="n">Valor</th><th class="n">% acumulado</th><th></th></tr></thead><tbody id="listaPareto"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ===== PLANO DE AÇÃO ===== -->
+    <section data-painel="acoes" hidden>
+      <div class="cartao">
+        <h2>Plano de ação</h2>
+        <p class="ajuda">A peça central do projeto. Qualquer ferramenta pode enviar um item para cá com um clique.</p>
+        <button class="btn auto contorno" type="button" id="btNovaAcaoProjeto" style="margin-bottom:14px">+ Nova ação</button>
+        <div id="formAcaoProjetoWrap" hidden>
+          <form id="formAcaoProjeto" class="f" novalidate>
+            <div class="grade g2">
+              <div><label for="apEtapa">Etapa do PDCA</label><select id="apEtapa"><option value="P">Planejar</option><option value="D">Fazer</option><option value="C">Checar</option><option value="A">Agir</option></select></div>
+              <div><label for="apPrioridade">Prioridade</label><select id="apPrioridade"><option value="">—</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select></div>
+              <div><label for="apProblema">Problema</label><input id="apProblema" maxlength="200"></div>
+              <div><label for="apCausa">Causa raiz</label><input id="apCausa" maxlength="200"></div>
+              <div><label for="apAcao">Ação (o quê)</label><input id="apAcao" maxlength="200" required></div>
+              <div><label for="apPorque">Por quê</label><input id="apPorque" maxlength="200"></div>
+              <div><label for="apOnde">Onde</label><input id="apOnde" maxlength="100"></div>
+              <div><label for="apComo">Como</label><input id="apComo" maxlength="200"></div>
+              <div><label for="apResponsavel">Responsável</label><select id="apResponsavel"></select></div>
+              <div><label for="apEquipe">Equipe de execução</label><input id="apEquipe" maxlength="150"></div>
+              <div><label for="apInicio">Data de início</label><input id="apInicio" type="date"></div>
+              <div><label for="apPrazo">Prazo</label><input id="apPrazo" type="date"></div>
+              <div><label for="apCusto">Custo estimado (R$)</label><input id="apCusto" inputmode="decimal"></div>
+              <div><label for="apIndicador">Indicador vinculado</label><input id="apIndicador" maxlength="100"></div>
+              <div><label for="apStatus">Status</label><select id="apStatus"><option value="nao_iniciada">Não iniciada</option><option value="em_andamento">Em andamento</option><option value="concluida">Concluída</option><option value="atrasada">Atrasada</option><option value="cancelada">Cancelada</option></select></div>
+              <div><label for="apPct">% de conclusão</label><input id="apPct" type="number" min="0" max="100" value="0"></div>
+              <div><label for="apResultado">Resultado esperado</label><input id="apResultado" maxlength="200"></div>
+              <div><label for="apEvidencia">Evidência (link ou texto)</label><input id="apEvidencia" maxlength="200"></div>
+              <div><label for="apEficacia">Eficácia (etapa C)</label><select id="apEficacia"><option value="">—</option><option value="eficaz">Eficaz</option><option value="parcial">Parcial</option><option value="nao_eficaz">Não eficaz</option></select></div>
+            </div>
+            <div style="margin-top:12px"><label for="apObs">Observações</label><textarea id="apObs" rows="2"></textarea></div>
+            <div class="acoes"><button class="btn auto" type="submit" id="apSalvar">Salvar ação</button><button class="btn auto contorno" type="button" id="apCancelar">Cancelar</button></div>
+          </form>
+        </div>
+        <div class="tabela-wrap" style="margin-top:8px"><table class="t" id="tabelaAcoesProjeto">
+          <thead><tr><th>Etapa</th><th>Problema</th><th>Causa raiz</th><th>Ação</th><th>Como</th><th>Responsável</th><th>Prazo</th><th class="n">%</th><th>Status</th><th>Eficácia</th><th></th></tr></thead>
+          <tbody id="listaAcoesProjeto"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- Rodapé do ciclo PDCA -->
+    <div class="cartao" style="margin-top:14px">
+      <h2>Avançar etapa / decidir o ciclo</h2>
+      <div class="acoes">
+        <button class="btn auto contorno" type="button" id="btAvancarEtapa">Avançar para a próxima etapa</button>
+        <button class="btn auto contorno" type="button" id="btEncerrarCiclo">Encerrar ciclo</button>
+        <button class="btn auto contorno" type="button" id="btNovoCiclo">Abrir novo ciclo (P)</button>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/projeto.js"></script>
+</body>
+</html>

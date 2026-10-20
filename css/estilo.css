@@ -267,3 +267,17 @@ dialog.janela.janela-larga{max-width:780px;max-height:88vh;overflow-y:auto}
 .pop-card ol{margin:10px 0 0;padding-left:22px}
 .pop-card ol li{margin-bottom:6px;font-size:14.5px}
 .pop-card ol li b{color:var(--navy)}
+
+/* ===== PDCA / Projetos de melhoria ===== */
+.pdca-trilho{display:flex;gap:8px;margin:16px 0}
+.pdca-trilho .etapa{flex:1;text-align:center;padding:10px 8px;border-radius:10px;background:#F4EFE5;font:600 14px var(--sans);color:var(--muted);border:2px solid transparent}
+.pdca-trilho .etapa.atual{background:var(--navy);color:#fff;border-color:var(--gold)}
+.pdca-trilho .etapa.passada{background:#EAFAF1;color:#1D6A3E}
+.coluna-ishikawa{background:#F8F4E9;border:1px solid var(--line);border-radius:10px;padding:10px}
+.coluna-ishikawa h4{font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:var(--goldtxt);margin:0 0 8px}
+.coluna-ishikawa ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.coluna-ishikawa li{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13.5px;display:flex;justify-content:space-between;gap:6px;align-items:center}
+.coluna-ishikawa li.raiz{border-color:#C0392B;background:#FDECEA}
+.porque-item{display:flex;gap:10px;align-items:center;background:#F8F4E9;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.porque-item b{min-width:70px}
+.porque-item input{flex:1}
