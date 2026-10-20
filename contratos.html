@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Contratos | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <span class="selo-papel" data-papel-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="painel-cliente.html">← Voltar ao painel</a>
+    <h1>Contratos</h1>
+    <p class="sub">Contratos entre você e seus clientes, e contratos de clientes com outros prestadores dentro da plataforma.</p>
+
+    <div class="abas" id="abas" role="tablist">
+      <button class="aba" type="button" data-aba="meus" aria-selected="true">Meus contratos</button>
+      <button class="aba" type="button" data-aba="novo" id="abaNovo">Novo contrato</button>
+    </div>
+
+    <!-- ===== LISTA ===== -->
+    <section data-painel="meus">
+      <div class="sugestoes" id="filtroStatus" style="margin-bottom:14px">
+        <button type="button" data-f="todos">Todos</button>
+        <button type="button" data-f="pendente">Aguardando assinatura</button>
+        <button type="button" data-f="assinado">Assinados</button>
+      </div>
+      <div id="listaContratos"></div>
+    </section>
+
+    <!-- ===== NOVO CONTRATO ===== -->
+    <section data-painel="novo" hidden>
+      <div class="cartao">
+        <h2>Novo contrato</h2>
+        <form id="formContrato" class="f" novalidate>
+          <div id="blocoTipo" class="grade g2">
+            <div class="so-master"><label for="cTipo">Tipo de contrato</label>
+              <select id="cTipo">
+                <option value="consultor_cliente">Eu (consultor) com um cliente</option>
+                <option value="cliente_prestador">Cliente com outro prestador</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="blocoConsultorCliente" class="grade g2" style="margin-top:12px">
+            <div><label for="cCliente">Cliente</label><select id="cCliente"></select></div>
+            <div><label for="cServico">Serviço</label><select id="cServico"><option value="">—</option><option value="consultoria_empresarial">Consultoria empresarial</option><option value="terapia">Terapia</option><option value="mentoria">Mentoria</option></select></div>
+          </div>
+
+          <div id="blocoClientePrestador" class="grade g2" style="margin-top:12px" hidden>
+            <div><label for="cEmpresa">Empresa (sua)</label><select id="cEmpresa"></select></div>
+            <div><label for="cPrestador">Prestador / outro cliente</label><select id="cPrestadorSel"></select></div>
+          </div>
+
+          <div style="margin-top:12px"><label for="cTitulo">Título do contrato</label><input id="cTitulo" maxlength="150" required placeholder="Ex.: Contrato de Consultoria Empresarial — 12 meses"></div>
+          <div style="margin-top:12px"><label for="cDesc">Descrição <span class="vazio">(opcional)</span></label><textarea id="cDesc" rows="2" maxlength="300" placeholder="Observações sobre este contrato"></textarea></div>
+          <div style="margin-top:12px"><label for="cArquivo">Arquivo do contrato (PDF)</label><input id="cArquivo" type="file" accept="application/pdf" required></div>
+
+          <div class="acoes"><button class="btn auto" type="submit" id="cSalvar">Salvar e enviar para assinatura</button></div>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog class="janela" id="janelaAssinar">
+  <h2>Assinar contrato</h2>
+  <p class="ajuda" id="assinarContexto"></p>
+  <div class="f">
+    <label for="nomeAssinatura">Digite seu nome completo para confirmar</label>
+    <input id="nomeAssinatura" maxlength="120" placeholder="Seu nome completo">
+    <label style="margin-top:10px;display:flex;align-items:center;gap:8px;font-weight:500"><input type="checkbox" id="confirmoLeitura"> Li o documento e concordo com o que está nele.</label>
+  </div>
+  <div class="acoes"><button class="btn auto" type="button" id="btConfirmarAssinatura">Assinar agora</button><button class="btn auto contorno" type="button" id="btCancelarAssinatura">Cancelar</button></div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/contratos.js"></script>
+</body>
+</html>
