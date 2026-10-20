@@ -45,13 +45,13 @@
     document.querySelector('[data-rot="g2"]').textContent = "Sobra por mês";
   }
   if (!pessoal) {
-    const lv = document.getElementById("linkVendas"); lv.href = "vendas.html?e=" + eid; lv.hidden = false;
-    // Mostrar aba lives se a empresa tiver lives cadastradas
-    supa().from("lives_loja").select("id").eq("empresa_id", eid).limit(1).then(function(r) {
-      if (r.data && r.data.length) document.getElementById("abaLives").hidden = false;
-    });
-    // Também mostra a aba se for empresa tipo loja
-    if (re.data && re.data.tipo === "empresa") document.getElementById("abaLives").hidden = false;
+    const rmod = await supa().from("empresa_modulos").select("modulo_chave,ativo").eq("empresa_id", eid).eq("ativo", true);
+    const modulosAtivos = (rmod.data || []).map(function (m) { return m.modulo_chave; });
+    if (modulosAtivos.indexOf("vendas_vendedor") !== -1) {
+      const lv = document.getElementById("linkVendas"); lv.href = "vendas.html?e=" + eid; lv.hidden = false;
+    }
+    if (modulosAtivos.indexOf("lives") !== -1) document.getElementById("abaLives").hidden = false;
+    const lm = document.getElementById("linkModulos"); if (lm) { lm.href = "modulos.html?e=" + eid; lm.hidden = false; }
   }
   document.getElementById("areaDre").hidden = false;
 

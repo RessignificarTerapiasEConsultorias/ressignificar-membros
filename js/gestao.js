@@ -189,11 +189,15 @@
     empDono.addEventListener("change", function () { empVisivel.checked = empDono.value !== eu.id; });
   }
 
+  let modulosAtivosPorEmpresa = {};
   async function carregarEmpresas() {
     const { data, error } = await supa().from("empresas")
       .select("id,nome,segmento,tipo,visivel_suporte,empresa_membros(perfil_id,funcao)").order("nome");
     if (error) { aviso("Não foi possível carregar as empresas.", true); return; }
     empresas = data || [];
+    const rmod = await supa().from("empresa_modulos").select("empresa_id,modulo_chave").eq("ativo", true);
+    modulosAtivosPorEmpresa = {};
+    (rmod.data || []).forEach(function (m) { (modulosAtivosPorEmpresa[m.empresa_id] = modulosAtivosPorEmpresa[m.empresa_id] || []).push(m.modulo_chave); });
     desenharEmpresas();
   }
   function desenharEmpresas() {
@@ -212,7 +216,8 @@
         '<div class="vazio">Acesso: ' + (membros || "ninguém além da equipe") + "</div>" +
         '<div class="acoes">' +
         '<a class="btn auto" href="dre.html?e=' + e.id + '">Abrir DRE</a>' +
-        (e.tipo === "empresa" ? '<a class="btn peq contorno" href="vendas.html?e=' + e.id + '">Vendas</a>' : "") +
+        (e.tipo === "empresa" && (modulosAtivosPorEmpresa[e.id] || []).indexOf("vendas_vendedor") !== -1 ? '<a class="btn peq contorno" href="vendas.html?e=' + e.id + '">Vendas</a>' : "") +
+        (e.tipo === "empresa" ? '<a class="btn peq contorno" href="modulos.html?e=' + e.id + '">Módulos</a>' : "") +
         '<button class="btn peq contorno" type="button" data-membros="' + e.id + '">Pessoas com acesso</button>' +
         (master ? '<button class="btn peq perigo" type="button" data-apagar="' + e.id + '">Apagar</button>' : "") +
         "</div></div>";

@@ -118,12 +118,19 @@
     caixaE.innerHTML = '<p class="vazio">Ainda não há empresa ligada ao seu acesso. Assim que o Mauricio cadastrar, ela aparece aqui.</p>';
     return;
   }
+  const idsEmpresa = e.data.filter(function (x) { return x.tipo === "empresa"; }).map(function (x) { return x.id; });
+  const rmod = idsEmpresa.length ? await supa().from("empresa_modulos").select("empresa_id,modulo_chave").eq("ativo", true).in("empresa_id", idsEmpresa) : { data: [] };
+  const modulosPorEmpresa = {};
+  (rmod.data || []).forEach(function (m) { (modulosPorEmpresa[m.empresa_id] = modulosPorEmpresa[m.empresa_id] || []).push(m.modulo_chave); });
   caixaE.innerHTML = e.data.map(function (x) {
+    const souDono = (x.empresa_membros || []).some(function (m) { return m.perfil_id === eu.id && m.funcao === "dono"; });
+    const temVendas = (modulosPorEmpresa[x.id] || []).indexOf("vendas_vendedor") !== -1;
     return '<div class="cartao-empresa"><b>' + esc(x.nome) + "</b><div>" +
       '<span class="selo">' + (x.tipo === "pessoal" ? "Orçamento pessoal" : "Empresa") + "</span>" +
       (x.segmento ? '<span class="selo">' + esc(x.segmento) + "</span>" : "") +
       '</div><a class="btn" href="dre.html?e=' + x.id + '">Abrir e lançar</a>' +
-      (x.tipo === "empresa" && (x.empresa_membros || []).some(function (m) { return m.perfil_id === eu.id && m.funcao === "dono"; }) ? '<a class="btn contorno" href="vendas.html?e=' + x.id + '">Vendas da equipe</a>' : "") + "</div>";
+      (x.tipo === "empresa" && souDono && temVendas ? '<a class="btn contorno" href="vendas.html?e=' + x.id + '">Vendas da equipe</a>' : "") +
+      (x.tipo === "empresa" && souDono ? '<a class="btn contorno" href="modulos.html?e=' + x.id + '">Módulos</a>' : "") + "</div>";
   }).join("");
 })();
 </script>

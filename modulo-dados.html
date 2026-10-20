@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Módulo | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="#">← Voltar aos módulos</a>
+    <div class="cartao erro-pagina" id="falha" hidden><h2>Não foi possível abrir</h2><p class="ajuda" id="falhaMsg"></p></div>
+
+    <div id="area" hidden>
+      <h1 id="tituloModulo">Módulo</h1>
+      <p class="sub" id="descModulo"></p>
+
+      <div class="cartao">
+        <h2>Novo lançamento</h2>
+        <form id="formRegistro" class="f">
+          <div id="camposForm" class="grade g2"></div>
+          <div class="acoes"><button class="btn auto" type="submit">Lançar</button></div>
+        </form>
+      </div>
+
+      <div class="cartao" style="margin-top:14px">
+        <h2>Lançamentos</h2>
+        <div class="tabela-wrap"><table class="t" id="tabelaRegistros"><thead id="theadRegistros"></thead><tbody id="listaRegistros"></tbody></table></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/modulo-dados.js"></script>
+</body>
+</html>
