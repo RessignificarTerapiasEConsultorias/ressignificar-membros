@@ -26,6 +26,13 @@
 
     <div id="areaDre" hidden>
       <div class="empresa-titulo"><h1 id="nomeEmpresa">DRE</h1><span class="selo" id="tipoEmpresa"></span><a class="btn peq contorno" id="linkVendas" href="#" hidden>Vendas por vendedor</a><a class="btn peq contorno" id="linkModulos" href="#" hidden>Módulos</a></div>
+
+      <div class="resumo-meta-dre" id="resumoMetaDre" hidden>
+        <div class="rm-item"><span class="rm-dot" id="dotPlano"></span><b>Plano de ação:</b> <span id="txtPlano"></span></div>
+        <div class="rm-item"><span class="rm-dot" id="dotMeta"></span><b>Meta do mês:</b> <span id="txtMeta"></span></div>
+        <button class="btn peq" type="button" id="btnGerarAcaoRapido" hidden>Gerar ação corretiva agora</button>
+        <p class="rm-sugestao" id="sugestaoMeta" hidden></p>
+      </div>
       <p class="sub" id="subEmpresa"></p>
 
       <div class="barra-periodo f">
@@ -469,6 +476,7 @@
 <script src="js/config.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/app.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/fluxo.js"></script>
 <script src="js/dre.js"></script>
 </body>

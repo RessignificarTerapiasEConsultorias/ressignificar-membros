@@ -671,9 +671,73 @@
     }
   });
 
+  /* ---------- resumo de meta e plano de ação (sempre visível, qualquer aba) ---------- */
+  async function desenharResumoMeta() {
+    var filtroEmpresa = pessoal ? null : eid;
+    function f(q) { var r = q.eq("perfil_id", eu.id); return filtroEmpresa ? r.eq("empresa_id", filtroEmpresa) : r.is("empresa_id", null); }
+    var hoje = new Date(), mesRef = hoje.getFullYear() + "-" + String(hoje.getMonth() + 1).padStart(2, "0") + "-01";
+    var [rm, ra, rr] = await Promise.all([
+      f(supa().from("metas_receita").select("valor_meta").eq("mes_referencia", mesRef)).maybeSingle(),
+      f(supa().from("acoes_meta").select("status,prazo").eq("mes_referencia", mesRef)),
+      f(supa().from("recebimentos").select("valor,recebido,data_prevista,tipo"))
+    ]);
+    var meta = rm.data ? +rm.data.valor_meta : null;
+    var acoes = ra.data || [];
+    var hojeStr = hojeISO ? hojeISO() : hoje.toISOString().slice(0, 10);
+    var mesIni = mesRef, mesFimObj = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1), mesFim = mesFimObj.toISOString().slice(0, 10);
+    var realizado = (rr.data || []).filter(function (r) { return r.recebido && r.data_prevista >= mesIni && r.data_prevista < mesFim && (r.tipo === "receita_a_receber" || r.tipo === "receita_antecipada" || !r.tipo); })
+      .reduce(function (s, r) { return s + (+r.valor); }, 0);
+
+    if (!meta && !acoes.length) { document.getElementById("resumoMetaDre").hidden = true; return; }
+    document.getElementById("resumoMetaDre").hidden = false;
+
+    // ---- status do plano de ação ----
+    var atrasada = acoes.some(function (a) { return a.prazo && a.prazo < hojeStr && a.status !== "concluida"; });
+    var todasConcluidas = acoes.length > 0 && acoes.every(function (a) { return a.status === "concluida"; });
+    var dotPlano = document.getElementById("dotPlano"), txtPlano = document.getElementById("txtPlano");
+    var metaBatida = meta ? realizado >= meta : null;
+    if (!acoes.length) { dotPlano.className = "rm-dot vermelho"; txtPlano.textContent = "Nenhuma ação cadastrada ainda."; }
+    else if (atrasada) { dotPlano.className = "rm-dot vermelho"; txtPlano.textContent = "Atrasado — há ação com prazo vencido."; }
+    else if (todasConcluidas) {
+      if (metaBatida === false) { dotPlano.className = "rm-dot vermelho"; txtPlano.textContent = "Concluído, mas a meta não foi batida."; }
+      else { dotPlano.className = "rm-dot verde"; txtPlano.textContent = "Concluído."; }
+    } else { dotPlano.className = "rm-dot amarelo"; txtPlano.textContent = "Em andamento."; }
+
+    // ---- status da meta (projeção pelo ritmo do mês) ----
+    var dotMeta = document.getElementById("dotMeta"), txtMeta = document.getElementById("txtMeta");
+    var diasTotais = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate(), diaHoje = hoje.getDate();
+    var corMeta = "amarelo", corRisco = false;
+    if (!meta) { dotMeta.className = "rm-dot amarelo"; txtMeta.textContent = "Meta do mês ainda não definida."; }
+    else if (metaBatida) { dotMeta.className = "rm-dot verde"; txtMeta.textContent = "Batida! " + brl(realizado) + " de " + brl(meta) + "."; }
+    else {
+      var esperado = meta * diaHoje / diasTotais;
+      var distancia = esperado > 0 ? realizado / esperado : 1;
+      corMeta = distancia < 0.5 ? "vermelho" : (distancia < 0.85 ? "amarelo" : "verde");
+      corRisco = distancia < 0.5;
+      dotMeta.className = "rm-dot " + corMeta;
+      txtMeta.textContent = Math.round((realizado / meta) * 100) + "% atingido (" + brl(realizado) + " de " + brl(meta) + ").";
+    }
+
+    // ---- sugestão + botão de ação rápida ----
+    var sugestao = document.getElementById("sugestaoMeta"), btn = document.getElementById("btnGerarAcaoRapido");
+    if (todasConcluidas && metaBatida === false) {
+      sugestao.hidden = false; sugestao.textContent = "O plano foi concluído mas a meta ainda não foi batida — cadastre uma nova ação corretiva agora.";
+      btn.hidden = false; btn.classList.add("piscar");
+    } else if (corRisco) {
+      sugestao.hidden = false; sugestao.textContent = "No ritmo atual, a meta não vai ser batida. Crie uma ação corretiva agora.";
+      btn.hidden = false; btn.classList.add("piscar");
+    } else { sugestao.hidden = true; btn.hidden = true; btn.classList.remove("piscar"); }
+  }
+  document.getElementById("btnGerarAcaoRapido").addEventListener("click", async function () {
+    document.querySelector('[data-aba="fluxo"]').click();
+    if (!fluxoIniciado) { fluxoIniciado = true; await window.iniciarFluxo(pessoal ? null : eid, eu.id); }
+    setTimeout(function () { var b = document.querySelector('#abasFluxo [data-aba="meta"]'); if (b) b.click(); }, 150);
+  });
+
   await carregarCadastros();
   escolherTipo("receita");
   desenharCadastros();
   await carregarAno();
   desenharTudo();
+  await desenharResumoMeta();
 })();
