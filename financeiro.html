@@ -28,9 +28,8 @@
 
     <div class="abas" id="abas" role="tablist">
       <button class="aba" type="button" data-aba="painel" aria-selected="true">Painel</button>
-      <button class="aba" type="button" data-aba="cobrancas" aria-selected="false">Cobranças</button>
       <button class="aba" type="button" data-aba="clientes" aria-selected="false">Por cliente</button>
-      <button class="aba" type="button" data-aba="contratos" aria-selected="false">Contratos</button>
+      <button class="aba" type="button" data-aba="contratos" aria-selected="false">Contratos e cobranças</button>
       <button class="aba" type="button" data-aba="custos" aria-selected="false">Custos por cliente</button>
     </div>
 
@@ -59,9 +58,49 @@
     </section>
 
     <!-- ===== COBRANÇAS ===== -->
-    <section data-painel="cobrancas" hidden>
+    <!-- ===== POR CLIENTE ===== -->
+    <section data-painel="clientes" hidden>
+      <div class="cartao">
+        <h2>Resultado por cliente</h2>
+        <p class="ajuda">Recebido até agora, o que falta receber, o que está atrasado e quanto sobra depois dos custos de cada cliente. Clique em "Gerenciar" para editar ou excluir as cobranças desse cliente.</p>
+        <div class="tabela-wrap" style="max-height:680px"><table class="t"><thead><tr><th>Cliente</th><th>Serviços</th><th class="n">Recebido</th><th class="n">Em aberto</th><th class="n">Em atraso</th><th class="n">Custos</th><th class="n">Margem</th><th>Próximo vencimento</th><th></th></tr></thead><tbody id="listaCli"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ===== CONTRATOS E COBRANÇAS (juntos) ===== -->
+    <section data-painel="contratos" hidden>
+      <div class="cartao">
+        <h2>Novo contrato</h2>
+        <p class="ajuda" id="ajudaContrato"></p>
+        <form id="formContrato" class="f" novalidate>
+          <div class="grade g3">
+            <div><label for="ctCli">Cliente</label><select id="ctCli" required></select></div>
+            <div><label for="ctServ">Serviço</label><select id="ctServ"><option value="terapia">Terapia</option><option value="mentoria">Mentoria</option><option value="consultoria_empresarial">Consultoria empresarial</option></select></div>
+            <div><label for="ctExecutor">Quem executa</label><select id="ctExecutor"><option value="">Eu mesmo (Mauricio)</option></select></div>
+            <div><label for="ctProd">Descrição</label><input id="ctProd" maxlength="100" placeholder="Ex.: Acompanhamento 3 meses" required></div>
+            <div><label for="ctPer">Como cobra</label><select id="ctPer">
+              <option value="parcelado">Valor fechado (à vista ou parcelado)</option>
+              <option value="mensal">Mensal</option><option value="quinzenal">Quinzenal</option><option value="semanal">Semanal</option>
+              <option value="sessao">Por sessão</option></select></div>
+            <div class="campo-valor"><label for="ctValor" id="rotValor">Valor total (R$)</label><input id="ctValor" inputmode="decimal" placeholder="0,00" required></div>
+            <div id="blocoRecorrente" hidden><label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-top:28px"><input type="checkbox" id="ctRecorrente"> Recorrente sem prazo (cliente cancela quando quiser)</label></div>
+            <div id="blocoQtd"><label for="ctQtd" id="rotQtd">Parcelas</label><input id="ctQtd" type="number" min="1" max="60" value="1"></div>
+            <div id="blocoVenc"><label for="ctVenc">1º vencimento</label><input id="ctVenc" type="date"></div>
+            <div><label for="ctForma">Forma de pagamento</label><input id="ctForma" maxlength="60" placeholder="Ex.: Pix"></div>
+            <div><label for="ctIni">Início</label><input id="ctIni" type="date"></div>
+          </div>
+          <p class="ajuda" id="ajudaRecorrente" style="margin-top:8px"></p>
+          <div class="acoes"><button class="btn auto" type="submit">Salvar contrato</button></div>
+        </form>
+      </div>
+      <div class="cartao">
+        <h2>Contratos ativos</h2>
+        <div class="tabela-wrap"><table class="t"><thead><tr><th>Cliente</th><th>Serviço</th><th>Descrição</th><th>Executor</th><th>Cobrança</th><th class="n">Recebido</th><th class="n">Em aberto</th><th></th></tr></thead><tbody id="listaContratos"></tbody></table></div>
+      </div>
+
       <div class="cartao">
         <h2>Cobrança avulsa</h2>
+        <p class="ajuda">Para cobranças que não vêm de um contrato (ex.: uma sessão extra, um produto vendido à parte).</p>
         <form id="formAvulsa" class="f grade g4" novalidate>
           <div><label for="avCli">Cliente</label><select id="avCli" required></select></div>
           <div><label for="avDesc">Descrição</label><input id="avDesc" maxlength="120" placeholder="Ex.: sessão extra" required></div>
@@ -71,6 +110,7 @@
         </form>
       </div>
       <div class="cartao">
+        <h2>Todas as cobranças</h2>
         <div class="sugestoes" id="filtros" style="margin-bottom:12px">
           <button type="button" data-f="atrasadas">Em atraso</button>
           <button type="button" data-f="proximas">Próximos 30 dias</button>
@@ -82,44 +122,6 @@
         <div class="f" style="max-width:340px;margin-bottom:12px"><input id="buscaCob" placeholder="Buscar por cliente ou descrição" aria-label="Buscar cobrança"></div>
         <div class="totais-mes" id="totCob"></div>
         <div class="tabela-wrap" style="max-height:640px"><table class="t"><thead><tr><th>Cliente</th><th>Descrição</th><th>Vencimento</th><th class="n">Valor</th><th>Situação</th><th></th></tr></thead><tbody id="listaCob"></tbody></table></div>
-      </div>
-    </section>
-
-    <!-- ===== POR CLIENTE ===== -->
-    <section data-painel="clientes" hidden>
-      <div class="cartao">
-        <h2>Resultado por cliente</h2>
-        <p class="ajuda">Recebido até agora, o que falta receber, o que está atrasado e quanto sobra depois dos custos de cada cliente.</p>
-        <div class="tabela-wrap" style="max-height:680px"><table class="t"><thead><tr><th>Cliente</th><th>Serviços</th><th class="n">Recebido</th><th class="n">Em aberto</th><th class="n">Em atraso</th><th class="n">Custos</th><th class="n">Margem</th><th>Próximo vencimento</th></tr></thead><tbody id="listaCli"></tbody></table></div>
-      </div>
-    </section>
-
-    <!-- ===== CONTRATOS ===== -->
-    <section data-painel="contratos" hidden>
-      <div class="cartao">
-        <h2>Novo contrato</h2>
-        <p class="ajuda" id="ajudaContrato"></p>
-        <form id="formContrato" class="f" novalidate>
-          <div class="grade g3">
-            <div><label for="ctCli">Cliente</label><select id="ctCli" required></select></div>
-            <div><label for="ctServ">Serviço</label><select id="ctServ"><option value="terapia">Terapia</option><option value="mentoria">Mentoria</option><option value="consultoria_empresarial">Consultoria empresarial</option></select></div>
-            <div><label for="ctProd">Descrição</label><input id="ctProd" maxlength="100" placeholder="Ex.: Acompanhamento 3 meses" required></div>
-            <div><label for="ctPer">Como cobra</label><select id="ctPer">
-              <option value="parcelado">Valor fechado (à vista ou parcelado)</option>
-              <option value="mensal">Mensal</option><option value="quinzenal">Quinzenal</option><option value="semanal">Semanal</option>
-              <option value="sessao">Por sessão</option></select></div>
-            <div class="campo-valor"><label for="ctValor" id="rotValor">Valor total (R$)</label><input id="ctValor" inputmode="decimal" placeholder="0,00" required></div>
-            <div id="blocoQtd"><label for="ctQtd" id="rotQtd">Parcelas</label><input id="ctQtd" type="number" min="1" max="60" value="1"></div>
-            <div id="blocoVenc"><label for="ctVenc">1º vencimento</label><input id="ctVenc" type="date"></div>
-            <div><label for="ctForma">Forma de pagamento</label><input id="ctForma" maxlength="60" placeholder="Ex.: Pix"></div>
-            <div><label for="ctIni">Início</label><input id="ctIni" type="date"></div>
-          </div>
-          <div class="acoes"><button class="btn auto" type="submit">Salvar contrato</button></div>
-        </form>
-      </div>
-      <div class="cartao">
-        <h2>Contratos ativos</h2>
-        <div class="tabela-wrap"><table class="t"><thead><tr><th>Cliente</th><th>Serviço</th><th>Descrição</th><th>Cobrança</th><th class="n">Recebido</th><th class="n">Em aberto</th><th></th></tr></thead><tbody id="listaContratos"></tbody></table></div>
       </div>
     </section>
 
@@ -160,6 +162,18 @@
   </div>
   <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="sePago" checked> Já foi paga</label></div>
   <div class="acoes"><button class="btn auto" type="button" id="seConfirmar">Registrar</button><button class="btn auto contorno" type="button" id="seCancelar">Cancelar</button></div>
+</dialog>
+
+<dialog class="janela" id="janelaEditarCob">
+  <h2>Editar cobrança</h2>
+  <div class="f">
+    <div><label for="ecDesc">Descrição</label><input id="ecDesc" maxlength="120"></div>
+    <div class="grade g2" style="margin-top:12px">
+      <div><label for="ecValor">Valor (R$)</label><input id="ecValor" inputmode="decimal"></div>
+      <div><label for="ecVenc">Vencimento</label><input id="ecVenc" type="date"></div>
+    </div>
+  </div>
+  <div class="acoes"><button class="btn auto" type="button" id="ecConfirmar">Salvar</button><button class="btn auto contorno" type="button" id="ecCancelar">Cancelar</button></div>
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>

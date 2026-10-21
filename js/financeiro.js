@@ -44,7 +44,7 @@
   async function carregar() {
     const [rp, rc, rcu, re, rpref] = await Promise.all([
       supa().from("perfis").select("id,nome,email,papel,telefone,ativo").order("nome"),
-      supa().from("contratos").select("id,perfil_id,servico,produto,data_inicio,data_fim,valor_total,periodicidade,valor_recorrente,forma_pagamento,ativo").order("criado_em"),
+      supa().from("contratos").select("id,perfil_id,servico,produto,data_inicio,data_fim,valor_total,periodicidade,valor_recorrente,forma_pagamento,ativo,executor_perfil_id,recorrente_aberto").order("criado_em"),
       supa().from("custos_cliente").select("id,perfil_id,data,valor,descricao").order("data", { ascending: false }),
       supa().from("empresas").select("id,nome,tipo,empresa_membros(perfil_id)").in("tipo", ["empresa","pessoal"]).order("nome"),
       supa().from("preferencias").select("dados").eq("perfil_id", eu.id).maybeSingle()
@@ -59,14 +59,44 @@
         return supa().from("cobrancas").select("id,perfil_id,contrato_id,descricao,vencimento,valor,pago_em,forma,lancamento_id").order("vencimento");
       });
     } catch (e) { cobrancas = []; aviso("Não foi possível carregar as cobranças.", true); }
+    await manterRecorrentesEmDia();
   }
 
-  /* ---------- selects de clientes ---------- */
+  /* ---------- mantém um "estoque" de ~60 dias de cobrança gerado para contratos recorrentes sem prazo fixo ---------- */
+  async function manterRecorrentesEmDia() {
+    const limite = (function () { const d = new Date(hoje + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + 60); return d.toISOString().slice(0, 10); })();
+    const abertos = contratos.filter(function (c) { return c.recorrente_aberto && c.periodicidade !== "sessao" && c.periodicidade !== "parcelado"; });
+    let gerouAlgo = false;
+    for (const k of abertos) {
+      const das = cobrancas.filter(function (c) { return c.contrato_id === k.id; });
+      if (!das.length) continue;
+      let maxVenc = das.reduce(function (m, c) { return c.vencimento > m ? c.vencimento : m; }, das[0].vencimento);
+      let qtdExistente = das.length;
+      let seguranca = 0;
+      while (maxVenc < limite && seguranca < 24) {
+        const proxima = proximaData(maxVenc, k.periodicidade, 1);
+        const r = await gerarCobrancas(k, proxima, 1, qtdExistente);
+        if (r.error) break;
+        maxVenc = proxima; qtdExistente += 1; gerouAlgo = true; seguranca += 1;
+      }
+    }
+    if (gerouAlgo) {
+      cobrancas = await buscarTudo(function () {
+        return supa().from("cobrancas").select("id,perfil_id,contrato_id,descricao,vencimento,valor,pago_em,forma,lancamento_id").order("vencimento");
+      });
+    }
+  }
+
+  /* ---------- selects de clientes e equipe ---------- */
   function preencherClientes() {
     const clientes = perfis.filter(function (p) { return p.papel === "cliente" && p.ativo; });
     const opts = '<option value="">Escolha o cliente</option>' + clientes.map(function (p) { return '<option value="' + p.id + '">' + esc(p.nome) + "</option>"; }).join("");
     ["avCli", "ctCli", "cuCli"].forEach(function (id) { const s = document.getElementById(id); const v = s.value; s.innerHTML = opts; s.value = v; });
+    const equipe = perfis.filter(function (p) { return (p.papel === "suporte" || p.papel === "profissional") && p.ativo; });
+    const selExec = document.getElementById("ctExecutor");
+    if (selExec) { const v = selExec.value; selExec.innerHTML = '<option value="">Eu mesmo (Mauricio)</option>' + equipe.map(function (p) { return '<option value="' + p.id + '">' + esc(p.nome) + "</option>"; }).join(""); selExec.value = v; }
   }
+  function nomeExecutor(id) { return id ? pessoa(id).nome : eu.nome || "Mauricio"; }
 
   /* ---------- WhatsApp ---------- */
   function linkCobrar(pid) {
@@ -218,6 +248,30 @@
     aviso("Recebimento registrado" + (lancId ? " e lançado na DRE." : "."));
     await carregar(); desenharTudo();
   });
+  let cobEditando = null;
+  const jec = document.getElementById("janelaEditarCob");
+  function abrirEditarCobranca(id) {
+    cobEditando = cobrancas.find(function (x) { return x.id === id; });
+    if (!cobEditando) return;
+    document.getElementById("ecDesc").value = cobEditando.descricao;
+    document.getElementById("ecValor").value = String(cobEditando.valor).replace(".", ",");
+    document.getElementById("ecVenc").value = cobEditando.vencimento;
+    jec.showModal();
+  }
+  document.getElementById("ecCancelar").addEventListener("click", function () { jec.close(); });
+  document.getElementById("ecConfirmar").addEventListener("click", async function () {
+    const desc = document.getElementById("ecDesc").value.trim();
+    const valor = lerValor(document.getElementById("ecValor").value);
+    const venc = document.getElementById("ecVenc").value;
+    if (desc.length < 2 || !(valor > 0) || !venc) { aviso("Preencha descrição, valor e vencimento.", true); return; }
+    const b = this; b.disabled = true;
+    const { error } = await supa().from("cobrancas").update({ descricao: desc, valor: valor, vencimento: venc }).eq("id", cobEditando.id);
+    b.disabled = false;
+    if (error) { aviso("Não foi possível salvar.", true); return; }
+    jec.close(); aviso("Cobrança atualizada.");
+    await carregar(); desenharTudo();
+  });
+
   async function desfazer(id) {
     const c = cobrancas.find(function (x) { return x.id === id; });
     if (!c || !confirm("Desfazer o recebimento de " + brl(c.valor) + "?" + (c.lancamento_id ? " O lançamento na DRE também será apagado." : ""))) return;
@@ -266,6 +320,7 @@
       return "<tr><td><b>" + esc(pessoa(c.perfil_id).nome) + '</b><br><span class="vazio" style="padding:0">' + SERV[servicoDe(c)] + '</span></td><td class="quebra">' + esc(c.descricao) + "</td><td>" + dataBR(c.vencimento) + '</td><td class="n">' + brl(c.valor) + "</td><td>" + sit + "</td><td>" +
         (c.pago_em ? '<button class="btn peq contorno" type="button" data-desfazer="' + c.id + '">Desfazer</button>' : '<button class="btn peq" type="button" data-receber="' + c.id + '">Recebido</button>') +
         (atrasada(c) && linkCobrar(c.perfil_id) ? ' <a class="btn peq" style="background:#1FA855;color:#fff" href="' + linkCobrar(c.perfil_id) + '" target="_blank" rel="noopener">WhatsApp</a>' : "") +
+        ' <button class="btn peq contorno" type="button" data-editar-cob="' + c.id + '">Editar</button>' +
         ' <button class="btn peq perigo" type="button" data-apagar-cob="' + c.id + '">Apagar</button></td></tr>';
     }).join("") : '<tr><td colspan="6" class="vazio">Nada por aqui.</td></tr>';
   }
@@ -290,19 +345,29 @@
       return "<tr><td><b>" + esc(pessoa(x.pid).nome) + '</b></td><td class="quebra">' + (x.servs.map(esc).join("<br>") || '<span class="vazio">avulso</span>') + "</td>" +
         '<td class="n v-receita">' + brl(x.rec) + '</td><td class="n">' + brl(x.aberto) + '</td><td class="n' + (x.atr ? " v-saida" : "") + '">' + brl(x.atr) + "</td>" +
         '<td class="n">' + brl(x.cus) + '</td><td class="n"><b class="' + (x.rec - x.cus < 0 ? "v-saida" : "") + '">' + brl(x.rec - x.cus) + "</b></td>" +
-        "<td>" + (x.prox ? dataBR(x.prox.vencimento) + " · " + brl(x.prox.valor) : '<span class="vazio">—</span>') + "</td></tr>";
-    }).join("") : '<tr><td colspan="8" class="vazio">Nenhum cliente com contrato ou cobrança ainda.</td></tr>';
+        "<td>" + (x.prox ? dataBR(x.prox.vencimento) + " · " + brl(x.prox.valor) : '<span class="vazio">—</span>') + "</td>" +
+        '<td><button class="btn peq contorno" type="button" data-gerenciar-cli="' + x.pid + '">Gerenciar</button></td></tr>';
+    }).join("") : '<tr><td colspan="9" class="vazio">Nenhum cliente com contrato ou cobrança ainda.</td></tr>';
   }
+  document.getElementById("listaCli").addEventListener("click", function (e) {
+    const b = e.target.closest("[data-gerenciar-cli]"); if (!b) return;
+    document.querySelector('[data-aba="contratos"]').click();
+    filtro = "todas";
+    document.getElementById("buscaCob").value = pessoa(b.dataset.gerenciarCli).nome;
+    desenharCobrancas();
+  });
 
   /* ================= CONTRATOS ================= */
   const ctPer = document.getElementById("ctPer");
   function ajustarFormContrato() {
     const per = ctPer.value;
     const recorrente = ["mensal", "quinzenal", "semanal"].indexOf(per) > -1;
+    const ehRecorrenteAberto = per === "mensal" && document.getElementById("ctRecorrente").checked;
     document.getElementById("rotValor").textContent = per === "parcelado" ? "Valor total (R$)" : (per === "sessao" ? "Valor por sessão (R$)" : "Valor de cada cobrança (R$)");
     document.getElementById("rotQtd").textContent = per === "parcelado" ? "Parcelas" : "Quantas cobranças gerar agora";
-    document.getElementById("blocoQtd").hidden = per === "sessao";
+    document.getElementById("blocoQtd").hidden = per === "sessao" || ehRecorrenteAberto;
     document.getElementById("blocoVenc").hidden = per === "sessao";
+    document.getElementById("blocoRecorrente").hidden = per !== "mensal";
     if (recorrente && +document.getElementById("ctQtd").value < 2) document.getElementById("ctQtd").value = per === "mensal" ? 6 : (per === "quinzenal" ? 12 : 12);
     if (per === "parcelado" && +document.getElementById("ctQtd").value > 12) document.getElementById("ctQtd").value = 1;
     document.getElementById("ajudaContrato").textContent = {
@@ -312,8 +377,12 @@
       semanal: "Cria uma cobrança por semana a partir do 1º vencimento. Depois, use \"Gerar mais\" para continuar.",
       sessao: "Nada é cobrado antecipadamente: a cada sessão realizada, clique em \"Registrar sessão\" no contrato."
     }[per];
+    document.getElementById("ajudaRecorrente").textContent = ehRecorrenteAberto
+      ? "O sistema mantém sempre as próximas cobranças geradas sozinho (um pouco antes de cada mês chegar), sem você precisar criar de novo. Para encerrar, apague o contrato."
+      : "";
   }
   ctPer.addEventListener("change", ajustarFormContrato);
+  document.getElementById("ctRecorrente").addEventListener("change", ajustarFormContrato);
   document.getElementById("ctVenc").value = hoje; document.getElementById("ctIni").value = hoje;
   ajustarFormContrato();
 
@@ -339,14 +408,17 @@
     const cli = document.getElementById("ctCli").value, per = ctPer.value;
     const produto = document.getElementById("ctProd").value.trim();
     const valor = lerValor(document.getElementById("ctValor").value);
-    const qtd = Math.max(1, Math.min(60, +document.getElementById("ctQtd").value || 1));
+    const ehRecorrenteAberto = per === "mensal" && document.getElementById("ctRecorrente").checked;
+    const qtd = ehRecorrenteAberto ? 2 : Math.max(1, Math.min(60, +document.getElementById("ctQtd").value || 1));
     const venc = document.getElementById("ctVenc").value;
+    const executor = document.getElementById("ctExecutor").value || null;
     if (!cli) { aviso("Escolha o cliente.", true); return; }
     if (produto.length < 2) { aviso("Escreva a descrição do contrato.", true); return; }
     if (!(valor > 0)) { aviso("Escreva o valor.", true); return; }
     if (per !== "sessao" && !venc) { aviso("Escolha o 1º vencimento.", true); return; }
     const reg = { perfil_id: cli, servico: document.getElementById("ctServ").value, produto: produto, periodicidade: per,
       data_inicio: document.getElementById("ctIni").value || hoje, forma_pagamento: document.getElementById("ctForma").value.trim() || null,
+      executor_perfil_id: executor, recorrente_aberto: ehRecorrenteAberto,
       valor_total: per === "parcelado" ? valor : (per === "sessao" ? 0 : Math.round(valor * qtd * 100) / 100),
       valor_recorrente: per === "parcelado" ? null : valor };
     const b = this.querySelector("button[type=submit]"); b.disabled = true;
@@ -360,7 +432,7 @@
     // marca o serviço no cadastro da pessoa, se ainda não estiver
     await supa().from("servicos_contratados").upsert({ perfil_id: cli, tipo: reg.servico, ativo: true }, { onConflict: "perfil_id,tipo" });
     this.reset(); document.getElementById("ctVenc").value = hoje; document.getElementById("ctIni").value = hoje; ajustarFormContrato();
-    aviso("Contrato salvo.");
+    aviso("Contrato salvo." + (ehRecorrenteAberto ? " As próximas cobranças mensais serão geradas sozinhas." : ""));
     await carregar(); desenharTudo();
   });
 
@@ -368,13 +440,13 @@
     document.getElementById("listaContratos").innerHTML = contratos.length ? contratos.slice().reverse().map(function (k) {
       const l = cobrancas.filter(function (c) { return c.contrato_id === k.id; });
       const per = k.periodicidade || "parcelado";
-      const desc = per === "parcelado" ? brl(k.valor_total) + " em " + l.length + (l.length === 1 ? " vez" : " vezes") : PER[per] + " · " + brl(k.valor_recorrente) + (per === "sessao" ? " por sessão · " + l.length + (l.length === 1 ? " sessão" : " sessões") : "");
-      return "<tr><td><b>" + esc(pessoa(k.perfil_id).nome) + "</b></td><td>" + SERV[k.servico] + '</td><td class="quebra">' + esc(k.produto) + '</td><td class="quebra">' + desc + "</td>" +
+      const desc = per === "parcelado" ? brl(k.valor_total) + " em " + l.length + (l.length === 1 ? " vez" : " vezes") : PER[per] + " · " + brl(k.valor_recorrente) + (per === "sessao" ? " por sessão · " + l.length + (l.length === 1 ? " sessão" : " sessões") : "") + (k.recorrente_aberto ? ' <span class="selo ok">sem prazo</span>' : "");
+      return "<tr><td><b>" + esc(pessoa(k.perfil_id).nome) + "</b></td><td>" + SERV[k.servico] + '</td><td class="quebra">' + esc(k.produto) + "</td><td>" + esc(nomeExecutor(k.executor_perfil_id)) + '</td><td class="quebra">' + desc + "</td>" +
         '<td class="n v-receita">' + brl(soma(l.filter(function (c) { return c.pago_em; }))) + '</td><td class="n">' + brl(soma(l.filter(function (c) { return !c.pago_em; }))) + "</td><td>" +
         (per === "sessao" ? '<button class="btn peq" type="button" data-sessao="' + k.id + '">Registrar sessão</button> ' : "") +
-        (["mensal", "quinzenal", "semanal"].indexOf(per) > -1 ? '<button class="btn peq contorno" type="button" data-mais="' + k.id + '">Gerar mais</button> ' : "") +
+        (["mensal", "quinzenal", "semanal"].indexOf(per) > -1 && !k.recorrente_aberto ? '<button class="btn peq contorno" type="button" data-mais="' + k.id + '">Gerar mais</button> ' : "") +
         '<button class="btn peq perigo" type="button" data-apagar-ct="' + k.id + '">Apagar</button></td></tr>';
-    }).join("") : '<tr><td colspan="7" class="vazio">Nenhum contrato ainda.</td></tr>';
+    }).join("") : '<tr><td colspan="8" class="vazio">Nenhum contrato ainda.</td></tr>';
   }
 
   const js = document.getElementById("janelaSessao");
@@ -430,6 +502,7 @@
     let b;
     if ((b = t("[data-receber]"))) return abrirPagar(b.dataset.receber);
     if ((b = t("[data-desfazer]"))) return desfazer(b.dataset.desfazer);
+    if ((b = t("[data-editar-cob]"))) { return abrirEditarCobranca(b.dataset.editarCob); }
     if ((b = t("[data-apagar-cob]"))) {
       const c = cobrancas.find(function (x) { return x.id === b.dataset.apagarCob; });
       if (!c || !confirm("Apagar a cobrança \"" + c.descricao + "\" de " + brl(c.valor) + "?")) return;
