@@ -37,6 +37,13 @@
   const botao = document.getElementById("botaoEntrar");
   const aviso = document.getElementById("avisoLogin");
 
+  // e-mail preenchido só quando a pessoa chega pelo link da área dela (ex.: site do Teste de Travas)
+  const emailDoLink = new URLSearchParams(location.search).get("email");
+  if (emailDoLink && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailDoLink)) {
+    document.getElementById("campoEmail").value = emailDoLink.trim().toLowerCase();
+    document.getElementById("campoSenha").focus();
+  }
+
   form.addEventListener("submit", async function(e){
     e.preventDefault();
     aviso.innerHTML = "";
@@ -49,7 +56,7 @@
       botao.disabled = false; botao.textContent = "Entrar";
       return;
     }
-    const destino = { master: "painel-master.html", suporte: "painel-suporte.html", cliente: "painel-cliente.html", vendedor: "painel-vendedor.html" }[r.papel];
+    const destino = PAINEL_DO_PAPEL[r.papel];
     location.href = destino || "painel-cliente.html";
   });
 
@@ -58,7 +65,7 @@
     const { data: { session } } = await supa().auth.getSession();
     if (!session) return;
     const perfil = await buscarPerfilLogado();
-    if (perfil) location.href = { master: "painel-master.html", suporte: "painel-suporte.html", cliente: "painel-cliente.html", vendedor: "painel-vendedor.html" }[perfil.papel] || "index.html";
+    if (perfil) location.href = PAINEL_DO_PAPEL[perfil.papel] || "index.html";
   })();
 })();
 </script>
