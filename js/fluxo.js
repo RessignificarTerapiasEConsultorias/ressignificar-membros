@@ -74,7 +74,7 @@ window.iniciarFluxo = async function(eid, pid) {
     var result = [];
     gastos.forEach(function(g) {
       for (var p = 0; p < g.parcelas; p++) {
-        var mesParcela = addMeses(new Date(g.mes_primeira_fatura), p);
+        var mesParcela = addMeses(new Date(g.mes_primeira_fatura + "T12:00:00"), p);
         if (mesISO(mesParcela) === mesStr) {
           result.push({ gasto: g, parcela: p+1, valor: g.valor_total / g.parcelas, cartao: cartoes.find(function(c){return c.id===g.cartao_id;})||{nome:"?"} });
         }
@@ -240,7 +240,7 @@ window.iniciarFluxo = async function(eid, pid) {
     var gastosDoMes = [];
     gastos.forEach(function(g) {
       for (var p = 0; p < g.parcelas; p++) {
-        var mesParcela = mesISO(addMeses(new Date(g.mes_primeira_fatura), p));
+        var mesParcela = mesISO(addMeses(new Date(g.mes_primeira_fatura + "T12:00:00"), p));
         if (mesParcela === mesStr) {
           gastosDoMes.push({ g: g, parcela: p+1, valor: g.valor_total/g.parcelas });
         }
