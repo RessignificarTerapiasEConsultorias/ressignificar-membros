@@ -326,3 +326,39 @@ dialog.janela.janela-larga{max-width:780px;max-height:88vh;overflow-y:auto}
 .resumo-meta-dre .rm-sugestao{width:100%;margin:2px 0 0;font-size:13.5px;color:#FDE9C8}
 #btnGerarAcaoRapido.piscar{animation:piscarVermelho 1s infinite;background:#C0392B;border-color:#C0392B;color:#fff}
 @keyframes piscarVermelho{0%,100%{opacity:1}50%{opacity:.45}}
+
+
+/* ---------- chat ---------- */
+.chat-caixa{background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.chat-lista{height:min(58vh,560px);overflow-y:auto;padding:14px;background:#FBF7EE;display:flex;flex-direction:column;gap:8px}
+.chat-vazio{margin:auto;color:var(--muted);text-align:center;font-size:14.5px;max-width:320px}
+.chat-msg{max-width:min(84%,540px);align-self:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:8px 12px}
+.chat-msg.minha{align-self:flex-end;background:#F6E8BF;border-color:#E4CD8A;border-radius:14px 14px 4px 14px}
+.chat-msg .quem{display:flex;gap:8px;align-items:baseline;font-size:12.5px;font-weight:700;color:var(--goldtxt);margin-bottom:2px}
+.chat-msg .quem .hora{font-weight:500;color:var(--muted)}
+.chat-msg .quem .equipe{background:var(--navy);color:#fff;border-radius:999px;font-size:10.5px;padding:1px 7px;font-weight:700}
+.chat-msg .quem .apagar{margin-left:auto;background:none;border:0;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;padding:0 2px}
+.chat-msg .quem .apagar:hover{color:var(--erro)}
+.chat-msg .texto{font-size:15.5px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.chat-form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);background:var(--paper);align-items:flex-end}
+.chat-form textarea{flex:1;resize:none;min-height:46px;max-height:120px;border:1.5px solid #CFC6B3;border-radius:10px;padding:11px 12px;background:#fff;color:var(--ink)}
+.chat-form textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(11,31,58,.15)}
+.chat-form .btn{min-width:96px}
+.chat-aviso{margin-top:8px}
+.chat-aovivo{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--navy);color:#fff;border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.chat-aovivo b{color:#fff}
+.chat-aovivo .btn{background:var(--gold);color:var(--deep)}
+.ponto-vivo{display:inline-block;width:10px;height:10px;border-radius:50%;background:#FF4D4D;box-shadow:0 0 0 0 rgba(255,77,77,.6);animation:pulsar 1.6s infinite;vertical-align:middle}
+@keyframes pulsar{70%{box-shadow:0 0 0 9px rgba(255,77,77,0)}100%{box-shadow:0 0 0 0 rgba(255,77,77,0)}}
+.aba .ponto{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--erro);margin-left:7px;vertical-align:middle}
+.chat-conversas{display:grid;grid-template-columns:270px 1fr;gap:14px;align-items:start}
+.chat-conversas select{width:100%;padding:11px 12px;border-radius:10px;border:1.5px solid #CFC6B3;background:#fff}
+.chat-conv{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;position:relative}
+.chat-conv.ativa{border-color:var(--navy);box-shadow:0 0 0 2px rgba(11,31,58,.12)}
+.chat-conv b{display:block;font-size:15px;padding-right:34px}
+.chat-conv small{display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.chat-conv .selo{position:absolute;right:10px;top:10px}
+.chk-linha{display:flex;align-items:center;gap:8px;margin:0}
+.chk-linha input{width:20px;height:20px;accent-color:var(--navy)}
+@media (max-width:760px){.chat-conversas{grid-template-columns:1fr}.chat-msg{max-width:92%}.chat-lista{height:min(62vh,520px)}}
+@media print{.chat-form,.chat-aovivo{display:none!important}}

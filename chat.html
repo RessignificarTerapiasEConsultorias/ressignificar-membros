@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chat | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="index.html">← Voltar ao painel</a>
+    <div class="empresa-titulo"><h1>Chat</h1></div>
+    <p class="sub" id="subChat">Cada pessoa aparece só com o primeiro nome. Ninguém vê e-mail, telefone ou sobrenome de ninguém.</p>
+
+    <div class="abas" id="abas" role="tablist"></div>
+
+    <!-- SALA GERAL -->
+    <section id="p-geral" hidden><div id="boxGeral"></div></section>
+
+    <!-- CONVERSA INDIVIDUAL (cliente) -->
+    <section id="p-privado" hidden>
+      <p class="ajuda" style="margin-bottom:10px">Aqui só você e o Mauricio leem as mensagens.</p>
+      <div id="boxPrivado"></div>
+    </section>
+
+    <!-- CONVERSAS INDIVIDUAIS (master) -->
+    <section id="p-conversas" hidden>
+      <div class="chat-conversas">
+        <aside class="cartao">
+          <h3 style="margin-bottom:10px">Conversas</h3>
+          <select id="novaConv" aria-label="Iniciar conversa com"><option value="">Iniciar conversa com...</option></select>
+          <div id="convLista" style="margin-top:12px"></div>
+        </aside>
+        <div id="convThread"><p class="vazio">Escolha uma conversa ao lado.</p></div>
+      </div>
+    </section>
+
+    <!-- GRUPO AO VIVO DA MENTORIA -->
+    <section id="p-mentoria" hidden>
+      <div class="chat-aovivo" id="aoVivo" hidden>
+        <div><span class="ponto-vivo"></span> <b>Chamada ao vivo</b><span id="aoVivoTitulo"></span></div>
+        <a class="btn auto" id="aoVivoLink" href="#" target="_blank" rel="noopener noreferrer">Entrar na chamada</a>
+      </div>
+      <div id="boxMentoria"></div>
+    </section>
+
+    <!-- GERENCIAR (equipe) -->
+    <section id="p-gerenciar" hidden>
+      <div class="cartao so-master">
+        <h2>Chamada ao vivo da mentoria</h2>
+        <p class="ajuda">Cole o link do Meet ou do Zoom. Só quem está no grupo vê o botão "Entrar na chamada".</p>
+        <div class="f">
+          <div class="grade g2">
+            <div><label for="gTitulo">Título <span class="vazio">(opcional)</span></label><input id="gTitulo" maxlength="120" placeholder="Encontro de quinta, 20h"></div>
+            <div><label for="gLink">Link da chamada</label><input id="gLink" type="url" maxlength="500" placeholder="https://meet.google.com/..."></div>
+          </div>
+          <div class="checks" style="margin-top:12px">
+            <label><input type="checkbox" id="gAbertaM"> Grupo da mentoria aberto para mensagens</label>
+            <label><input type="checkbox" id="gAbertaG"> Sala geral aberta para mensagens</label>
+          </div>
+          <div class="acoes"><button class="btn auto" type="button" id="gSalvar">Salvar</button><button class="btn auto contorno" type="button" id="gLimpar">Remover o link</button></div>
+        </div>
+      </div>
+      <div class="cartao">
+        <h2>Quem está no grupo ao vivo</h2>
+        <p class="ajuda">Marque quem participa do grupo da mentoria. Você também pode marcar ao cadastrar ou editar a pessoa, em "Pessoas e acessos".</p>
+        <div class="f"><input id="gBusca" type="search" placeholder="Buscar por nome" aria-label="Buscar por nome"></div>
+        <div class="tabela-wrap"><table class="t"><thead><tr><th>Pessoa</th><th>No grupo</th><th class="so-master">Moderação</th></tr></thead><tbody id="gLista"><tr><td colspan="3" class="vazio">Carregando...</td></tr></tbody></table></div>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/chat.js"></script>
+</body>
+</html>

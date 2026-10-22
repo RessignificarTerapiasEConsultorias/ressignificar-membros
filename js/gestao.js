@@ -8,7 +8,7 @@
   ligarAbas(document.getElementById("abas"));
 
   const SERVICOS = ["consultoria_empresarial", "terapia", "mentoria"];
-  let perfis = [], servicos = [], empresas = [];
+  let perfis = [], servicos = [], empresas = [], grupo = {};
   const porId = function (id) { return perfis.find(function (p) { return p.id === id; }); };
 
   /* ================= PESSOAS ================= */
@@ -18,6 +18,11 @@
     if (r1.error) { aviso("Não foi possível carregar as pessoas.", true); return; }
     perfis = r1.data || [];
     servicos = r2.data || [];
+    try {   // quem está no grupo ao vivo da mentoria
+      const rg = await supa().rpc("chat_grupo_lista");
+      grupo = {};
+      (rg.data || []).forEach(function (c) { grupo[c.id] = !!c.em_grupo; });
+    } catch (e) { grupo = {}; }
     desenharPessoas();
     preencherDonos();
   }
@@ -31,7 +36,7 @@
     document.getElementById("contaPessoas").textContent = perfis.length + (perfis.length === 1 ? " pessoa" : " pessoas");
     if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" class="vazio">Nenhuma pessoa encontrada.</td></tr>'; return; }
     tb.innerHTML = lista.map(function (p) {
-      const servs = servicosDe(p.id).map(function (t) { return '<span class="selo">' + ROTULO_SERVICO[t] + "</span>"; }).join("");
+      const servs = servicosDe(p.id).map(function (t) { return '<span class="selo">' + ROTULO_SERVICO[t] + "</span>"; }).join("") + (grupo[p.id] ? '<span class="selo ouro">Grupo ao vivo</span>' : "");
       return "<tr>" +
         "<td><b>" + esc(p.nome) + "</b>" + (p.id === eu.id ? ' <span class="selo">você</span>' : "") + "</td>" +
         "<td>" + esc(p.email) + (p.telefone ? '<br><span class="vazio" style="padding:0">' + foneBR(p.telefone) + "</span>" : "") + "</td>" +
@@ -80,6 +85,14 @@
       const r = await chamarServidor(dados);
       botao.disabled = false; botao.textContent = "Criar acesso";
       if (!r.ok) { aviso(r.erro, true); return; }
+      const querGrupo = !!(document.getElementById("novoGrupo") && document.getElementById("novoGrupo").checked) && dados.papel === "cliente";
+      if (querGrupo) {
+        try {
+          const { data: nv } = await supa().from("perfis").select("id").ilike("email", dados.email).maybeSingle();
+          const rr = nv ? await supa().rpc("chat_grupo_definir", { p_perfil: nv.id, p_incluir: true }) : null;
+          if (!rr || rr.error || !rr.data || !rr.data.ok) aviso("Acesso criado, mas não consegui incluir no grupo ao vivo. Marque em Editar.", true);
+        } catch (e) { aviso("Acesso criado, mas não consegui incluir no grupo ao vivo. Marque em Editar.", true); }
+      }
       const link = location.origin + location.pathname.replace(/[^/]*$/, "");
       const msg = "Olá, " + dados.nome.split(" ")[0] + "! Seu acesso à Área de Membros da Ressignificar está pronto.\n\n" +
         "Link: " + link + "\nE-mail: " + dados.email + "\nSenha provisória: " + dados.senha +
@@ -108,6 +121,8 @@
     document.getElementById("edEmail").textContent = p.email;
     const ativos = servicosDe(p.id);
     janela.querySelectorAll("input[name=edServico]").forEach(function (c) { c.checked = ativos.indexOf(c.value) > -1; });
+    document.getElementById("edGrupo").checked = !!grupo[p.id];
+    document.getElementById("edGrupoBox").hidden = p.papel !== "cliente";
     if (master) {
       document.getElementById("edNome").value = p.nome;
       document.getElementById("edPapel").value = p.papel;
@@ -152,6 +167,12 @@
       if (mudar.length) {
         const { error } = await supa().from("servicos_contratados").upsert(mudar, { onConflict: "perfil_id,tipo" });
         if (error) { aviso("Não foi possível salvar os serviços.", true); return; }
+      }
+      const quer = document.getElementById("edGrupo").checked, tinha = !!grupo[p.id];
+      const ehCliente = master ? document.getElementById("edPapel").value === "cliente" : p.papel === "cliente";
+      if (ehCliente && quer !== tinha) {
+        const rr = await supa().rpc("chat_grupo_definir", { p_perfil: p.id, p_incluir: quer });
+        if (rr.error || !rr.data || !rr.data.ok) { aviso("Não foi possível atualizar o grupo ao vivo.", true); return; }
       }
       janela.close();
       aviso("Alterações salvas.");
