@@ -115,7 +115,7 @@
             <div class="grade g3">
               <div><label for="cProd">Produto</label><input id="cProd" maxlength="80" value="Mentoria 4ª Onda Gestão Ressignificar" required></div>
               <div><label for="cIni">Início</label><input id="cIni" type="date" required></div>
-              <div><label for="cFim">Término</label><input id="cFim" type="date"></div>
+              <div><label for="cFim">Término do contrato <span class="vazio">(se vazio, é a data da última parcela)</span></label><input id="cFim" type="date"></div>
               <div class="campo-valor"><label for="cValor">Valor total (R$)</label><input id="cValor" inputmode="decimal" placeholder="0,00" required></div>
               <div><label for="cParc">Parcelas</label><input id="cParc" type="number" min="1" max="60" value="6" required></div>
               <div><label for="cVenc">1º vencimento</label><input id="cVenc" type="date" required></div>
@@ -180,6 +180,40 @@
     </div>
   </main>
 </div>
+<dialog class="janela" id="janelaPagarM">
+  <h2 id="mpTitulo">Registrar pagamento</h2>
+  <p class="ajuda" id="mpInfo"></p>
+  <div class="f grade g2">
+    <div><label for="mpData">Data do pagamento</label><input id="mpData" type="date"></div>
+    <div><label for="mpForma">Forma</label><input id="mpForma" maxlength="40" placeholder="Ex.: Pix"></div>
+  </div>
+  <div class="acoes"><button class="btn auto" id="mpConfirmar" type="button">Confirmar</button><button class="btn auto contorno" id="mpCancelar" type="button">Cancelar</button></div>
+</dialog>
+
+<dialog class="janela" id="janelaEditarCtM">
+  <h2>Editar contrato</h2>
+  <div class="f">
+    <div><label for="mcProd">Produto</label><input id="mcProd" maxlength="80"></div>
+    <div class="grade g2" style="margin-top:12px">
+      <div><label for="mcFim">Término do contrato</label><input id="mcFim" type="date"></div>
+      <div><label for="mcForma">Forma de pagamento</label><input id="mcForma" maxlength="60"></div>
+    </div>
+    <div style="margin-top:12px"><label for="mcObs">Observação</label><input id="mcObs" maxlength="160"></div>
+  </div>
+  <div class="acoes"><button class="btn auto" id="mcSalvar" type="button">Salvar</button><button class="btn auto contorno" id="mcCancelar" type="button">Cancelar</button></div>
+</dialog>
+
+<dialog class="janela" id="janelaAjuda">
+  <h2>Pedir ajuda</h2>
+  <p class="ajuda" id="ajudaAcao"></p>
+  <div class="f">
+    <label for="ajudaTexto">O que você precisa?</label>
+    <textarea id="ajudaTexto" rows="5" maxlength="1500" placeholder="Conte onde você travou ou o que precisa..."></textarea>
+    <small>Sua mensagem vai para a sua conversa com o Mauricio, no chat.</small>
+  </div>
+  <div class="acoes"><button class="btn auto" id="ajudaEnviar" type="button">Enviar pedido</button><button class="btn auto contorno" id="ajudaCancelar" type="button">Cancelar</button></div>
+</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="js/config.js"></script>

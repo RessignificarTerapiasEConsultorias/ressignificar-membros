@@ -45,11 +45,12 @@
       const q = document.createElement("div"); q.className = "quem";
       const nome = document.createElement("span"); nome.textContent = m.minha ? "Você" : m.nome; q.appendChild(nome);
       if (m.equipe && !m.minha) { const t = document.createElement("span"); t.className = "equipe"; t.textContent = "equipe"; q.appendChild(t); }
+      if (m.ajuda) { const t = document.createElement("span"); t.className = "ajuda-tag"; t.textContent = "Pedido de ajuda"; q.appendChild(t); }
       const h = document.createElement("span"); h.className = "hora"; h.textContent = hora(m.quando); q.appendChild(h);
       if (cfg.apagar) {
         const x = document.createElement("button"); x.type = "button"; x.className = "apagar"; x.title = "Apagar mensagem"; x.setAttribute("aria-label", "Apagar mensagem"); x.textContent = "×";
         x.addEventListener("click", async function () {
-          if (!confirm("Apagar esta mensagem para todos?")) return;
+          if (!confirm(cfg.textoApagar || "Apagar esta mensagem para todos?")) return;
           try { const r = await cfg.apagar(m.id); if (r && r.ok) remover(m.id); else aviso("Não foi possível apagar.", true); } catch (e) { aviso(e.message, true); }
         });
         q.appendChild(x);
@@ -177,7 +178,8 @@
     montarCaixa($(boxId), placeholder);
     conversas[tipo] = criarConversa($(boxId), {
       ler: dadosSala.ler(s.id), enviar: dadosSala.enviar(s.id), normalizar: dadosSala.normalizar, textoVazio: texto,
-      apagar: equipe ? function (id) { return rpc("chat_apagar", { p_msg: id }); } : null,
+      apagar: master ? function (id) { return rpc("chat_apagar", { p_msg: id }); } : null,
+      textoApagar: "Apagar esta mensagem para todos? Ela some da sala, mas continua guardada até você excluir de vez em Gerenciar.",
       aoChegar: function () { if (abaAtiva === tipo) { marcarVista(tipo); desenharAbas(); } }
     });
     aplicarLimites();
@@ -188,7 +190,7 @@
     conversas.privado = criarConversa($("boxPrivado"), {
       ler: function (desde) { return rpc("chat_privado_ler", { p_cliente: null, p_desde: desde }); },
       enviar: function (t) { return rpc("chat_privado_enviar", { p_texto: t, p_cliente: null }); },
-      normalizar: function (m) { return { id: m.id, quando: m.quando, nome: m.de_equipe ? "Mauricio" : "Você", equipe: false, minha: m.minha, texto: m.texto }; },
+      normalizar: function (m) { return { id: m.id, quando: m.quando, nome: m.de_equipe ? "Mauricio" : "Você", equipe: false, minha: m.minha, texto: m.texto, ajuda: m.tipo === "ajuda" }; },
       textoVazio: "Nenhuma mensagem ainda. Escreva abaixo e o Mauricio responde por aqui.",
       aoChegar: function () { rpc("chat_privado_nao_lidas").then(function (n) { naoLidasPriv = Number(n) || 0; desenharAbas(); }).catch(function () {}); }
     });
@@ -217,6 +219,7 @@
       const b = document.createElement("button"); b.type = "button"; b.className = "chat-conv" + (threadAberta === c.cliente_id ? " ativa" : "");
       const n = document.createElement("b"); n.textContent = c.nome; b.appendChild(n);
       if (c.nao_lidas > 0) { const s = document.createElement("span"); s.className = "selo ouro"; s.textContent = c.nao_lidas; b.appendChild(s); }
+      if (c.ajudas_nao_lidas > 0) { const a = document.createElement("span"); a.className = "ajuda-tag"; a.textContent = "Pedido de ajuda"; n.appendChild(document.createTextNode(" ")); n.appendChild(a); }
       const p = document.createElement("small"); p.textContent = c.previa || ""; b.appendChild(p);
       b.addEventListener("click", function () { abrirThread(c.cliente_id, c.nome); });
       el.appendChild(b);
@@ -226,13 +229,25 @@
     if (conversas.thread) conversas.thread.parar();
     threadAberta = clienteId;
     const box = $("convThread");
-    box.innerHTML = '<h3 style="margin-bottom:10px"></h3><div id="boxThread"></div>';
+    box.innerHTML = '<div class="thread-topo"><h3></h3><button class="btn peq perigo" type="button" id="excluirConversa">Excluir conversa</button></div><div id="boxThread"></div>';
     box.querySelector("h3").textContent = nome;
+    $("excluirConversa").addEventListener("click", async function () {
+      if (!confirm("Excluir TODA a conversa com " + nome + "? Isso não tem volta.")) return;
+      try {
+        const r = await rpc("chat_privado_excluir_conversa", { p_cliente: clienteId });
+        if (!r || !r.ok) throw new Error("Não foi possível excluir.");
+        if (conversas.thread) conversas.thread.parar();
+        threadAberta = null; box.innerHTML = '<p class="vazio">Conversa excluída. Escolha outra ao lado.</p>';
+        aviso("Conversa excluída."); atualizarSalas();
+      } catch (e) { aviso(e.message, true); }
+    });
     montarCaixa($("boxThread"), "Responder " + nome.split(" ")[0] + "...");
     conversas.thread = criarConversa($("boxThread"), {
       ler: function (desde) { return rpc("chat_privado_ler", { p_cliente: clienteId, p_desde: desde }); },
       enviar: function (t) { return rpc("chat_privado_enviar", { p_texto: t, p_cliente: clienteId }); },
-      normalizar: function (m) { return { id: m.id, quando: m.quando, nome: m.de_equipe ? "Você" : nome.split(" ")[0], equipe: false, minha: m.minha, texto: m.texto }; },
+      normalizar: function (m) { return { id: m.id, quando: m.quando, nome: m.de_equipe ? "Você" : nome.split(" ")[0], equipe: false, minha: m.minha, texto: m.texto, ajuda: m.tipo === "ajuda" }; },
+      apagar: function (id) { return rpc("chat_privado_apagar", { p_msg: id }); },
+      textoApagar: "Excluir esta mensagem da conversa? Isso não tem volta.",
       textoVazio: "Nenhuma mensagem ainda. Escreva abaixo para começar.",
       aoChegar: function () { atualizarSalas(); }
     });
@@ -260,6 +275,7 @@
     }
     try { clientes = (await rpc("chat_grupo_lista")) || []; } catch (e) { aviso(e.message, true); }
     desenharClientes();
+    if (master) atualizarApagadas();
   }
   function desenharClientes() {
     const tb = $("gLista"), f = ($("gBusca").value || "").toLowerCase().trim();
@@ -290,6 +306,18 @@
       tb.appendChild(tr);
     });
   }
+  async function atualizarApagadas() {
+    try {
+      const n = Number(await rpc("chat_apagadas_contar")) || 0;
+      $("apagadasInfo").textContent = n ? n + (n === 1 ? " mensagem apagada continua guardada." : " mensagens apagadas continuam guardadas.") : "Nenhuma mensagem apagada guardada.";
+      $("apagadasExcluir").disabled = !n;
+    } catch (e) {}
+  }
+  if (master) $("apagadasExcluir").addEventListener("click", async function () {
+    if (!confirm("Excluir de vez todas as mensagens apagadas das salas? Isso não tem volta.")) return;
+    try { const r = await rpc("chat_apagadas_excluir_de_vez"); if (!r || !r.ok) throw new Error("Não foi possível excluir."); aviso(r.excluidas + (r.excluidas === 1 ? " mensagem excluída." : " mensagens excluídas.")); atualizarApagadas(); }
+    catch (e) { aviso(e.message, true); }
+  });
   $("gBusca").addEventListener("input", desenharClientes);
   if (master) {
     async function salvarSalas(limparLink) {

@@ -27,7 +27,7 @@
 
   const hoje = hojeISO();
   const STATUS = { a_fazer: "A fazer", em_andamento: "Em andamento", feito: "Aplicada", cancelado: "Não aplicada" };
-  let contratos = [], cobrancas = [], ganhos = [], indicadores = [], acoes = [], iniciativas = [], analises = [];
+  let contratos = [], cobrancas = [], ganhos = [], indicadores = [], acoes = [], iniciativas = [], analises = [], resultadosAcao = [];
   let graficos = {}, abaAtual = "geral", editIni = null, editAn = null;
   const soma = function (l, f) { return l.reduce(function (s, x) { return s + (Number(f(x)) || 0); }, 0); };
   const num2 = function (v) { return String(v).replace(".", ","); };
@@ -60,6 +60,8 @@
     }
     const r = await Promise.all(pedidos);
     ganhos = r[0].data || []; indicadores = r[1].data || []; acoes = r[2].data || []; iniciativas = r[3].data || []; analises = r[4].data || [];
+    const rr = await supa().from("acoes_resultados").select("id,acao_id,texto,criado_em").eq("perfil_id", pid).order("criado_em", { ascending: true });
+    resultadosAcao = rr.data || [];
     if (verFin) {
       contratos = (r[5].data || []).filter(function (c) { return c.ativo; });
       const ids = contratos.map(function (c) { return c.id; });
@@ -87,7 +89,8 @@
     const cards = [];
     if (verFin) {
       cards.push(["Investimento na mentoria", brl(n.investimento), contratos.length ? contratos.map(function (c) { return esc(c.produto); }).join(", ") : "nenhum contrato registrado"]);
-      cards.push(["Em aberto", '<span class="' + (n.atrasado ? "desce" : "") + '">' + brl(n.aberto) + "</span>", n.atrasado ? "⚠ " + brl(n.atrasado) + " em atraso" : "já pago: " + brl(n.pago)]);
+      cards.push(["Pendente (a vencer)", '<span class="v-pendente">' + brl(n.aberto - n.atrasado) + "</span>", "já pago: " + brl(n.pago)]);
+      cards.push(["Atrasado", '<span class="' + (n.atrasado ? "desce" : "sobe") + '">' + brl(n.atrasado) + "</span>", n.atrasado ? "⚠ precisa de atenção" : "nada em atraso"]);
     }
     cards.push(["Ganhos registrados", '<span class="sobe">' + brl(n.ganhos) + "</span>", ganhos.length + (ganhos.length === 1 ? " registro" : " registros")]);
     if (verFin) {
@@ -187,6 +190,42 @@
     aviso("Ação criada.");
     await carregar(); desenharTudo();
   });
+  const dataCurta = function (iso) { return new Date(iso).toLocaleDateString("pt-BR"); };
+  function blocoResultados(a) {
+    const rs = resultadosAcao.filter(function (x) { return x.acao_id === a.id; });
+    return '<div class="res-acao"><span class="rotulo">Resultados' + (rs.length ? " (" + rs.length + ")" : "") + "</span>" +
+      (rs.length ? '<ul class="res-lista">' + rs.map(function (x) {
+        return "<li><span class=\"res-data\">" + dataCurta(x.criado_em) + "</span> " + esc(x.texto) +
+          (master ? ' <button class="btn peq perigo" type="button" data-del-res="' + x.id + '" aria-label="Apagar resultado">×</button>' : "") + "</li>";
+      }).join("") + "</ul>" : '<p class="vazio" style="padding:0">Nenhum resultado registrado ainda.</p>') +
+      '<div class="res-add"><textarea data-res-texto="' + a.id + '" rows="2" maxlength="1000" placeholder="Registrar um resultado desta ação..."></textarea>' +
+      '<button class="btn peq contorno" type="button" data-add-res="' + a.id + '">Registrar</button></div></div>';
+  }
+  /* ---------- pedir ajuda (vira mensagem na conversa individual do chat) ---------- */
+  const janelaAjuda = document.getElementById("janelaAjuda");
+  let ajudaAcao = null;
+  function abrirAjuda(id) {
+    const a = acoes.find(function (x) { return x.id === id; });
+    if (!a || !janelaAjuda) return;
+    ajudaAcao = a.id;
+    document.getElementById("ajudaAcao").textContent = "Ação: " + a.titulo;
+    document.getElementById("ajudaTexto").value = "";
+    janelaAjuda.showModal();
+  }
+  if (janelaAjuda) {
+    document.getElementById("ajudaCancelar").addEventListener("click", function () { janelaAjuda.close(); });
+    document.getElementById("ajudaEnviar").addEventListener("click", async function () {
+      const botao = this, txt = document.getElementById("ajudaTexto").value.trim();
+      if (!txt) { aviso("Escreva o que você precisa.", true); return; }
+      botao.disabled = true;
+      try {
+        const { data, error } = await supa().rpc("chat_pedir_ajuda", { p_acao: ajudaAcao, p_mensagem: txt });
+        if (error || !data || !data.ok) { aviso((data && data.erro && data.erro.indexOf("_") === -1 ? data.erro : "Não foi possível enviar o pedido. Tente de novo."), true); return; }
+        janelaAjuda.close();
+        aviso("Pedido enviado. O Mauricio responde na sua conversa do chat.");
+      } finally { botao.disabled = false; }
+    });
+  }
   function desenharAcoes() {
     const aplicadas = acoes.filter(function (a) { return a.status === "feito"; }).length;
     const nao = acoes.filter(function (a) { return a.status === "cancelado"; }).length;
@@ -202,8 +241,8 @@
         Object.keys(STATUS).map(function (k) { return '<option value="' + k + '"' + (a.status === k ? " selected" : "") + ">" + STATUS[k] + "</option>"; }).join("") + "</select></div>" +
         (a.plano ? '<div style="font-size:14.5px">' + esc(a.plano) + "</div>" : "") +
         '<div class="acao-info">' + info.join(" · ") + "</div>" +
-        '<div class="f" style="display:flex;gap:8px;align-items:center"><input data-resultado="' + a.id + '" value="' + esc(a.resultado || "") + '" placeholder="Resultado obtido (opcional)" maxlength="200" style="padding:8px 10px;font-size:14.5px">' +
-        '<button class="btn peq contorno" type="button" data-salvar-res="' + a.id + '">Salvar</button></div>' +
+        blocoResultados(a) +
+        (!equipe ? '<div><button class="btn peq" type="button" data-ajuda="' + a.id + '">Pedir ajuda</button></div>' : "") +
         (equipe ? '<div><button class="btn peq perigo" type="button" data-del-acao="' + a.id + '">Apagar ação</button></div>' : "") + "</li>";
     }).join("") : '<li class="vazio">Nenhuma ação definida ainda.</li>';
   }
@@ -224,9 +263,10 @@
     const venc = document.getElementById("cVenc").value;
     if (!(valor > 0)) { aviso("Escreva o valor total.", true); return; }
     if (!venc) { aviso("Escolha o primeiro vencimento.", true); return; }
+    const fim = document.getElementById("cFim").value || somarMes(venc, parcelas - 1);   // contrato com prazo sempre tem data de término
     const botao = fContrato.querySelector("button[type=submit]"); botao.disabled = true;
     const { data, error } = await supa().from("contratos").insert({ perfil_id: pid, servico: "mentoria", produto: document.getElementById("cProd").value.trim() || "Mentoria",
-      data_inicio: document.getElementById("cIni").value || hoje, data_fim: document.getElementById("cFim").value || null, valor_total: valor,
+      data_inicio: document.getElementById("cIni").value || hoje, data_fim: fim, valor_total: valor,
       forma_pagamento: document.getElementById("cForma").value.trim() || null, observacao: document.getElementById("cObs").value.trim() || null }).select("id").single();
     if (error) { botao.disabled = false; aviso("Não foi possível salvar o contrato.", true); return; }
     const base = Math.floor(valor / parcelas * 100) / 100;
@@ -256,12 +296,55 @@
         '<div class="tabela-wrap"><table class="t"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="n">Valor</th><th>Situação</th>' + (master ? "<th></th>" : "") + "</tr></thead><tbody>" +
         ps.map(function (x) {
           const atras = !x.pago_em && x.vencimento < hoje;
-          const sit = x.pago_em ? '<span class="selo ok">Pago em ' + dataBR(x.pago_em) + "</span>" : (atras ? '<span class="selo off">Atrasada</span>' : '<span class="selo">Em aberto</span>');
+          const diasAtraso = atras ? Math.round((new Date(hoje) - new Date(x.vencimento)) / 86400000) : 0;
+          const sit = x.pago_em ? '<span class="selo ok">Pago em ' + dataBR(x.pago_em) + "</span>" : (atras ? '<span class="selo off">Atrasada há ' + diasAtraso + (diasAtraso === 1 ? " dia" : " dias") + "</span>" : '<span class="selo pendente">Pendente · vence ' + dataBR(x.vencimento) + "</span>");
           return "<tr><td>" + esc(x.descricao) + "</td><td>" + dataBR(x.vencimento) + '</td><td class="n">' + brl(x.valor) + "</td><td>" + sit + "</td>" +
-            (master ? '<td><button class="btn peq ' + (x.pago_em ? "contorno" : "") + '" type="button" data-pagar="' + x.id + '" data-pago="' + (x.pago_em ? "1" : "") + '">' + (x.pago_em ? "Desfazer" : "Marcar como pago") + "</button></td>" : "") + "</tr>";
+            (master ? "<td>" + (x.pago_em ? '<button class="btn peq contorno" type="button" data-alterar-pag="' + x.id + '">Alterar data</button> <button class="btn peq contorno" type="button" data-pagar="' + x.id + '" data-pago="1">Desfazer</button>'
+              : '<button class="btn peq" type="button" data-pagar="' + x.id + '" data-pago="">' + (x.vencimento > hoje ? "Pago antes do vencimento" : "Marcar como pago") + "</button>") + "</td>" : "") + "</tr>";
         }).join("") + "</tbody></table></div>" +
-        (master ? '<div class="acoes"><button class="btn peq perigo" type="button" data-del-contrato="' + c.id + '">Apagar contrato e parcelas</button></div>' : "") + "</div>";
+        (master ? '<div class="acoes"><button class="btn peq contorno" type="button" data-edit-contrato="' + c.id + '">Editar contrato</button><a class="btn peq contorno" href="financeiro.html">Mudar valor, adicionar extra e ver ganhos (Financeiro)</a><button class="btn peq perigo" type="button" data-del-contrato="' + c.id + '">Apagar contrato e parcelas</button></div>' : "") + "</div>";
     }).join("");
+  }
+
+  /* ---------- pagamento com data (também antes de vencer) e edição do contrato ---------- */
+  const janelaPagarM = document.getElementById("janelaPagarM"), janelaCtM = document.getElementById("janelaEditarCtM");
+  let pagarM = null, editCtM = null;
+  function abrirPagarM(id, alterar) {
+    pagarM = cobrancas.find(function (x) { return x.id === id; });
+    if (!pagarM || !janelaPagarM) return;
+    document.getElementById("mpInfo").textContent = pagarM.descricao + " · " + brl(pagarM.valor) + (alterar ? " · pago em " + dataBR(pagarM.pago_em) : " · vence " + dataBR(pagarM.vencimento));
+    document.getElementById("mpData").value = alterar ? pagarM.pago_em : hoje;
+    document.getElementById("mpForma").value = pagarM.forma || "";
+    document.getElementById("mpTitulo").textContent = alterar ? "Alterar data do pagamento" : (pagarM.vencimento > hoje ? "Registrar pagamento antecipado" : "Registrar pagamento");
+    janelaPagarM.showModal();
+  }
+  function abrirEditarCtM(id) {
+    editCtM = contratos.find(function (x) { return x.id === id; });
+    if (!editCtM || !janelaCtM) return;
+    document.getElementById("mcProd").value = editCtM.produto; document.getElementById("mcFim").value = editCtM.data_fim || "";
+    document.getElementById("mcForma").value = editCtM.forma_pagamento || ""; document.getElementById("mcObs").value = editCtM.observacao || "";
+    janelaCtM.showModal();
+  }
+  if (janelaPagarM) {
+    document.getElementById("mpCancelar").addEventListener("click", function () { janelaPagarM.close(); });
+    document.getElementById("mpConfirmar").addEventListener("click", async function () {
+      const data = document.getElementById("mpData").value || hoje, b = this; b.disabled = true;
+      const { error } = await supa().from("cobrancas").update({ pago_em: data, forma: document.getElementById("mpForma").value.trim() || null }).eq("id", pagarM.id);
+      b.disabled = false;
+      if (error) { aviso("Não foi possível registrar o pagamento.", true); return; }
+      janelaPagarM.close(); aviso("Pagamento registrado."); await carregar(); desenharTudo();
+    });
+    document.getElementById("mcCancelar").addEventListener("click", function () { janelaCtM.close(); });
+    document.getElementById("mcSalvar").addEventListener("click", async function () {
+      const produto = document.getElementById("mcProd").value.trim(), fim = document.getElementById("mcFim").value;
+      if (produto.length < 2) { aviso("Escreva o nome do contrato.", true); return; }
+      if (!fim) { aviso("Escolha o término do contrato.", true); return; }
+      const b = this; b.disabled = true;
+      const { error } = await supa().from("contratos").update({ produto: produto, data_fim: fim, forma_pagamento: document.getElementById("mcForma").value.trim() || null, observacao: document.getElementById("mcObs").value.trim() || null }).eq("id", editCtM.id);
+      b.disabled = false;
+      if (error) { aviso("Não foi possível salvar o contrato.", true); return; }
+      janelaCtM.close(); aviso("Contrato atualizado."); await carregar(); desenharTudo();
+    });
   }
 
   /* ================= LIVES E INICIATIVAS ================= */
@@ -364,13 +447,22 @@
     if ((b = t("[data-del-ini]"))) return apagar("iniciativas", b.dataset.delIni, "Apagar esta iniciativa?");
     if ((b = t("[data-del-an]"))) return apagar("analises", b.dataset.delAn, "Apagar esta análise?");
     if ((b = t("[data-del-contrato]"))) return apagar("contratos", b.dataset.delContrato, "Apagar o contrato e todas as parcelas dele? Isso não tem volta.");
-    if ((b = t("[data-salvar-res]"))) {
-      const inp = area.querySelector('[data-resultado="' + b.dataset.salvarRes + '"]');
-      const { error } = await supa().from("acoes").update({ resultado: inp.value.trim() || null }).eq("id", b.dataset.salvarRes);
-      if (error) { aviso("Não foi possível salvar o resultado.", true); return; }
-      aviso("Resultado salvo."); await carregar(); desenharTudo(); return;
+    if ((b = t("[data-del-res]"))) return apagar("acoes_resultados", b.dataset.delRes, "Apagar este resultado?");
+    if ((b = t("[data-ajuda]"))) { abrirAjuda(b.dataset.ajuda); return; }
+    if ((b = t("[data-add-res]"))) {
+      const ta = area.querySelector('[data-res-texto="' + b.dataset.addRes + '"]');
+      const txt = ta ? ta.value.trim() : "";
+      if (!txt) { aviso("Escreva o resultado.", true); return; }
+      b.disabled = true;
+      const { error } = await supa().from("acoes_resultados").insert({ acao_id: b.dataset.addRes, perfil_id: pid, texto: txt });
+      b.disabled = false;
+      if (error) { aviso("Não foi possível registrar o resultado.", true); return; }
+      aviso("Resultado registrado."); await carregar(); desenharTudo(); return;
     }
+    if ((b = t("[data-alterar-pag]"))) { abrirPagarM(b.dataset.alterarPag, true); return; }
+    if ((b = t("[data-edit-contrato]"))) { abrirEditarCtM(b.dataset.editContrato); return; }
     if ((b = t("[data-pagar]"))) {
+      if (!b.dataset.pago) { abrirPagarM(b.dataset.pagar, false); return; }
       const { error } = await supa().from("cobrancas").update({ pago_em: b.dataset.pago ? null : hoje }).eq("id", b.dataset.pagar);
       if (error) { aviso("Não foi possível atualizar a parcela.", true); return; }
       aviso(b.dataset.pago ? "Pagamento desfeito." : "Parcela marcada como paga."); await carregar(); desenharTudo(); return;

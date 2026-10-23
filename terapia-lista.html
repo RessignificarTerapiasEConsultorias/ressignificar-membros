@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Terapia | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="index.html">← Voltar ao painel</a>
+    <div class="empresa-titulo"><h1>Terapia</h1><span class="selo ouro">Clientes de terapia</span></div>
+    <p class="sub">Todos os seus pacientes de terapia. Abra um para ver e preencher tudo: áreas e ações, sessões, testes, anamnese, cadastro e acessos de acompanhantes.</p>
+
+    <div class="cartao">
+      <h2>Adicionar paciente</h2>
+      <p class="ajuda">Escolha uma pessoa que já tem cadastro (em "Pessoas e acessos"). Ela passa a ter o processo terapêutico com os acessos padrão: ver e editar o próprio cadastro, as áreas e ações e a anamnese; só ver sessões e testes. Você muda isso depois, no processo dela, na aba "Acessos".</p>
+      <div class="grade g2">
+        <div><label for="novoPac">Pessoa</label><select id="novoPac"></select></div>
+        <div style="align-self:end"><button class="btn auto" type="button" id="addPac">Adicionar como paciente</button></div>
+      </div>
+    </div>
+
+    <div class="cartao">
+      <h2>Pacientes</h2>
+      <div class="f"><input id="busca" type="search" placeholder="Buscar por nome" aria-label="Buscar por nome"></div>
+      <div class="tabela-wrap"><table class="t"><thead><tr><th>Paciente</th><th class="n">Sessões</th><th>Última sessão</th><th class="n">Ações pendentes</th><th class="n">Acompanhantes</th><th></th></tr></thead><tbody id="lista"><tr><td colspan="6" class="vazio">Carregando...</td></tr></tbody></table></div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/terapia-lista.js"></script>
+</body>
+</html>

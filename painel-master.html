@@ -23,7 +23,7 @@
   </header>
   <main class="conteudo-painel largo">
     <h1>Painel master</h1>
-    <div class="acoes" style="margin:-6px 0 22px"><a class="btn auto so-master" href="dre.html?e=aaaaaaaa-0000-0000-0000-000000000001">Meu orçamento pessoal</a><a class="btn auto contorno" href="financeiro.html">Financeiro dos clientes</a><a class="btn auto contorno" href="catalogo.html">Produtos e ofertas</a><a class="btn auto contorno" href="contratos.html">Contratos</a><a class="btn auto contorno" href="pops.html">POPs e manuais</a><a class="btn auto contorno" href="projetos.html">Projetos de melhoria</a><a class="btn auto contorno" href="melhoria-dashboard.html">Dashboard de melhoria</a><a class="btn auto" href="chat.html">Chat <span class="selo ouro" id="chatBadge" hidden></span></a></div>
+    <div class="acoes" style="margin:-6px 0 22px"><a class="btn auto so-master" href="dre.html?e=aaaaaaaa-0000-0000-0000-000000000001">Meu orçamento pessoal</a><a class="btn auto contorno" href="financeiro.html">Financeiro dos clientes</a><a class="btn auto contorno" href="catalogo.html">Produtos e ofertas</a><a class="btn auto contorno" href="contratos.html">Contratos</a><a class="btn auto contorno" href="pops.html">POPs e manuais</a><a class="btn auto contorno" href="projetos.html">Projetos de melhoria</a><a class="btn auto contorno" href="melhoria-dashboard.html">Dashboard de melhoria</a><a class="btn auto" href="chat.html">Chat <span class="selo ouro" id="chatBadge" hidden></span></a><a class="btn auto contorno" href="aulas.html">Aulas da mentoria</a><a class="btn auto" href="terapia-lista.html">Terapia</a></div>
     <p class="sub">Cadastre pessoas, dê acessos, crie empresas e acompanhe as DREs. Também é aqui que ficam as suas finanças, visíveis só para você.</p>
 
     <div class="abas" id="abas" role="tablist">
@@ -42,6 +42,15 @@
             <div><label for="novoNome">Nome completo</label><input id="novoNome" name="nome" required maxlength="80"></div>
             <div><label for="novoEmail">E-mail</label><input id="novoEmail" name="email" type="email" required autocomplete="off"></div>
             <div><label for="novoTel">WhatsApp <span class="vazio">(opcional, para cobranças)</span></label><input id="novoTel" name="telefone" inputmode="tel" placeholder="(81) 99999-9999" autocomplete="off"></div>
+          <div style="grid-column:1/-1"><details><summary style="cursor:pointer;font-weight:600">Mais dados da pessoa <span class="vazio">(opcional)</span></summary>
+          <div class="f" style="margin-top:10px">
+            <div><label for="novoEndereco">Endereço</label><input id="novoEndereco" maxlength="300" placeholder="Rua, número, bairro, cidade e estado"></div>
+            <div class="grade g3" style="margin-top:10px">
+              <div><label for="novoCpf">CPF</label><input id="novoCpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div>
+              <div><label for="novoProf">Profissão</label><input id="novoProf" maxlength="120"></div>
+              <div><label for="novoEc">Estado civil</label><select id="novoEc"><option value="">Não informar</option><option value="solteiro">Solteiro(a)</option><option value="casado">Casado(a)</option><option value="uniao_estavel">União estável</option><option value="separado">Separado(a)</option><option value="divorciado">Divorciado(a)</option><option value="viuvo">Viúvo(a)</option></select></div>
+            </div>
+          </div></details></div>
             <div><label for="novoSenha">Senha provisória</label><input id="novoSenha" name="senha" required minlength="8" autocomplete="new-password"><small><button type="button" class="btn peq contorno" id="gerarSenha">Gerar senha</button> Mínimo de 8 caracteres.</small></div>
             <div><label for="novoPapel">Tipo de acesso</label>
               <select id="novoPapel" name="papel">
@@ -58,7 +67,7 @@
               <label><input type="checkbox" name="servico" value="terapia"> Terapia</label>
               <label><input type="checkbox" name="servico" value="mentoria"> Mentoria</label>
             </div></div>
-          <div style="margin-top:14px"><div class="checks"><label><input type="checkbox" id="novoGrupo"> Incluir no grupo ao vivo da mentoria</label></div><small class="vazio">Só para clientes. Dá acesso ao chat do grupo e ao link da chamada ao vivo.</small></div>
+          <div style="margin-top:14px"><div class="checks"><label><input type="checkbox" id="novoGrupo"> Incluir no grupo ao vivo da mentoria</label><label><input type="checkbox" id="novoAulas"> Incluir as aulas da mentoria</label></div><small class="vazio">Só para clientes. O grupo dá acesso ao chat e ao link da chamada ao vivo; as aulas liberam os vídeos e PDFs.</small></div>
           <div class="acoes"><button class="btn auto" type="submit">Criar acesso</button></div>
         </form>
         <div id="resultadoNovo" hidden style="margin-top:18px">
@@ -147,6 +156,15 @@
         <div><label for="edPapel">Tipo de acesso</label>
           <select id="edPapel"><option value="cliente">Cliente</option><option value="suporte">Suporte</option><option value="vendedor">Vendedor(a)</option><option value="profissional">Profissional</option><option value="master">Master</option></select></div>
         <div><label for="edTelefone">WhatsApp</label><input id="edTelefone" inputmode="tel" placeholder="(81) 99999-9999"></div>
+        <div style="grid-column:1/-1"><details><summary style="cursor:pointer;font-weight:600">Mais dados da pessoa <span class="vazio">(opcional)</span></summary>
+          <div class="f" style="margin-top:10px">
+            <div><label for="edEndereco">Endereço</label><input id="edEndereco" maxlength="300" placeholder="Rua, número, bairro, cidade e estado"></div>
+            <div class="grade g3" style="margin-top:10px">
+              <div><label for="edCpf">CPF</label><input id="edCpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div>
+              <div><label for="edProf">Profissão</label><input id="edProf" maxlength="120"></div>
+              <div><label for="edEc">Estado civil</label><select id="edEc"><option value="">Não informar</option><option value="solteiro">Solteiro(a)</option><option value="casado">Casado(a)</option><option value="uniao_estavel">União estável</option><option value="separado">Separado(a)</option><option value="divorciado">Divorciado(a)</option><option value="viuvo">Viúvo(a)</option></select></div>
+            </div>
+          </div></details></div>
         <div><label for="edEmailInput">E-mail de acesso</label><input id="edEmailInput" type="email" maxlength="120" placeholder="nome@exemplo.com"><small>Mudar o e-mail troca o login da pessoa.</small></div>
       </div>
     </div>
@@ -156,7 +174,7 @@
       <label><input type="checkbox" name="edServico" value="terapia"> Terapia</label>
       <label><input type="checkbox" name="edServico" value="mentoria"> Mentoria</label>
     </div>
-    <div class="checks" style="margin-top:12px" id="edGrupoBox"><label><input type="checkbox" id="edGrupo"> Incluir no grupo ao vivo da mentoria</label></div>
+    <div class="checks" style="margin-top:12px" id="edGrupoBox"><label><input type="checkbox" id="edGrupo"> Incluir no grupo ao vivo da mentoria</label><label><input type="checkbox" id="edAulas"> Incluir as aulas da mentoria</label></div>
     <div class="so-master" style="margin-top:14px">
       <div class="checks"><label><input type="checkbox" id="edAtivo"> Acesso ativo</label></div>
       <div style="margin-top:16px"><label for="edSenha">Trocar a senha desta pessoa</label>

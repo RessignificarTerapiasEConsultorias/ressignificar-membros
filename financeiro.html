@@ -30,6 +30,7 @@
       <button class="aba" type="button" data-aba="painel" aria-selected="true">Painel</button>
       <button class="aba" type="button" data-aba="clientes" aria-selected="false">Por cliente</button>
       <button class="aba" type="button" data-aba="contratos" aria-selected="false">Contratos e cobranças</button>
+      <button class="aba" type="button" data-aba="ganhos" aria-selected="false">Ganhos extras</button>
       <button class="aba" type="button" data-aba="custos" aria-selected="false">Custos por cliente</button>
     </div>
 
@@ -63,7 +64,7 @@
       <div class="cartao">
         <h2>Resultado por cliente</h2>
         <p class="ajuda">Recebido até agora, o que falta receber, o que está atrasado e quanto sobra depois dos custos de cada cliente. Clique em "Gerenciar" para editar ou excluir as cobranças desse cliente.</p>
-        <div class="tabela-wrap" style="max-height:680px"><table class="t"><thead><tr><th>Cliente</th><th>Serviços</th><th class="n">Recebido</th><th class="n">Em aberto</th><th class="n">Em atraso</th><th class="n">Custos</th><th class="n">Margem</th><th>Próximo vencimento</th><th></th></tr></thead><tbody id="listaCli"></tbody></table></div>
+        <div class="tabela-wrap" style="max-height:680px"><table class="t"><thead><tr><th>Cliente</th><th>Serviços</th><th class="n">Recebido</th><th class="n">Pendente (a vencer)</th><th class="n">Atrasado</th><th class="n">Custos</th><th class="n">Margem</th><th>Próximo vencimento</th><th></th></tr></thead><tbody id="listaCli"></tbody></table></div>
       </div>
     </section>
 
@@ -85,17 +86,19 @@
             <div class="campo-valor"><label for="ctValor" id="rotValor">Valor total (R$)</label><input id="ctValor" inputmode="decimal" placeholder="0,00" required></div>
             <div id="blocoRecorrente" hidden><label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-top:28px"><input type="checkbox" id="ctRecorrente"> Recorrente sem prazo (cliente cancela quando quiser)</label></div>
             <div id="blocoQtd"><label for="ctQtd" id="rotQtd">Parcelas</label><input id="ctQtd" type="number" min="1" max="60" value="1"></div>
+            <div id="blocoTermino" hidden><label for="ctFim">Término do contrato</label><input id="ctFim" type="date"></div>
             <div id="blocoVenc"><label for="ctVenc">1º vencimento</label><input id="ctVenc" type="date"></div>
             <div><label for="ctForma">Forma de pagamento</label><input id="ctForma" maxlength="60" placeholder="Ex.: Pix"></div>
             <div><label for="ctIni">Início</label><input id="ctIni" type="date"></div>
           </div>
+          <div id="blocoExtra"><div class="grade g2" style="margin-top:12px"><div class="campo-valor"><label for="ctExtra">Comissão ou valor extra neste 1º mês <span class="vazio">(opcional)</span></label><input id="ctExtra" inputmode="decimal" placeholder="0,00"></div><div><label for="ctExtraDesc">Motivo do extra</label><input id="ctExtraDesc" maxlength="120" placeholder="Ex.: comissão de venda"></div></div></div>
           <p class="ajuda" id="ajudaRecorrente" style="margin-top:8px"></p>
           <div class="acoes"><button class="btn auto" type="submit">Salvar contrato</button></div>
         </form>
       </div>
       <div class="cartao">
         <h2>Contratos ativos</h2>
-        <div class="tabela-wrap"><table class="t"><thead><tr><th>Cliente</th><th>Serviço</th><th>Descrição</th><th>Executor</th><th>Cobrança</th><th class="n">Recebido</th><th class="n">Em aberto</th><th></th></tr></thead><tbody id="listaContratos"></tbody></table></div>
+        <div class="tabela-wrap"><table class="t"><thead><tr><th>Cliente</th><th>Serviço</th><th>Descrição</th><th>Executor</th><th>Condição</th><th class="n">Recebido</th><th class="n">Pendente</th><th class="n">Atrasado</th><th></th></tr></thead><tbody id="listaContratos"></tbody></table></div>
       </div>
 
       <div class="cartao">
@@ -126,6 +129,30 @@
     </section>
 
     <!-- ===== CUSTOS ===== -->
+    <!-- ===== GANHOS EXTRAS ===== -->
+    <section data-painel="ganhos" hidden>
+      <div class="cartao">
+        <h2>Ganhos extras por cliente</h2>
+        <p class="ajuda">Ganho é tudo que o cliente passou a pagar a mais do que o valor inicial do contrato: reajustes (de 800 para 1.000 por mês, por exemplo) e valores extras (comissão, serviço adicional, pagamento único a mais). Aqui você vê quem teve ganho e quem não teve ao longo do tempo.</p>
+        <div class="f grade g3">
+          <div><label for="gaDe">De</label><input id="gaDe" type="date"></div>
+          <div><label for="gaAte">Até</label><input id="gaAte" type="date"></div>
+          <div style="align-self:end"><button class="btn auto" type="button" id="gaAplicar">Atualizar</button></div>
+        </div>
+        <div class="kpis" id="gaKpis" style="margin-top:14px"></div>
+        <div class="graf" style="height:260px"><canvas id="gGanhos"></canvas></div>
+      </div>
+      <div class="cartao">
+        <h2>Clientes</h2>
+        <div class="filtros" id="gaFiltros" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn peq contorno" type="button" data-gf="todos">Todos</button>
+          <button class="btn peq contorno" type="button" data-gf="com">Com ganho</button>
+          <button class="btn peq contorno" type="button" data-gf="sem">Sem ganho</button>
+        </div>
+        <div class="tabela-wrap"><table class="t"><thead><tr><th>Cliente</th><th>Situação</th><th class="n">Reajuste</th><th class="n">Extras</th><th class="n">Ganho total</th><th>Último ganho</th><th></th></tr></thead><tbody id="gaLista"><tr><td colspan="7" class="vazio">Carregando...</td></tr></tbody></table></div>
+      </div>
+    </section>
+
     <section data-painel="custos" hidden>
       <div class="cartao">
         <h2>Registrar custo de um cliente</h2>
@@ -162,6 +189,52 @@
   </div>
   <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="sePago" checked> Já foi paga</label></div>
   <div class="acoes"><button class="btn auto" type="button" id="seConfirmar">Registrar</button><button class="btn auto contorno" type="button" id="seCancelar">Cancelar</button></div>
+</dialog>
+
+<dialog class="janela" id="janelaEditarContrato">
+  <h2>Editar contrato</h2>
+  <p class="ajuda" id="ectInfo"></p>
+  <div class="f">
+    <div><label for="ectDesc">Descrição</label><input id="ectDesc" maxlength="100"></div>
+    <div class="grade g2" style="margin-top:12px">
+      <div><label for="ectForma">Forma de pagamento</label><input id="ectForma" maxlength="60"></div>
+      <div><label for="ectExecutor">Quem executa</label><select id="ectExecutor"></select></div>
+    </div>
+    <div id="ectFimBox" style="margin-top:12px"><label for="ectFim">Término do contrato</label><input id="ectFim" type="date"></div>
+    <p class="ajuda" id="ectSemPrazo" hidden style="margin-top:12px">Contrato recorrente sem prazo. Para encerrar, feche esta janela e use o botão "Encerrar".</p>
+    <div style="margin-top:16px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#FBF7EE">
+      <b>Mudar o valor (ganho extra)</b>
+      <div class="grade g2" style="margin-top:8px">
+        <div class="campo-valor"><label for="ectValor" id="ectRotValor">Valor (R$)</label><input id="ectValor" inputmode="decimal"></div>
+        <div><label for="ectVig">A partir de</label><input id="ectVig" type="date"></div>
+      </div>
+      <div class="checks" style="margin-top:8px" id="ectAplicarBox"><label><input type="checkbox" id="ectAplicar" checked> Aplicar às cobranças futuras ainda não pagas</label></div>
+      <div style="margin-top:8px"><label for="ectMotivo">Motivo <span class="vazio">(opcional)</span></label><input id="ectMotivo" maxlength="200" placeholder="Ex.: aumento de escopo"></div>
+    </div>
+  </div>
+  <div class="acoes"><button class="btn auto" type="button" id="ectSalvar">Salvar</button><button class="btn auto contorno" type="button" id="ectCancelar">Cancelar</button></div>
+</dialog>
+
+<dialog class="janela" id="janelaExtra">
+  <h2>Adicionar valor extra</h2>
+  <p class="ajuda" id="exInfo"></p>
+  <div class="f">
+    <div class="grade g2">
+      <div class="campo-valor"><label for="exValor">Valor extra (R$)</label><input id="exValor" inputmode="decimal" placeholder="0,00"></div>
+      <div><label for="exVenc">Vencimento</label><input id="exVenc" type="date"></div>
+    </div>
+    <div style="margin-top:12px"><label for="exDesc">Motivo</label><input id="exDesc" maxlength="120" placeholder="Ex.: comissão de venda, serviço adicional"></div>
+    <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="exPago"> Já foi recebido (escolher a data na próxima tela)</label></div>
+  </div>
+  <div class="acoes"><button class="btn auto" type="button" id="exSalvar">Adicionar</button><button class="btn auto contorno" type="button" id="exCancelar">Cancelar</button></div>
+</dialog>
+
+<dialog class="janela" id="janelaEncerrar">
+  <h2>Encerrar contrato</h2>
+  <p class="ajuda" id="enInfo"></p>
+  <div class="f"><label for="enData">Data de encerramento</label><input id="enData" type="date"></div>
+  <p class="ajuda" style="margin-top:8px">As cobranças já pagas e as vencidas continuam. As cobranças futuras ainda não pagas são removidas e nada mais é gerado.</p>
+  <div class="acoes"><button class="btn auto perigo" type="button" id="enConfirmar">Encerrar contrato</button><button class="btn auto contorno" type="button" id="enCancelar">Cancelar</button></div>
 </dialog>
 
 <dialog class="janela" id="janelaEditarCob">

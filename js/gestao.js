@@ -8,7 +8,11 @@
   ligarAbas(document.getElementById("abas"));
 
   const SERVICOS = ["consultoria_empresarial", "terapia", "mentoria"];
-  let perfis = [], servicos = [], empresas = [], grupo = {};
+  let perfis = [], servicos = [], empresas = [], grupo = {}, aulasAcesso = {}, dadosExtraOrig = null;
+  function lerDadosExtra(pref) {
+    return { endereco: document.getElementById(pref + "Endereco").value.trim(), cpf: document.getElementById(pref + "Cpf").value.replace(/\D/g, ""), profissao: document.getElementById(pref + "Prof").value.trim(), estado_civil: document.getElementById(pref + "Ec").value };
+  }
+  function salvarDadosExtra(id, d) { return supa().rpc("perfil_dados_salvar", { p_perfil: id, p_endereco: d.endereco, p_cpf: d.cpf, p_profissao: d.profissao, p_estado_civil: d.estado_civil }); }
   const porId = function (id) { return perfis.find(function (p) { return p.id === id; }); };
 
   /* ================= PESSOAS ================= */
@@ -23,6 +27,11 @@
       grupo = {};
       (rg.data || []).forEach(function (c) { grupo[c.id] = !!c.em_grupo; });
     } catch (e) { grupo = {}; }
+    try {   // quem recebe as aulas da mentoria
+      const ra = await supa().rpc("aulas_acesso_lista");
+      aulasAcesso = {};
+      (ra.data || []).forEach(function (c) { aulasAcesso[c.id] = !!c.tem_aulas; });
+    } catch (e) { aulasAcesso = {}; }
     desenharPessoas();
     preencherDonos();
   }
@@ -36,7 +45,7 @@
     document.getElementById("contaPessoas").textContent = perfis.length + (perfis.length === 1 ? " pessoa" : " pessoas");
     if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" class="vazio">Nenhuma pessoa encontrada.</td></tr>'; return; }
     tb.innerHTML = lista.map(function (p) {
-      const servs = servicosDe(p.id).map(function (t) { return '<span class="selo">' + ROTULO_SERVICO[t] + "</span>"; }).join("") + (grupo[p.id] ? '<span class="selo ouro">Grupo ao vivo</span>' : "");
+      const servs = servicosDe(p.id).map(function (t) { return '<span class="selo">' + ROTULO_SERVICO[t] + "</span>"; }).join("") + (grupo[p.id] ? '<span class="selo ouro">Grupo ao vivo</span>' : "") + (aulasAcesso[p.id] ? '<span class="selo ouro">Aulas</span>' : "");
       return "<tr>" +
         "<td><b>" + esc(p.nome) + "</b>" + (p.id === eu.id ? ' <span class="selo">você</span>' : "") + "</td>" +
         "<td>" + esc(p.email) + (p.telefone ? '<br><span class="vazio" style="padding:0">' + foneBR(p.telefone) + "</span>" : "") + "</td>" +
@@ -86,6 +95,22 @@
       botao.disabled = false; botao.textContent = "Criar acesso";
       if (!r.ok) { aviso(r.erro, true); return; }
       const querGrupo = !!(document.getElementById("novoGrupo") && document.getElementById("novoGrupo").checked) && dados.papel === "cliente";
+      const querAulas = !!(document.getElementById("novoAulas") && document.getElementById("novoAulas").checked) && dados.papel === "cliente";
+      const extra = lerDadosExtra("novo");
+      if (extra.endereco || extra.cpf || extra.profissao || extra.estado_civil) {
+        try {
+          const { data: nv3 } = await supa().from("perfis").select("id").ilike("email", dados.email).maybeSingle();
+          const r3 = nv3 ? await salvarDadosExtra(nv3.id, extra) : null;
+          if (!r3 || r3.error || !r3.data || !r3.data.ok) aviso("Acesso criado, mas os dados extras não foram salvos" + (r3 && r3.data && r3.data.erro && r3.data.erro.indexOf("_") === -1 ? ": " + r3.data.erro : ". Preencha em Editar."), true);
+        } catch (e) { aviso("Acesso criado, mas os dados extras não foram salvos. Preencha em Editar.", true); }
+      }
+      if (querAulas) {
+        try {
+          const { data: nv2 } = await supa().from("perfis").select("id").ilike("email", dados.email).maybeSingle();
+          const r2 = nv2 ? await supa().rpc("aulas_acesso_definir", { p_perfil: nv2.id, p_incluir: true }) : null;
+          if (!r2 || r2.error || !r2.data || !r2.data.ok) aviso("Acesso criado, mas não consegui liberar as aulas. Marque em Editar.", true);
+        } catch (e) { aviso("Acesso criado, mas não consegui liberar as aulas. Marque em Editar.", true); }
+      }
       if (querGrupo) {
         try {
           const { data: nv } = await supa().from("perfis").select("id").ilike("email", dados.email).maybeSingle();
@@ -122,6 +147,16 @@
     const ativos = servicosDe(p.id);
     janela.querySelectorAll("input[name=edServico]").forEach(function (c) { c.checked = ativos.indexOf(c.value) > -1; });
     document.getElementById("edGrupo").checked = !!grupo[p.id];
+    document.getElementById("edAulas").checked = !!aulasAcesso[p.id];
+    dadosExtraOrig = null;
+    ["edEndereco", "edCpf", "edProf", "edEc"].forEach(function (i) { document.getElementById(i).value = ""; });
+    supa().rpc("perfil_dados_ler", { p_perfil: p.id }).then(function (r) {
+      if (!r.data || !r.data.ok) return;
+      const d = r.data;
+      document.getElementById("edEndereco").value = d.endereco || ""; document.getElementById("edProf").value = d.profissao || ""; document.getElementById("edEc").value = d.estado_civil || "";
+      document.getElementById("edCpf").value = d.cpf ? d.cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4") : "";
+      dadosExtraOrig = lerDadosExtra("ed");
+    });
     document.getElementById("edGrupoBox").hidden = p.papel !== "cliente";
     if (master) {
       document.getElementById("edNome").value = p.nome;
@@ -173,6 +208,18 @@
       if (ehCliente && quer !== tinha) {
         const rr = await supa().rpc("chat_grupo_definir", { p_perfil: p.id, p_incluir: quer });
         if (rr.error || !rr.data || !rr.data.ok) { aviso("Não foi possível atualizar o grupo ao vivo.", true); return; }
+      }
+      if (dadosExtraOrig) {
+        const novos = lerDadosExtra("ed");
+        if (JSON.stringify(novos) !== JSON.stringify(dadosExtraOrig)) {
+          const rd = await salvarDadosExtra(p.id, novos);
+          if (rd.error || !rd.data || !rd.data.ok) { aviso((rd.data && rd.data.erro && rd.data.erro.indexOf("_") === -1 ? rd.data.erro : "Não foi possível salvar os dados extras."), true); return; }
+        }
+      }
+      const querAu = document.getElementById("edAulas").checked, tinhaAu = !!aulasAcesso[p.id];
+      if (ehCliente && querAu !== tinhaAu) {
+        const ra2 = await supa().rpc("aulas_acesso_definir", { p_perfil: p.id, p_incluir: querAu });
+        if (ra2.error || !ra2.data || !ra2.data.ok) { aviso("Não foi possível atualizar as aulas.", true); return; }
       }
       janela.close();
       aviso("Alterações salvas.");

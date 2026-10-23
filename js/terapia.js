@@ -9,7 +9,15 @@
   function falha(msg) { document.getElementById("falhaMsg").textContent = msg; document.getElementById("falha").hidden = false; }
 
   /* ---------- de quem é este processo ---------- */
-  let pessoa = eu;
+  let pessoa = eu, modo = master ? "master" : "paciente";
+  if (!master) {
+    const pParam = new URLSearchParams(location.search).get("p");
+    if (pParam && pParam !== eu.id) {   // acompanhante abrindo o processo de outra pessoa
+      const rb = await supa().rpc("terapia_paciente_basico", { p_paciente: pParam });
+      if (rb.error || !rb.data || !rb.data.ok) return falha("Você não tem acesso a esta área.");
+      pessoa = { id: rb.data.id, nome: rb.data.nome, email: "" }; modo = "acompanhante";
+    }
+  }
   if (master) {
     const pid = new URLSearchParams(location.search).get("p");
     if (!pid) return falha("Escolha a pessoa no painel, na lista de pessoas, botão \"Terapia\".");
@@ -19,12 +27,27 @@
   }
   const pid = pessoa.id;
   const primeiroNome = pessoa.nome.split(" ")[0];
-  document.getElementById("titulo").textContent = master ? "Terapia: " + pessoa.nome : "Seu processo terapêutico";
-  document.getElementById("subtitulo").textContent = master ? pessoa.email : "Acompanhe as suas áreas, ações, sessões e testes.";
-  document.getElementById("textoSigilo").textContent = master
+  document.getElementById("titulo").textContent = master ? "Terapia: " + pessoa.nome : (modo === "acompanhante" ? "Terapia de " + pessoa.nome : "Seu processo terapêutico");
+  document.getElementById("subtitulo").textContent = master ? pessoa.email : (modo === "acompanhante" ? "Você acompanha " + primeiroNome + ". Aqui aparece só o que o Mauricio liberou para você." : "Acompanhe as suas áreas, ações, sessões e testes.");
+  document.getElementById("textoSigilo").textContent = modo === "acompanhante" ? "Sigiloso: você vê apenas o que foi liberado e não deve compartilhar com outras pessoas." : master
     ? "Sigiloso: só você e " + primeiroNome + " acessam. A equipe de suporte não vê nada desta página. As notas privadas das sessões só você vê."
     : "Tudo o que está aqui é sigiloso: só você e o Mauricio têm acesso.";
   document.getElementById("areaTerapia").hidden = false;
+
+  /* ---------- o que esta pessoa pode ver e editar (definido pelo Mauricio) ---------- */
+  const SECOES = ["cadastro", "areas", "sessoes", "testes", "anamnese"];
+  const PERM = {};
+  if (master) SECOES.forEach(function (x) { PERM[x] = { ver: true, editar: true }; });
+  else {
+    const rp = await supa().from("terapia_acessos").select("secao,ver,editar").eq("paciente_id", pid).eq("perfil_id", eu.id);
+    (rp.data || []).forEach(function (a) { PERM[a.secao] = { ver: a.ver || a.editar, editar: a.editar }; });
+  }
+  const pode = function (secao, nivel) { return !!(PERM[secao] && PERM[secao][nivel]); };
+  const podeEdAreas = pode("areas", "editar");
+  const ABA_SECAO = { geral: "areas", areas: "areas", sessoes: "sessoes", testes: "testes", anamnese: "anamnese", cadastro: "cadastro" };
+  Object.keys(ABA_SECAO).forEach(function (aba) {
+    if (!pode(ABA_SECAO[aba], "ver")) { const b = document.querySelector('#abas [data-aba="' + aba + '"]'); if (b) { b.style.display = "none"; b.dataset.bloqueada = "1"; } }
+  });
 
   const STATUS = { a_fazer: "A fazer", em_andamento: "Em andamento", feito: "Feito", cancelado: "Cancelado" };
   const SUGESTOES = ["Financeira", "Amorosa", "Família", "Amizades", "Estudos", "Carreira", "Saúde física", "Saúde emocional", "Autoestima", "Espiritualidade", "Lazer", "Propósito"];
@@ -468,13 +491,15 @@
     document.getElementById("camposAnamnese").innerHTML = CAMPOS.map(function (c) {
       return '<div class="campo-anamnese"><label for="an-' + c[0] + '">' + c[1] + '</label><textarea id="an-' + c[0] + '" data-campo="' + c[0] + '" rows="3">' + esc(dados[c[0]] || "") + "</textarea></div>";
     }).join("");
-    if (r.data && r.data.atualizado_em) {
-      document.getElementById("anamneseInfo").textContent = "Última atualização em " + dataBR(r.data.atualizado_em) + ". " +
-        (master ? "" : "Responda com calma e com as suas palavras. Dá para voltar e completar depois.");
-    }
+    const editavel = pode("anamnese", "editar");
+    document.querySelectorAll("#camposAnamnese textarea").forEach(function (t) { t.disabled = !editavel; });
+    document.getElementById("anSalvar").hidden = !editavel;
+    document.getElementById("anamneseInfo").textContent = (r.data && r.data.atualizado_em ? "Última atualização em " + dataBR(r.data.atualizado_em) + ". " : "") +
+      (master ? "Preenchimento do terapeuta ou da própria pessoa, se você liberar a edição na aba Acessos." : (editavel ? "Responda com calma e com as suas palavras. Dá para voltar e completar depois." : "Você pode ler, mas não editar."));
   }
   document.getElementById("formAnamnese").addEventListener("submit", async function (e) {
     e.preventDefault();
+    if (!pode("anamnese", "editar")) return;
     const dados = {};
     document.querySelectorAll("#camposAnamnese textarea").forEach(function (t) { const v = t.value.trim(); if (v) dados[t.dataset.campo] = v; });
     const { error } = await supa().from("terapia_anamnese").upsert({ perfil_id: pid, dados: dados, atualizado_em: new Date().toISOString(), atualizado_por: eu.id }, { onConflict: "perfil_id" });
@@ -483,10 +508,99 @@
     carregarAnamnese();
   });
 
+  /* ================= CADASTRO ================= */
+  async function carregarCadastro() {
+    const r = await supa().rpc("perfil_dados_ler", { p_perfil: pid });
+    if (r.error || !r.data || !r.data.ok) { aviso("Não foi possível abrir o cadastro.", true); return; }
+    const d = r.data;
+    document.getElementById("cadNome").textContent = d.nome || ""; document.getElementById("cadEmail").textContent = d.email || "—"; document.getElementById("cadTel").textContent = d.telefone ? foneBR(d.telefone) : "—";
+    document.getElementById("cadEndereco").value = d.endereco || ""; document.getElementById("cadProf").value = d.profissao || ""; document.getElementById("cadEc").value = d.estado_civil || "";
+    document.getElementById("cadCpf").value = d.cpf ? d.cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4") : "";
+    const ed = !!d.pode_editar && pode("cadastro", "editar");
+    ["cadEndereco", "cadProf", "cadEc", "cadCpf"].forEach(function (id) { document.getElementById(id).disabled = !ed; });
+    document.getElementById("cadSalvar").hidden = !ed;
+    document.getElementById("cadInfo").textContent = ed ? "Estas informações são opcionais. Para mudar o telefone ou o e-mail, fale com o Mauricio." : "Você pode ler, mas não editar.";
+  }
+  document.getElementById("formCadastro").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    if (!pode("cadastro", "editar")) return;
+    const b = document.getElementById("cadSalvar"); b.disabled = true;
+    const r = await supa().rpc("perfil_dados_salvar", { p_perfil: pid, p_endereco: document.getElementById("cadEndereco").value, p_cpf: document.getElementById("cadCpf").value, p_profissao: document.getElementById("cadProf").value, p_estado_civil: document.getElementById("cadEc").value });
+    b.disabled = false;
+    if (r.error || !r.data || !r.data.ok) { aviso((r.data && r.data.erro && r.data.erro.indexOf("_") === -1 ? r.data.erro : "Não foi possível salvar o cadastro."), true); return; }
+    aviso("Cadastro salvo."); carregarCadastro();
+  });
+
+  /* ================= ACESSOS (só o master) ================= */
+  const ROTULO_SECAO = { cadastro: "Cadastro", areas: "Áreas e ações", sessoes: "Sessões", testes: "Testes", anamnese: "Anamnese" };
+  async function carregarAcessos() {
+    if (!master) return;
+    const r = await supa().rpc("terapia_acessos_ler", { p_paciente: pid });
+    if (r.error || !r.data || !r.data.ok) { aviso("Não foi possível carregar os acessos.", true); return; }
+    const tb = document.getElementById("acMatriz"); tb.innerHTML = "";
+    const linha = function (quem, rotulo, ehPaciente) {
+      const tr = document.createElement("tr");
+      const td0 = document.createElement("td"); const b0 = document.createElement("b"); b0.textContent = quem.nome; td0.appendChild(b0);
+      const sm = document.createElement("small"); sm.className = "vazio"; sm.style.display = "block"; sm.style.padding = "0"; sm.textContent = rotulo; td0.appendChild(sm); tr.appendChild(td0);
+      SECOES.forEach(function (sec) {
+        const td = document.createElement("td"); const cur = (quem.secoes && quem.secoes[sec]) || { ver: false, editar: false };
+        const cv = document.createElement("input"), ce = document.createElement("input");
+        cv.type = "checkbox"; ce.type = "checkbox"; cv.checked = !!(cur.ver || cur.editar); ce.checked = !!cur.editar;
+        cv.setAttribute("aria-label", quem.nome + ": ver " + ROTULO_SECAO[sec]); ce.setAttribute("aria-label", quem.nome + ": editar " + ROTULO_SECAO[sec]);
+        const mk = function (cb, txt) { const l = document.createElement("label"); l.className = "chk-linha"; l.appendChild(cb); l.appendChild(document.createTextNode(" " + txt)); return l; };
+        td.appendChild(mk(cv, "Ver"));
+        if (sec !== "sessoes" && sec !== "testes") td.appendChild(mk(ce, "Editar"));
+        const salvar = async function () {
+          if (ce.checked) cv.checked = true;
+          const rr = await supa().rpc("terapia_acesso_definir", { p_paciente: pid, p_perfil: quem.id, p_secao: sec, p_ver: cv.checked, p_editar: ce.checked });
+          if (rr.error || !rr.data || !rr.data.ok) { aviso("Não foi possível salvar.", true); carregarAcessos(); return; }
+          aviso(quem.nome.split(" ")[0] + ": " + ROTULO_SECAO[sec] + " " + (ce.checked ? "(ver e editar)" : (cv.checked ? "(só ver)" : "(sem acesso)")));
+        };
+        cv.addEventListener("change", function () { if (!cv.checked) ce.checked = false; salvar(); }); ce.addEventListener("change", salvar);
+        tr.appendChild(td);
+      });
+      const tdA = document.createElement("td");
+      const todos = function (txt, cls, fn) { const b = document.createElement("button"); b.type = "button"; b.className = "btn peq " + cls; b.textContent = txt; b.addEventListener("click", fn); tdA.appendChild(b); tdA.appendChild(document.createTextNode(" ")); };
+      const aplicarTudo = async function (ver) {
+        for (const sec of SECOES) await supa().rpc("terapia_acesso_definir", { p_paciente: pid, p_perfil: quem.id, p_secao: sec, p_ver: ver, p_editar: false });
+        aviso(ver ? "Acesso de leitura liberado em tudo." : "Todo o acesso foi retirado."); carregarAcessos();
+      };
+      todos("Ver tudo", "contorno", function () { aplicarTudo(true); });
+      todos("Retirar tudo", "contorno", function () { if (confirm("Retirar todo o acesso de " + quem.nome + " a esta terapia?")) aplicarTudo(false); });
+      if (!ehPaciente) todos("Remover acompanhante", "perigo", async function () {
+        if (!confirm("Remover " + quem.nome + " como acompanhante? Ela perde todo o acesso.")) return;
+        const rr = await supa().rpc("terapia_acompanhante_remover", { p_paciente: pid, p_acompanhante: quem.id });
+        if (rr.error || !rr.data || !rr.data.ok) { aviso("Não foi possível remover.", true); return; }
+        aviso("Acompanhante removido."); carregarAcessos();
+      });
+      tr.appendChild(tdA); return tr;
+    };
+    tb.appendChild(linha(r.data.paciente, "Pessoa assistida", true));
+    (r.data.acompanhantes || []).forEach(function (a) { tb.appendChild(linha(a, "Acompanhante · " + (a.email || ""), false)); });
+    if (!(r.data.acompanhantes || []).length) { const tr = document.createElement("tr"); const td = document.createElement("td"); td.colSpan = 7; td.className = "vazio"; td.textContent = "Nenhum acompanhante ainda."; tr.appendChild(td); tb.appendChild(tr); }
+    const sel = document.getElementById("acNovo");
+    sel.innerHTML = '<option value="">Escolha a pessoa</option>' + (r.data.candidatos || []).map(function (c) { return '<option value="' + c.id + '">' + esc(c.nome) + "</option>"; }).join("");
+  }
+  if (master) document.getElementById("acAdd").addEventListener("click", async function () {
+    const v = document.getElementById("acNovo").value;
+    if (!v) { aviso("Escolha a pessoa que vai acompanhar.", true); return; }
+    const r = await supa().rpc("terapia_acompanhante_adicionar", { p_paciente: pid, p_acompanhante: v });
+    if (r.error || !r.data || !r.data.ok) { aviso((r.data && r.data.erro && r.data.erro.indexOf("_") === -1 ? r.data.erro : "Não foi possível adicionar."), true); return; }
+    aviso("Acompanhante adicionado, sem nenhum acesso. Marque abaixo o que ela pode ver."); carregarAcessos();
+  });
+
   /* ================= desenhar ================= */
-  function desenharTudo() { desenharGeral(); desenharAreas(); desenharSessoes(); desenharTestes(); }
-  ligarAbas(document.getElementById("abas"), function (nome) {
+  function aplicarPermissoes() {
+    if (!podeEdAreas) {
+      document.querySelectorAll("[data-nota]").forEach(function (f) { f.remove(); });
+      document.querySelectorAll("[data-status]").forEach(function (x) { x.disabled = true; });
+    }
+  }
+  function desenharTudo() { desenharGeral(); desenharAreas(); desenharSessoes(); desenharTestes(); aplicarPermissoes(); }
+  const abrirAba = ligarAbas(document.getElementById("abas"), function (nome) {
     abaAtual = nome;
+    if (nome === "cadastro") carregarCadastro();
+    if (nome === "acessos") carregarAcessos();
     if (nome === "geral") desenharRoda();
     if (nome === "areas") desenharGraficosAreas();
     if (nome === "sessoes") desenharHumor();
@@ -495,6 +609,13 @@
 
   await carregar();
   desenharTudo();
-  if (master) carregarAnamnese();
+  if (pode("anamnese", "ver")) carregarAnamnese();
   if (fT) preencherDimsDoTeste();
+  // primeira aba disponível (ou a pedida no endereço, ex.: ?aba=acessos)
+  const ordem = ["geral", "areas", "sessoes", "testes", "anamnese", "cadastro"].concat(master ? ["acessos"] : []);
+  const pedida = new URLSearchParams(location.search).get("aba");
+  const liberada = function (a) { const b = document.querySelector('#abas [data-aba="' + a + '"]'); return !!b && !b.dataset.bloqueada; };
+  const alvo = (pedida && ordem.indexOf(pedida) > -1 && liberada(pedida)) ? pedida : ordem.find(liberada);
+  if (alvo) abrirAba(alvo);
+  else { const p = document.createElement("p"); p.className = "vazio"; p.textContent = "Ainda não há nada liberado para você aqui."; document.getElementById("areaTerapia").appendChild(p); }
 })();

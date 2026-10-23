@@ -23,9 +23,17 @@
   <main class="conteudo-painel">
     <h1 id="ola">Sua área</h1>
     <p class="sub">Aqui você acompanha o seu processo e mantém os seus números em dia.</p>
+    <div class="alertas-topo" id="alertasTopo" hidden></div>
     <div class="cartao">
       <h2>Seus serviços</h2>
       <div id="meusServicos"><p class="vazio">Carregando...</p></div>
+    </div>
+    <div class="cartao" id="cartaoOfertas" hidden>
+      <h2>Ofertas da Ressignificar para você</h2>
+      <p class="ajuda">Produtos e serviços do Mauricio Pinho.</p>
+      <div class="ofertas-nomes" id="ofertasNomes"></div>
+      <button type="button" class="btn-alerta" id="ofertasAbrir" aria-expanded="false" aria-controls="ofertasDetalhe"><span class="ponto-pisca" aria-hidden="true"></span><span class="txt-alerta">Importante: leia e clique para expandir</span></button>
+      <div id="ofertasDetalhe" hidden><div class="ofertas-grade" id="ofertasGrade"></div></div>
     </div>
     <div class="cartao" id="cartaoPag" hidden>
       <h2>Seus pagamentos</h2>
@@ -37,6 +45,11 @@
       <h2>Seu processo terapêutico</h2>
       <p class="ajuda">Suas áreas de trabalho, ações combinadas, sessões e testes. Tudo sigiloso.</p>
       <a class="btn auto" href="terapia.html">Abrir meu processo</a>
+    </div>
+    <div class="cartao" id="cartaoAcompanha" hidden>
+      <h2>Pessoas que você acompanha</h2>
+      <p class="ajuda">Você vê apenas o que o Mauricio liberou para você em cada processo.</p>
+      <ul class="acoes-lista" id="listaAcompanha"></ul>
     </div>
     <div class="cartao" id="cartaoClinica" hidden>
       <h2>Meu atendimento</h2>
@@ -53,6 +66,11 @@
       <h2>Sua mentoria</h2>
       <p class="ajuda">Registre os seus ganhos, acompanhe as ações, o retorno sobre o investimento e as suas lives.</p>
       <a class="btn auto" href="mentoria.html">Abrir minha mentoria</a>
+    </div>
+    <div class="cartao" id="cartaoAulas" hidden>
+      <h2>Aulas da mentoria</h2>
+      <p class="ajuda">Assista às aulas por módulo e baixe os materiais de apoio.</p>
+      <a class="btn auto" href="aulas.html">Ver as aulas</a>
     </div>
     <div class="cartao" id="cartaoChat">
       <h2>Chat <span class="selo ouro" id="chatBadge" hidden></span></h2>
@@ -83,6 +101,8 @@
 <script src="js/app.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/chat-badge.js"></script>
+<script src="js/aulas-card.js"></script>
+<script src="js/terapia-card.js"></script>
 <script>
 (async function () {
   const eu = await protegerPagina("cliente");
@@ -109,6 +129,65 @@
       "</tbody></table></div>" : '<p class="vazio">Nenhuma sessão registrada ainda.</p>';
     document.getElementById("cartaoClinica").hidden = false;
   }
+  /* ---------- alertas importantes (botão vermelho piscando) ---------- */
+  const faixa = document.getElementById("alertasTopo");
+  function alertar(chave, titulo, texto, rotulo, alvoId) {
+    faixa.hidden = false;
+    const d = document.createElement("div"); d.className = "alerta-linha"; d.dataset.alerta = chave;
+    const t = document.createElement("span"); t.className = "txt"; const b = document.createElement("b"); b.textContent = titulo; t.appendChild(b); t.appendChild(document.createTextNode(" · " + texto));
+    const bt = document.createElement("button"); bt.type = "button"; bt.className = "btn-alerta";
+    bt.innerHTML = '<span class="ponto-pisca" aria-hidden="true"></span><span></span>'; bt.lastChild.textContent = rotulo;
+    bt.addEventListener("click", function () {
+      const alvo = document.getElementById(alvoId); if (!alvo) return;
+      if (alvoId === "cartaoOfertas") { const det = document.getElementById("ofertasDetalhe"); if (det.hidden) document.getElementById("ofertasAbrir").click(); }
+      alvo.scrollIntoView({ behavior: "smooth", block: "start" }); alvo.classList.remove("piscar-cartao"); void alvo.offsetWidth; alvo.classList.add("piscar-cartao");
+    });
+    d.appendChild(t); d.appendChild(bt);
+    if (chave === "pagamentos") faixa.insertBefore(d, faixa.firstChild); else faixa.appendChild(d);   // o financeiro aparece primeiro
+  }
+
+  /* ---------- ofertas (catálogo de produtos) ---------- */
+  try {
+    const [rp, ri] = await Promise.all([
+      supa().from("catalogo_produtos").select("id,nome,descricao,inclui,preco_texto,link_pagamento,destaque").eq("ativo", true).order("destaque", { ascending: false }).order("ordem"),
+      supa().from("interesses").select("produto_id").eq("perfil_id", eu.id)
+    ]);
+    const prods = rp.data || [], pedidos = new Set((ri.data || []).map(function (i) { return i.produto_id; }));
+    if (prods.length) {
+      const nomes = document.getElementById("ofertasNomes"); nomes.innerHTML = "";
+      prods.forEach(function (x) { const s = document.createElement("span"); s.className = "oferta-nome" + (x.destaque ? " destaque" : ""); s.textContent = x.nome; nomes.appendChild(s); });
+      const grade = document.getElementById("ofertasGrade"); grade.innerHTML = "";
+      prods.forEach(function (x) {
+        const card = document.createElement("article"); card.className = "oferta-card" + (x.destaque ? " destaque" : "");
+        if (x.destaque) { const sd = document.createElement("span"); sd.className = "selo ouro selo-dest"; sd.textContent = "Destaque"; card.appendChild(sd); }
+        const h = document.createElement("h3"); h.textContent = x.nome; card.appendChild(h);
+        if (x.descricao) { const d = document.createElement("p"); d.className = "ajuda"; d.textContent = x.descricao; card.appendChild(d); }
+        const itens = (x.inclui || "").split(/\n+/).map(function (t) { return t.trim(); }).filter(Boolean);
+        if (itens.length) { const ul = document.createElement("ul"); itens.forEach(function (t) { const li = document.createElement("li"); li.textContent = t; ul.appendChild(li); }); card.appendChild(ul); }
+        if (x.preco_texto) { const pr = document.createElement("p"); pr.className = "preco"; pr.textContent = x.preco_texto; card.appendChild(pr); }
+        const ac = document.createElement("div"); ac.className = "acoes";
+        const bi = document.createElement("button"); bi.type = "button"; bi.className = "btn peq";
+        if (pedidos.has(x.id)) { bi.textContent = "Interesse enviado ✓"; bi.disabled = true; }
+        else { bi.textContent = "Tenho interesse"; bi.addEventListener("click", async function () {
+          bi.disabled = true; bi.textContent = "Enviando...";
+          const r = await supa().from("interesses").insert({ perfil_id: eu.id, produto_id: x.id });
+          if (r.error) { bi.disabled = false; bi.textContent = "Tenho interesse"; aviso("Não foi possível enviar. Tente de novo.", true); return; }
+          bi.textContent = "Interesse enviado ✓"; aviso("Recebi o seu interesse. O Mauricio entra em contato.");
+        }); }
+        ac.appendChild(bi);
+        if (x.link_pagamento && /^https:\/\//.test(x.link_pagamento)) { const a = document.createElement("a"); a.className = "btn peq contorno"; a.href = x.link_pagamento; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = "Comprar agora"; ac.appendChild(a); }
+        card.appendChild(ac); grade.appendChild(card);
+      });
+      document.getElementById("ofertasAbrir").addEventListener("click", function () {
+        const det = document.getElementById("ofertasDetalhe"), abrir = det.hidden; det.hidden = !abrir;
+        this.setAttribute("aria-expanded", String(abrir)); this.classList.toggle("aberto", abrir); this.querySelector(".txt-alerta").textContent = abrir ? "Recolher" : "Importante: leia e clique para expandir";
+      });
+      document.getElementById("cartaoOfertas").hidden = false;
+      const novas = prods.filter(function (x) { return !pedidos.has(x.id); });
+      if (novas.length) alertar("ofertas", "Importante: ofertas para você", novas.length + (novas.length === 1 ? " oferta" : " ofertas") + " do Mauricio para você ler.", "Ver ofertas", "cartaoOfertas");
+    }
+  } catch (e) { /* sem ofertas, sem problema */ }
+
   /* ---------- pagamentos do próprio cliente ---------- */
   const rc = await supa().from("cobrancas").select("id,contrato_id,descricao,vencimento,valor,pago_em").eq("perfil_id", eu.id).order("vencimento");
   const rk = await supa().from("contratos").select("id,servico,produto").eq("perfil_id", eu.id);
@@ -121,11 +200,11 @@
     const totAtras = atras.reduce(function (t, c) { return t + +c.valor; }, 0);
     let avisoHtml = "";
     if (atras.length) avisoHtml += '<div class="aviso erro" style="margin-top:0">Você tem <b>' + brl(totAtras) + "</b> em atraso desde " + dataBR(atras[0].vencimento) + ". Se já pagou, envie o comprovante ao Mauricio. Se precisar, fale com ele para combinar.</div>";
-    if (prox.length) avisoHtml += '<div class="aviso ok">Próximo pagamento: <b>' + brl(prox[0].valor) + "</b> em " + dataBR(prox[0].vencimento) + " (" + esc(prox[0].descricao) + ").</div>";
+    if (prox.length) avisoHtml += '<div class="aviso" style="background:#FFF6D6;color:#6B5000;border:1px solid #E8C24A">Próximo pagamento: <b>' + brl(prox[0].valor) + "</b> em " + dataBR(prox[0].vencimento) + " (" + esc(prox[0].descricao) + ").</div>";
     if (!atras.length && !prox.length) avisoHtml = '<div class="aviso ok" style="margin-top:0">Tudo em dia. Obrigado!</div>';
     document.getElementById("avisoPag").innerHTML = avisoHtml;
     const linha = function (c) {
-      const sit = c.pago_em ? '<span class="selo ok">Pago em ' + dataBR(c.pago_em) + "</span>" : (c.vencimento < hoje ? '<span class="selo off">Em atraso</span>' : '<span class="selo">A vencer</span>');
+      const sit = c.pago_em ? '<span class="selo ok">Pago em ' + dataBR(c.pago_em) + "</span>" : (c.vencimento < hoje ? '<span class="selo off">Atrasado</span>' : '<span class="selo pendente">Pendente</span>');
       return '<tr><td class="quebra"><b>' + servDe(c) + '</b><br><span class="vazio" style="padding:0">' + esc(c.descricao) + "</span></td><td>" + dataBR(c.vencimento) + "<br>" + sit + '</td><td class="n">' + brl(c.valor) + "</td></tr>";
     };
     const resumo = atras.concat(prox.slice(0, 4));
@@ -135,6 +214,12 @@
     bt.hidden = cobs.length <= resumo.length;
     bt.addEventListener("click", function () { tb.innerHTML = cobs.slice().reverse().map(linha).join(""); bt.hidden = true; });
     document.getElementById("cartaoPag").hidden = false;
+    if (atras.length || prox.length) {
+      const partes = [];
+      if (atras.length) partes.push(atras.length + (atras.length === 1 ? " pagamento atrasado" : " pagamentos atrasados") + " (" + brl(totAtras) + ")");
+      if (prox.length) partes.push(prox.length + (prox.length === 1 ? " pendente" : " pendentes"));
+      alertar("pagamentos", "Importante: seus pagamentos", partes.join(" e ") + ". Confira valores e datas.", "Ver pagamentos", "cartaoPag");
+    }
   }
 
   const e = await supa().from("empresas").select("id,nome,segmento,tipo,empresa_membros(perfil_id,funcao)").order("nome");

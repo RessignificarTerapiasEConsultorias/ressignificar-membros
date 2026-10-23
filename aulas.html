@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aulas | Ressignificar</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="carregando" id="carregando">Carregando...</div>
+<div id="painel" hidden>
+  <header class="topo-painel">
+    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="usuario">
+      <span data-nome-usuario></span>
+      <a class="lnk" href="conta.html">Minha conta</a>
+      <button class="sair" data-sair>Sair</button>
+    </div>
+  </header>
+  <main class="conteudo-painel largo">
+    <a class="voltar" id="voltar" href="index.html">← Voltar ao painel</a>
+    <div class="empresa-titulo"><h1>Aulas da mentoria</h1><span class="selo ouro">Mentoria</span></div>
+    <p class="sub">Assista às aulas por módulo e baixe os materiais.</p>
+
+    <div class="cartao erro-pagina" id="semAcesso" hidden><h2>Aulas ainda não liberadas</h2><p class="ajuda">As aulas ainda não foram liberadas para o seu acesso. Fale com o Mauricio.</p></div>
+
+    <div id="areaAulas" hidden>
+      <div class="abas" id="abas" role="tablist">
+        <button class="aba" type="button" data-aba="ver" aria-selected="true">Aulas</button>
+        <button class="aba so-master" type="button" data-aba="gerenciar" aria-selected="false">Gerenciar</button>
+      </div>
+
+      <!-- ASSISTIR -->
+      <section data-painel="ver">
+        <div class="aulas-grade">
+          <nav class="aulas-nav cartao" id="aulasNav" aria-label="Módulos e aulas"></nav>
+          <article class="aula-conteudo" id="aulaConteudo"><p class="vazio">Escolha uma aula ao lado.</p></article>
+        </div>
+      </section>
+
+      <!-- GERENCIAR (só master) -->
+      <section data-painel="gerenciar" class="so-master" hidden>
+        <div class="cartao">
+          <div class="acoes" style="justify-content:space-between;margin:0 0 12px;display:flex;flex-wrap:wrap;gap:8px">
+            <h2 style="margin:0">Módulos e aulas</h2>
+            <button class="btn auto" type="button" id="novoModulo">Novo módulo</button>
+          </div>
+          <p class="ajuda">Cada módulo agrupa aulas. Aulas e módulos escondidos ficam como rascunho: só você vê.</p>
+          <div id="gerMods"><p class="vazio">Carregando...</p></div>
+        </div>
+        <div class="cartao">
+          <h2>Quem recebe as aulas</h2>
+          <p class="ajuda">Marque quem vê as aulas. Você também pode marcar ao cadastrar ou editar a pessoa, em "Pessoas e acessos".</p>
+          <div class="f"><input id="acBusca" type="search" placeholder="Buscar por nome" aria-label="Buscar por nome"></div>
+          <div class="tabela-wrap"><table class="t"><thead><tr><th>Pessoa</th><th>Vê as aulas</th></tr></thead><tbody id="acLista"><tr><td colspan="2" class="vazio">Carregando...</td></tr></tbody></table></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<dialog class="janela" id="janelaModulo">
+  <h2 id="modTitulo">Módulo</h2>
+  <div class="f">
+    <div><label for="mTitulo">Título</label><input id="mTitulo" maxlength="120"></div>
+    <div style="margin-top:12px"><label for="mDesc">Descrição <span class="vazio">(opcional)</span></label><textarea id="mDesc" rows="3" maxlength="2000"></textarea></div>
+    <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="mAtivo"> Publicado (os mentorados veem)</label></div>
+  </div>
+  <div class="acoes"><button class="btn auto" id="mSalvar" type="button">Salvar</button><button class="btn auto contorno" id="mCancelar" type="button">Cancelar</button></div>
+</dialog>
+
+<dialog class="janela" id="janelaAula">
+  <h2 id="auTitulo">Aula</h2>
+  <div class="f">
+    <div><label for="aTit">Título da aula</label><input id="aTit" maxlength="140"></div>
+    <div style="margin-top:12px"><label for="aDesc">Descrição da aula <span class="vazio">(opcional)</span></label><textarea id="aDesc" rows="5" maxlength="4000"></textarea></div>
+    <div style="margin-top:12px"><label for="aLink">Link do vídeo no Google Drive <span class="vazio">(opcional)</span></label><input id="aLink" maxlength="400" placeholder="https://drive.google.com/file/d/.../view"><small>Cole o link de compartilhamento. O site guarda só o código do arquivo e nunca mostra o link ao mentorado.</small></div>
+    <div style="margin-top:12px"><label for="aPdf">PDF de apoio <span class="vazio">(opcional, até 20 MB)</span></label><input id="aPdf" type="file" accept="application/pdf"><small id="aPdfAtual"></small>
+      <div class="checks" style="margin-top:6px" id="aPdfRemoverBox"><label><input type="checkbox" id="aPdfRemover"> Remover o PDF atual</label></div></div>
+    <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="aAtivo"> Publicada (os mentorados veem)</label></div>
+  </div>
+  <div class="acoes"><button class="btn auto" id="aSalvar" type="button">Salvar aula</button><button class="btn auto contorno" id="aCancelar" type="button">Cancelar</button></div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/aulas.js"></script>
+</body>
+</html>

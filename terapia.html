@@ -34,7 +34,9 @@
         <button class="aba" type="button" data-aba="areas" aria-selected="false">Áreas e ações</button>
         <button class="aba" type="button" data-aba="sessoes" aria-selected="false">Sessões</button>
         <button class="aba" type="button" data-aba="testes" aria-selected="false">Testes</button>
-        <button class="aba so-master" type="button" data-aba="anamnese" aria-selected="false">Anamnese</button>
+        <button class="aba" type="button" data-aba="anamnese" aria-selected="false">Anamnese</button>
+        <button class="aba" type="button" data-aba="cadastro" aria-selected="false">Cadastro</button>
+        <button class="aba so-master" type="button" data-aba="acessos" aria-selected="false">Acessos</button>
       </div>
 
       <!-- ===== VISÃO GERAL ===== -->
@@ -110,14 +112,49 @@
       </section>
 
       <!-- ===== ANAMNESE ===== -->
-      <section data-painel="anamnese" class="so-master" hidden>
+      <section data-painel="anamnese" hidden>
         <div class="cartao">
           <h2>Anamnese</h2>
           <p class="ajuda" id="anamneseInfo">Preenchimento do terapeuta. O cliente não tem acesso a esta aba.</p>
           <form id="formAnamnese" class="f" novalidate>
             <div id="camposAnamnese"></div>
-            <div class="acoes"><button class="btn auto" type="submit">Salvar anamnese</button></div>
+            <div class="acoes"><button class="btn auto" type="submit" id="anSalvar">Salvar anamnese</button></div>
           </form>
+        </div>
+      </section>
+
+      <!-- ===== CADASTRO ===== -->
+      <section data-painel="cadastro" hidden>
+        <div class="cartao">
+          <h2>Cadastro</h2>
+          <p class="ajuda" id="cadInfo"></p>
+          <div class="grade g3" style="margin-bottom:12px">
+            <div><span class="rotulo">Nome</span><p id="cadNome"></p></div>
+            <div><span class="rotulo">E-mail</span><p id="cadEmail"></p></div>
+            <div><span class="rotulo">Telefone</span><p id="cadTel"></p></div>
+          </div>
+          <form id="formCadastro" class="f" novalidate>
+            <div><label for="cadEndereco">Endereço <span class="vazio">(opcional)</span></label><input id="cadEndereco" maxlength="300" placeholder="Rua, número, bairro, cidade e estado"></div>
+            <div class="grade g3" style="margin-top:12px">
+              <div><label for="cadCpf">CPF <span class="vazio">(opcional)</span></label><input id="cadCpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div>
+              <div><label for="cadProf">Profissão <span class="vazio">(opcional)</span></label><input id="cadProf" maxlength="120"></div>
+              <div><label for="cadEc">Estado civil <span class="vazio">(opcional)</span></label><select id="cadEc"><option value="">Não informar</option><option value="solteiro">Solteiro(a)</option><option value="casado">Casado(a)</option><option value="uniao_estavel">União estável</option><option value="separado">Separado(a)</option><option value="divorciado">Divorciado(a)</option><option value="viuvo">Viúvo(a)</option></select></div>
+            </div>
+            <div class="acoes"><button class="btn auto" type="submit" id="cadSalvar">Salvar cadastro</button></div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ===== ACESSOS (só o master) ===== -->
+      <section data-painel="acessos" class="so-master" hidden>
+        <div class="cartao">
+          <h2>Quem acessa esta terapia</h2>
+          <p class="ajuda">A pessoa assistida e cada acompanhante têm o próprio cadastro e o próprio login (crie em "Pessoas e acessos"). Aqui você escolhe o que cada um pode <b>ver</b> e <b>editar</b>. Um acompanhante novo começa sem acesso a nada. Você pode retirar um item, ou tudo, a qualquer momento. Notas privadas das sessões nunca são compartilhadas.</p>
+          <div class="tabela-wrap"><table class="t acesso-tabela"><thead><tr><th>Pessoa</th><th>Cadastro</th><th>Áreas e ações</th><th>Sessões</th><th>Testes</th><th>Anamnese</th><th></th></tr></thead><tbody id="acMatriz"><tr><td colspan="7" class="vazio">Carregando...</td></tr></tbody></table></div>
+          <div class="grade g2" style="margin-top:16px">
+            <div><label for="acNovo">Adicionar acompanhante</label><select id="acNovo"></select></div>
+            <div style="align-self:end"><button class="btn auto" type="button" id="acAdd">Adicionar acompanhante</button></div>
+          </div>
         </div>
       </section>
     </div>
