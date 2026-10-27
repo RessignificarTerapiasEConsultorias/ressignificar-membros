@@ -6,7 +6,7 @@
   const hoje = hojeISO();
   const mesAtual = hoje.slice(0, 7);
   const em30 = (function () { const d = new Date(hoje + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + 30); return d.toISOString().slice(0, 10); })();
-  const PER = { parcelado: "Valor fechado", mensal: "Mensal", quinzenal: "Quinzenal", semanal: "Semanal", sessao: "Por sessão" };
+  const PER = { parcelado: "Valor fechado", mensal: "Mensal", quinzenal: "Quinzenal", semanal: "Semanal", bimestral: "Bimestral", trimestral: "Trimestral", semestral: "Semestral", anual: "Anual", sessao: "Por sessão" };
   const SERV = Object.assign({ avulsa: "Avulsa" }, ROTULO_SERVICO);
   let perfis = [], contratos = [], cobrancas = [], custos = [], minhasEmpresas = [], pref = {}, contasDre = [];
   let graficos = {}, abaAtual = "painel", filtro = "atrasadas", anoGraf = +hoje.slice(0, 4);
@@ -214,6 +214,8 @@
     document.getElementById("pgData").value = hoje;
     document.getElementById("pgForma").value = cobPagar.forma || "";
     jp.querySelector("h2").textContent = cobPagar.vencimento > hoje ? "Registrar pagamento antecipado" : "Registrar recebimento";
+    document.getElementById("pgGanhoBox").hidden = !cobPagar.contrato_id; document.getElementById("pgGanho").checked = false;
+    document.getElementById("pgGanhoCampos").hidden = true; document.getElementById("pgGanhoValor").value = ""; document.getElementById("pgGanhoMotivo").value = "";
     jp.showModal();
   }
   function abrirAlterarPagamento(id) {
@@ -223,9 +225,16 @@
     document.getElementById("pgData").value = cobPagar.pago_em;
     document.getElementById("pgForma").value = cobPagar.forma || "";
     jp.querySelector("h2").textContent = "Alterar data do pagamento";
+    document.getElementById("pgGanhoBox").hidden = true;
     jp.showModal();
   }
   document.getElementById("pgCancelar").addEventListener("click", function () { jp.close(); });
+  document.getElementById("pgGanho").addEventListener("change", function () { document.getElementById("pgGanhoCampos").hidden = !this.checked; atualizarTotalPagamento(); });
+  document.getElementById("pgGanhoValor").addEventListener("input", atualizarTotalPagamento);
+  function atualizarTotalPagamento() {
+    const gv = lerValor(document.getElementById("pgGanhoValor").value) || 0;
+    document.getElementById("pgTotal").textContent = cobPagar ? "Total recebido: " + brl(+cobPagar.valor + gv) + (gv > 0 ? " (" + brl(cobPagar.valor) + " + " + brl(gv) + " de ganho extra)" : "") : "";
+  }
   document.getElementById("pgConfirmar").addEventListener("click", async function () {
     const c = cobPagar; if (!c) return;
     const data = document.getElementById("pgData").value || hoje, forma = document.getElementById("pgForma").value.trim() || null;
@@ -247,10 +256,23 @@
     const upd = { pago_em: data, forma: forma };
     if (lancId) upd.lancamento_id = lancId;
     const { error } = await supa().from("cobrancas").update(upd).eq("id", c.id);
+    if (error) { b.disabled = false; aviso("Não foi possível registrar o recebimento.", true); return; }
+    let ganhoMsg = "";
+    const gv = lerValor(document.getElementById("pgGanhoValor").value);
+    if (c.contrato_id && document.getElementById("pgGanho").checked && gv > 0) {
+      const rg = await supa().rpc("contrato_adicionar_extra", { p_contrato: c.contrato_id, p_valor: gv, p_descricao: document.getElementById("pgGanhoMotivo").value.trim() || "Ganhos extras · " + c.descricao, p_vencimento: data, p_pago_em: data });
+      if (rg.error || !rg.data || !rg.data.ok) aviso("Recebimento salvo, mas o ganho extra não foi lançado. Use \"Ganhos extras\" no contrato.", true);
+      else {
+        ganhoMsg = " Ganho extra de " + brl(gv) + " lançado.";
+        if (pref.dre_empresa_id && pref.dre_conta_id) {
+          const rl2 = await supa().from("lancamentos").insert({ empresa_id: pref.dre_empresa_id, conta_id: pref.dre_conta_id, data: data, valor: gv, descricao: "Ganho extra: " + pessoa(c.perfil_id).nome + " · " + c.descricao }).select("id").single();
+          if (!rl2.error) await supa().from("cobrancas").update({ lancamento_id: rl2.data.id }).eq("id", rg.data.cobranca_id);
+        }
+      }
+    }
     b.disabled = false;
-    if (error) { aviso("Não foi possível registrar o recebimento.", true); return; }
     jp.close();
-    aviso("Recebimento registrado" + (lancId ? " e lançado na DRE." : "."));
+    aviso("Recebimento registrado" + (lancId ? " e lançado na DRE." : ".") + ganhoMsg);
     await carregar(); desenharTudo();
   });
   let cobEditando = null;
@@ -338,7 +360,7 @@
     const linhas = ids.map(function (pid) {
       const l = cobrancas.filter(function (c) { return c.perfil_id === pid; });
       const rec = soma(l.filter(function (c) { return c.pago_em; }));
-      const aberto = soma(l.filter(function (c) { return !c.pago_em && !atrasada(c); }));
+      const aberto = soma(l.filter(ehPendenteMes));
       const atr = soma(l.filter(atrasada));
       const cus = soma(custos.filter(function (c) { return c.perfil_id === pid; }));
       const prox = l.filter(function (c) { return !c.pago_em && c.vencimento >= hoje; })[0];
@@ -363,44 +385,72 @@
 
   /* ================= CONTRATOS ================= */
   const ctPer = document.getElementById("ctPer");
-  const RECORRENTES = ["mensal", "quinzenal", "semanal"];
-  function contarPeriodos(venc, fim, per) {
-    if (!venc || !fim || fim < venc) return 0;
-    let n = 0;
-    while (n < 120 && proximaData(venc, per, n) <= fim) n++;
-    return n;
+  const RECORRENTES = ["mensal", "quinzenal", "semanal", "bimestral", "trimestral", "semestral", "anual"];
+  const PASSO_MESES = { mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12 };
+  const $ = function (id) { return document.getElementById(id); };
+  const diasMes = function (ano, m0) { return new Date(ano, m0 + 1, 0).getDate(); };
+  const isoLocal = function (d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  // mesma regra do banco para a próxima data de uma cobrança recorrente
+  function proxDataLocal(ref, per, dia1, dia2) {
+    const p = ref.split("-").map(Number), a = p[0], m = p[1], d = p[2];
+    if (per === "semanal") return isoLocal(new Date(a, m - 1, d + 7));
+    if (per === "quinzenal") {
+      if (!dia1 || !dia2 || dia1 === dia2) return isoLocal(new Date(a, m - 1, d + 15));
+      let melhor = null;
+      for (let i = 0; i < 2; i++) {
+        const base = new Date(a, m - 1 + i, 1), dm = diasMes(base.getFullYear(), base.getMonth());
+        [Math.min(dia1, dia2), Math.max(dia1, dia2)].forEach(function (dd) { const c = isoLocal(new Date(base.getFullYear(), base.getMonth(), Math.min(dd, dm))); if (c > ref && (!melhor || c < melhor)) melhor = c; });
+      }
+      return melhor;
+    }
+    const base = new Date(a, m - 1 + (PASSO_MESES[per] || 1), 1);
+    return isoLocal(new Date(base.getFullYear(), base.getMonth(), Math.min(dia1 || d, diasMes(base.getFullYear(), base.getMonth()))));
   }
+  function gerarDatas(primeiro, per, dia1, dia2, fim) {
+    const ds = [primeiro]; let u = primeiro;
+    while (ds.length < 200) { u = proxDataLocal(u, per, dia1, dia2); if (!fim || u > fim) break; ds.push(u); }
+    return ds;
+  }
+  const fimMes = hoje.slice(0, 8) + String(diasMes(+hoje.slice(0, 4), +hoje.slice(5, 7) - 1)).padStart(2, "0");
+  const ehPendenteMes = function (c) { return !c.pago_em && c.vencimento >= hoje && c.vencimento <= fimMes; };   // em aberto = só o mês atual
+  const ehFutura = function (c) { return !c.pago_em && c.vencimento > fimMes; };
   function ajustarFormContrato() {
-    const per = ctPer.value, recorrente = RECORRENTES.indexOf(per) > -1;
-    const semPrazo = recorrente && document.getElementById("ctRecorrente").checked;
-    const valor = lerValor(document.getElementById("ctValor").value);
-    const venc = document.getElementById("ctVenc").value, fim = document.getElementById("ctFim").value;
-    document.getElementById("rotValor").textContent = per === "parcelado" ? "Valor total (R$)" : (per === "sessao" ? "Valor por sessão (R$)" : "Valor de cada cobrança (R$)");
-    document.getElementById("rotQtd").textContent = "Parcelas";
-    document.getElementById("blocoRecorrente").hidden = !recorrente;
-    document.getElementById("blocoTermino").hidden = !(recorrente && !semPrazo);
-    document.getElementById("blocoQtd").hidden = per !== "parcelado";
-    document.getElementById("blocoVenc").hidden = per === "sessao";
-    document.getElementById("blocoExtra").hidden = per === "sessao";
-    if (per === "parcelado" && +document.getElementById("ctQtd").value > 12) document.getElementById("ctQtd").value = 1;
+    const per = ctPer.value, recorrente = RECORRENTES.indexOf(per) > -1, quinz = per === "quinzenal", fechado = per === "parcelado";
+    const semPrazo = recorrente && $("ctRecorrente").checked;
+    const valor = lerValor($("ctValor").value), venc = $("ctVenc").value, venc2 = $("ctVenc2").value, fim = $("ctFim").value;
+    $("rotValor").textContent = fechado ? "Valor total (R$)" : (per === "sessao" ? "Valor por sessão (R$)" : "Valor de cada cobrança (R$)");
+    $("rotQtd").textContent = "Pagamentos (1 = pagamento único)";
+    $("blocoRecorrente").hidden = !recorrente;
+    $("blocoTermino").hidden = !(recorrente && !semPrazo);
+    $("blocoQtd").hidden = !fechado; $("blocoFechado").hidden = !fechado;
+    $("blocoVenc").hidden = per === "sessao"; $("blocoVenc2").hidden = !quinz;
+    $("rotVenc").textContent = quinz ? "1ª quinzena (data)" : (fechado ? "1º vencimento" : "1º vencimento");
+    $("blocoAdiantar").hidden = !(recorrente && semPrazo);
+    $("rotAdiantar").textContent = quinz ? "Meses adiantados (2 cobranças por mês)" : (per === "mensal" ? "Meses adiantados (além da atual)" : "Cobranças adiantadas (além da atual)");
+    $("blocoExtra").hidden = per === "sessao";
+    if (fechado && +$("ctQtd").value > 24) $("ctQtd").value = 1;
     let msg = "";
-    if (per === "parcelado") {
-      const q = Math.max(1, Math.min(60, +document.getElementById("ctQtd").value || 1));
-      if (venc) msg = (q === 1 ? "Pagamento único em " + dataBR(venc) + "." : q + " parcelas mensais" + (valor > 0 ? " de " + brl(valor / q) : "") + ". O contrato termina em " + dataBR(proximaData(venc, "mensal", q - 1)) + ".");
+    const d1 = venc ? +venc.slice(8, 10) : null, d2 = venc2 ? +venc2.slice(8, 10) : null;
+    if (fechado) {
+      const q = Math.max(1, Math.min(60, +$("ctQtd").value || 1));
+      const tipo = (document.querySelector('input[name="ctFimTipo"]:checked') || {}).value;
+      msg = (q === 1 ? "Pagamento único" + (venc ? " em " + dataBR(venc) : "") : q + " pagamentos mensais" + (valor > 0 ? " de " + brl(valor / q) : "")) + ". " + (tipo === "prazo" && $("ctFimFechado").value ? "O contrato termina em " + dataBR($("ctFimFechado").value) + "." : "Sem data de término (tempo indeterminado). Você pode definir depois, em Editar.");
     } else if (semPrazo) {
-      msg = "Uma cobrança por vez: a próxima só aparece quando a atual vencer ou for paga. Sem data de término. Quando o cliente cancelar, use o botão \"Encerrar\" no contrato.";
+      msg = (quinz ? "Quinzenal nos dias " + (d1 || "?") + " e " + (d2 || "?") + " de cada mês. " : (per === "mensal" ? "Cobrança todo mês no dia " + (d1 || "?") + ". " : "")) +
+        "Sem data de término. Aparecem a cobrança atual e a do próximo mês; a seguinte nasce sozinha. Quando o cliente cancelar, use \"Encerrar\".";
     } else if (recorrente) {
-      const n = contarPeriodos(venc, fim, per);
-      msg = n ? "Serão criadas " + n + (n === 1 ? " cobrança" : " cobranças") + (valor > 0 ? " de " + brl(valor) + ", total " + brl(valor * n) : "") + ", de " + dataBR(venc) + " até " + dataBR(fim) + "."
+      const ds = venc && fim ? gerarDatas(venc, per, d1, d2, fim) : [];
+      msg = ds.length && fim >= venc ? "Serão criadas " + ds.length + (ds.length === 1 ? " cobrança" : " cobranças") + (valor > 0 ? " de " + brl(valor) + ", total " + brl(valor * ds.length) : "") + ", de " + dataBR(venc) + " até " + dataBR(fim) + "."
               : "Escolha o término do contrato (uma data depois do 1º vencimento).";
     } else msg = "Nada é cobrado antecipadamente: a cada sessão realizada, clique em \"Registrar sessão\" no contrato.";
-    document.getElementById("ajudaRecorrente").textContent = msg;
+    $("ajudaRecorrente").textContent = msg;
   }
-  ["ctPer", "ctRecorrente", "ctVenc", "ctFim", "ctQtd", "ctValor"].forEach(function (id) {
-    const el = document.getElementById(id);
-    el.addEventListener("change", ajustarFormContrato); el.addEventListener("input", ajustarFormContrato);
+  ["ctPer", "ctRecorrente", "ctVenc", "ctVenc2", "ctFim", "ctQtd", "ctValor", "ctFimFechado"].forEach(function (id) {
+    const el = $(id); el.addEventListener("change", ajustarFormContrato); el.addEventListener("input", ajustarFormContrato);
   });
-  document.getElementById("ctVenc").value = hoje; document.getElementById("ctIni").value = hoje;
+  document.querySelectorAll('input[name="ctFimTipo"]').forEach(function (r) { r.addEventListener("change", ajustarFormContrato); });
+  $("ctCli").addEventListener("change", function () { $("blocoGanhoExtra").hidden = !(this.value && contratos.some(function (k) { return k.perfil_id === this.value; }, this)); });
+  $("ctVenc").value = hoje; $("ctIni").value = hoje; $("ctAdiantarData").value = hoje;
   ajustarFormContrato();
 
   async function gerarCobrancas(k, inicio, qtd, desdeIndice) {
@@ -422,47 +472,57 @@
 
   document.getElementById("formContrato").addEventListener("submit", async function (e) {
     e.preventDefault();
-    const cli = document.getElementById("ctCli").value, per = ctPer.value;
-    const recorrente = RECORRENTES.indexOf(per) > -1;
-    const produto = document.getElementById("ctProd").value.trim();
-    const valor = lerValor(document.getElementById("ctValor").value);
-    const semPrazo = recorrente && document.getElementById("ctRecorrente").checked;
-    const venc = document.getElementById("ctVenc").value, fim = document.getElementById("ctFim").value;
-    const executor = document.getElementById("ctExecutor").value || null;
-    const extra = lerValor(document.getElementById("ctExtra").value);
+    const cli = $("ctCli").value, per = ctPer.value, recorrente = RECORRENTES.indexOf(per) > -1, quinz = per === "quinzenal", fechado = per === "parcelado";
+    const produto = $("ctProd").value.trim(), valor = lerValor($("ctValor").value), semPrazo = recorrente && $("ctRecorrente").checked;
+    const venc = $("ctVenc").value, venc2 = $("ctVenc2").value, fim = $("ctFim").value, executor = $("ctExecutor").value || null, extra = lerValor($("ctExtra").value);
     if (!cli) { aviso("Escolha o cliente.", true); return; }
     if (produto.length < 2) { aviso("Escreva a descrição do contrato.", true); return; }
     if (!(valor > 0)) { aviso("Escreva o valor.", true); return; }
-    if (per !== "sessao" && !venc) { aviso("Escolha o 1º vencimento.", true); return; }
-    let qtd = 1, dataFim = null;
-    if (per === "parcelado") { qtd = Math.max(1, Math.min(60, +document.getElementById("ctQtd").value || 1)); dataFim = proximaData(venc, "mensal", qtd - 1); }
-    else if (recorrente && semPrazo) { qtd = 1; }
+    if (per !== "sessao" && !venc) { aviso("Escolha o " + (quinz ? "dia da 1ª quinzena." : "1º vencimento."), true); return; }
+    const dia1 = venc ? +venc.slice(8, 10) : null, dia2 = quinz && venc2 ? +venc2.slice(8, 10) : null;
+    if (quinz && (!venc2 || dia1 === dia2)) { aviso("Quinzenal precisa de duas datas com dias diferentes (1ª e 2ª quinzena).", true); return; }
+    const temContrato = contratos.some(function (k) { return k.perfil_id === cli; });
+    const respGanho = (document.querySelector('input[name="ctGanho"]:checked') || {}).value;
+    if (temContrato && !respGanho) { $("blocoGanhoExtra").hidden = false; aviso("Este cliente já tem contrato: responda se o novo contrato é ganho extra.", true); return; }
+    let qtd = 1, dataFim = null, datas = null;
+    if (fechado) {
+      qtd = Math.max(1, Math.min(60, +$("ctQtd").value || 1));
+      const tipo = (document.querySelector('input[name="ctFimTipo"]:checked') || {}).value;
+      if (tipo === "prazo") { dataFim = $("ctFimFechado").value; if (!dataFim || dataFim < venc) { aviso("Escolha a data de término (depois do 1º vencimento).", true); return; } }
+    } else if (recorrente && semPrazo) { datas = [venc]; }
     else if (recorrente) {
-      if (!fim) { aviso("Escolha o término do contrato.", true); return; }
-      qtd = contarPeriodos(venc, fim, per);
-      if (qtd < 1) { aviso("O término precisa ser depois do 1º vencimento.", true); return; }
-      dataFim = fim;
+      if (!fim || fim < venc) { aviso("Escolha o término do contrato (depois do 1º vencimento).", true); return; }
+      datas = gerarDatas(venc, per, dia1, dia2, fim); dataFim = fim;
     }
-    const reg = { perfil_id: cli, servico: document.getElementById("ctServ").value, produto: produto, periodicidade: per,
-      data_inicio: document.getElementById("ctIni").value || hoje, data_fim: dataFim, forma_pagamento: document.getElementById("ctForma").value.trim() || null,
-      executor_perfil_id: executor, recorrente_aberto: semPrazo,
-      valor_total: per === "parcelado" ? valor : (per === "sessao" ? 0 : Math.round(valor * qtd * 100) / 100),
-      valor_recorrente: per === "parcelado" ? null : valor };
+    const reg = { perfil_id: cli, servico: $("ctServ").value, produto: produto, periodicidade: per, data_inicio: $("ctIni").value || hoje, data_fim: dataFim,
+      forma_pagamento: $("ctForma").value.trim() || null, executor_perfil_id: executor, recorrente_aberto: semPrazo, ganho_extra: respGanho === "sim",
+      dia_1: recorrente ? dia1 : null, dia_2: quinz ? dia2 : null, qtd_sessoes: fechado && +$("ctSessoes").value > 0 ? +$("ctSessoes").value : null,
+      valor_total: fechado ? valor : (per === "sessao" ? 0 : Math.round(valor * (datas ? datas.length : 1) * 100) / 100), valor_recorrente: fechado ? null : valor };
     const b = this.querySelector("button[type=submit]"); b.disabled = true;
     const r = await supa().from("contratos").insert(reg).select("id,perfil_id,servico,produto,valor_total,periodicidade,valor_recorrente,forma_pagamento").single();
     if (r.error) { b.disabled = false; aviso("Não foi possível salvar o contrato.", true); return; }
-    if (per !== "sessao") {
-      const r2 = await gerarCobrancas(r.data, venc, qtd, 0);
-      if (r2.error) aviso("Contrato salvo, mas as cobranças não foram criadas.", true);
-      else if (extra > 0 && per !== "sessao") {
-        const rx = await supa().rpc("contrato_adicionar_extra", { p_contrato: r.data.id, p_valor: extra, p_descricao: document.getElementById("ctExtraDesc").value.trim() || "Comissão / valor extra", p_vencimento: venc, p_pago_em: null });
-        if (rx.error || !rx.data || !rx.data.ok) aviso("Contrato salvo, mas o valor extra não foi lançado. Use o botão \"Extra\" no contrato.", true);
+    let erroCob = null;
+    if (fechado) { erroCob = (await gerarCobrancas(r.data, venc, qtd, 0)).error; }
+    else if (recorrente) {
+      const linhas = datas.map(function (d, i) { return { perfil_id: cli, contrato_id: r.data.id, descricao: produto + " · " + PER[per].toLowerCase() + " " + (i + 1), vencimento: d, valor: valor, forma: reg.forma_pagamento }; });
+      erroCob = (await supa().from("cobrancas").insert(linhas)).error;
+    }
+    if (erroCob) aviso("Contrato salvo, mas as cobranças não foram criadas.", true);
+    else {
+      if (semPrazo) {
+        const nAd = Math.max(0, Math.min(60, +$("ctAdiantar").value || 0)) * (quinz ? 2 : 1);
+        if (nAd > 0) await supa().rpc("contrato_adiantar", { p_contrato: r.data.id, p_qtd: nAd, p_pago: $("ctAdiantarPago").checked, p_pago_em: $("ctAdiantarData").value || hoje });
+        else await supa().rpc("financeiro_manter_recorrentes");
+      }
+      if (extra > 0 && per !== "sessao") {
+        const rx = await supa().rpc("contrato_adicionar_extra", { p_contrato: r.data.id, p_valor: extra, p_descricao: $("ctExtraDesc").value.trim() || "Ganhos extras", p_vencimento: venc, p_pago_em: null });
+        if (rx.error || !rx.data || !rx.data.ok) aviso("Contrato salvo, mas o ganho extra não foi lançado. Use o botão \"Ganhos extras\" no contrato.", true);
       }
     }
     b.disabled = false;
     await supa().from("servicos_contratados").upsert({ perfil_id: cli, tipo: reg.servico, ativo: true }, { onConflict: "perfil_id,tipo" });
-    this.reset(); document.getElementById("ctVenc").value = hoje; document.getElementById("ctIni").value = hoje; ajustarFormContrato();
-    aviso("Contrato salvo." + (semPrazo ? " As próximas cobranças aparecem uma por vez, sozinhas." : ""));
+    this.reset(); $("ctVenc").value = hoje; $("ctIni").value = hoje; $("ctAdiantarData").value = hoje; $("blocoGanhoExtra").hidden = true; ajustarFormContrato();
+    aviso("Contrato salvo." + (semPrazo ? " Aparecem a cobrança atual e a do próximo mês." : ""));
     await carregar(); desenharTudo();
   });
 
@@ -470,13 +530,16 @@
   function chipCobranca(c) {
     if (c.pago_em) return '<span class="selo ok">Pago em ' + dataBR(c.pago_em) + "</span>" + (c.lancamento_id ? ' <span class="selo">na DRE</span>' : "");
     if (atrasada(c)) return '<span class="selo off">Atrasado há ' + diasDe(c.vencimento) + (diasDe(c.vencimento) === 1 ? " dia" : " dias") + "</span>";
-    return '<span class="selo pendente">Pendente · vence ' + dataBR(c.vencimento) + "</span>";
+    const dias = Math.round((new Date(c.vencimento) - new Date(hoje)) / 86400000);
+    if (ehFutura(c)) return '<span class="selo">Próxima · vence ' + dataBR(c.vencimento) + "</span>";
+    return '<span class="selo pendente">' + (dias <= 7 ? "Vencimento próximo" : "Pendente") + " · vence " + dataBR(c.vencimento) + "</span>";
   }
   function ganhoDoContrato(k, l) {
     let g = 0;
     l.forEach(function (c) {
       if (c.tipo === "extra") g += +c.valor;
-      else if (RECORRENTES.indexOf(k.periodicidade) > -1 || k.periodicidade === "sessao") g += Math.max(0, +c.valor - (+k.valor_inicial || +c.valor));
+      else if (k.ganho_extra) g += +c.valor;
+      else if (k.periodicidade !== "parcelado") g += Math.max(0, +c.valor - (+k.valor_inicial || +c.valor));
     });
     return g;
   }
@@ -485,7 +548,11 @@
     let t = per === "parcelado" ? (l.filter(function (c) { return c.tipo !== "extra"; }).length === 1 ? "Pagamento único · " : "Valor fechado · ") + brl(k.valor_inicial || k.valor_total)
       : PER[per] + " · " + brl(k.valor_recorrente) + (per === "sessao" ? " por sessão" : "");
     if (per !== "parcelado" && per !== "sessao" && +k.valor_inicial && +k.valor_inicial !== +k.valor_recorrente) t += ' <span class="selo ok">reajustado: era ' + brl(k.valor_inicial) + "</span>";
+    if (per === "quinzenal" && k.dia_1 && k.dia_2) t += " (dias " + k.dia_1 + " e " + k.dia_2 + ")";
+    if (k.ganho_extra) t += ' <span class="selo ok">é ganho extra</span>';
+    if (k.qtd_sessoes) t += " · " + k.qtd_sessoes + " sessões";
     if (k.recorrente_aberto && !k.data_fim) t += ' <span class="selo ouro">recorrente sem prazo</span>';
+    else if (!k.data_fim && per === "parcelado") t += " · tempo indeterminado";
     else if (k.data_fim) t += (k.recorrente_aberto ? " · encerrado em " : " · término ") + dataBR(k.data_fim);
     const g = ganhoDoContrato(k, l);
     if (g > 0) t += ' <span class="selo ok">ganho extra ' + brl(g) + "</span>";
@@ -496,13 +563,14 @@
     contratos.slice().reverse().forEach(function (k) {
       const l = cobrancas.filter(function (c) { return c.contrato_id === k.id; });
       const per = k.periodicidade || "parcelado";
-      const rec = soma(l.filter(function (c) { return c.pago_em; })), pen = soma(l.filter(function (c) { return !c.pago_em && !atrasada(c); })), atr = soma(l.filter(atrasada));
+      const rec = soma(l.filter(function (c) { return c.pago_em; })), pen = soma(l.filter(ehPendenteMes)), atr = soma(l.filter(atrasada));
       const aberto = !!expandidos[k.id];
       html.push("<tr><td><b>" + esc(pessoa(k.perfil_id).nome) + "</b></td><td>" + SERV[k.servico] + '</td><td class="quebra">' + esc(k.produto) + "</td><td>" + esc(nomeExecutor(k.executor_perfil_id)) + '</td><td class="quebra">' + condicaoContrato(k, l) + "</td>" +
         '<td class="n v-receita">' + brl(rec) + '</td><td class="n v-pendente">' + brl(pen) + '</td><td class="n' + (atr ? " v-saida" : "") + '">' + brl(atr) + "</td><td>" +
         '<button class="btn peq contorno" type="button" data-parcelas="' + k.id + '" aria-expanded="' + aberto + '">' + (aberto ? "Ocultar parcelas" : "Parcelas (" + l.length + ")") + "</button> " +
         '<button class="btn peq contorno" type="button" data-editar-ct="' + k.id + '">Editar</button> ' +
-        (per !== "sessao" ? '<button class="btn peq contorno" type="button" data-extra="' + k.id + '">Extra</button> ' : "") +
+        (per !== "sessao" ? '<button class="btn peq contorno" type="button" data-extra="' + k.id + '">Ganhos extras</button> ' : "") +
+        (RECORRENTES.indexOf(per) > -1 ? '<button class="btn peq contorno" type="button" data-adiantar="' + k.id + '">Adiantar</button> ' : "") +
         (per === "sessao" ? '<button class="btn peq" type="button" data-sessao="' + k.id + '">Registrar sessão</button> ' : "") +
         (k.recorrente_aberto && !k.data_fim ? '<button class="btn peq contorno" type="button" data-encerrar="' + k.id + '">Encerrar</button> ' : "") +
         '<button class="btn peq perigo" type="button" data-apagar-ct="' + k.id + '">Apagar</button></td></tr>');
@@ -566,7 +634,29 @@
     }).join("") : '<tr><td colspan="5" class="vazio">Nenhum custo registrado.</td></tr>';
   }
 
-  /* ================= editar contrato (inclui mudar o valor = ganho extra) ================= */
+  /* ================= adiantar cobranças ================= */
+  const jad = document.getElementById("janelaAdiantar");
+  let adCt = null;
+  function abrirAdiantar(id) {
+    adCt = contrato(id); if (!adCt) return;
+    const quinz = adCt.periodicidade === "quinzenal";
+    document.getElementById("adInfo").textContent = pessoa(adCt.perfil_id).nome + " · " + adCt.produto;
+    document.getElementById("adRot").textContent = quinz ? "Quantos meses (2 cobranças por mês)" : (adCt.periodicidade === "mensal" ? "Quantos meses" : "Quantas cobranças");
+    document.getElementById("adQtd").value = 1; document.getElementById("adData").value = hoje; document.getElementById("adPago").checked = true;
+    jad.showModal();
+  }
+  document.getElementById("adCancelar").addEventListener("click", function () { jad.close(); });
+  document.getElementById("adConfirmar").addEventListener("click", async function () {
+    const n = Math.max(0, Math.min(60, +document.getElementById("adQtd").value || 0));
+    if (n < 1) { aviso("Informe a quantidade.", true); return; }
+    const b = this; b.disabled = true;
+    const r = await supa().rpc("contrato_adiantar", { p_contrato: adCt.id, p_qtd: n * (adCt.periodicidade === "quinzenal" ? 2 : 1), p_pago: document.getElementById("adPago").checked, p_pago_em: document.getElementById("adData").value || hoje });
+    b.disabled = false;
+    if (r.error || !r.data || !r.data.ok) { aviso((r.data && r.data.erro) || "Não foi possível adiantar.", true); return; }
+    jad.close(); aviso(r.data.criadas + (r.data.criadas === 1 ? " cobrança adiantada." : " cobranças adiantadas.")); await carregar(); desenharTudo();
+  });
+
+  /* ================= editar contrato (inclui mudar o valor = ganho extra e a forma de cobrar) ================= */
   const jct = document.getElementById("janelaEditarContrato");
   let ctEdit = null;
   function abrirEditarContrato(id) {
@@ -587,9 +677,21 @@
     document.getElementById("ectVig").value = hoje; document.getElementById("ectAplicar").checked = true;
     document.getElementById("ectAplicarBox").hidden = per === "parcelado";
     document.getElementById("ectMotivo").value = "";
+    document.getElementById("ectPerBox").hidden = per === "parcelado" || per === "sessao";
+    document.getElementById("ectPer").value = per; document.getElementById("ectPerNovo").hidden = true;
+    document.getElementById("ectPv").value = hoje; document.getElementById("ectPv2").value = ""; document.getElementById("ectSemPrazoNovo").checked = true; document.getElementById("ectFimNovo").value = "";
     jct.showModal();
   }
   document.getElementById("ectCancelar").addEventListener("click", function () { jct.close(); });
+  function ajustarPerNovo() {
+    const mudou = ctEdit && document.getElementById("ectPer").value !== ctEdit.periodicidade;
+    document.getElementById("ectPerNovo").hidden = !mudou;
+    const quinz = document.getElementById("ectPer").value === "quinzenal";
+    document.getElementById("ectPv2Box").hidden = !quinz; document.getElementById("rotEctPv").textContent = quinz ? "1ª quinzena (data)" : "Primeiro vencimento";
+    document.getElementById("ectFimNovoBox").hidden = document.getElementById("ectSemPrazoNovo").checked;
+  }
+  document.getElementById("ectPer").addEventListener("change", ajustarPerNovo);
+  document.getElementById("ectSemPrazoNovo").addEventListener("change", ajustarPerNovo);
   document.getElementById("ectSalvar").addEventListener("click", async function () {
     const k = ctEdit; if (!k) return;
     const per = k.periodicidade || "parcelado", semPrazo = k.recorrente_aberto && !k.data_fim;
@@ -597,15 +699,25 @@
     if (produto.length < 2) { aviso("Escreva a descrição.", true); return; }
     const upd = { produto: produto, forma_pagamento: document.getElementById("ectForma").value.trim() || null, executor_perfil_id: document.getElementById("ectExecutor").value || null };
     const novoFim = document.getElementById("ectFim").value || null;
-    if (!semPrazo && per !== "sessao") { if (!novoFim) { aviso("Escolha o término do contrato.", true); return; } upd.data_fim = novoFim; }
+    const perNova = document.getElementById("ectPer").value, mudouPer = per !== "parcelado" && per !== "sessao" && perNova !== per;
+    if (!semPrazo && per !== "sessao" && per !== "parcelado") { if (!novoFim && !mudouPer) { aviso("Escolha o término do contrato.", true); return; } if (!mudouPer) upd.data_fim = novoFim; }
+    if (per === "parcelado") upd.data_fim = novoFim;   // vazio = tempo indeterminado
     const valorAtual = per === "parcelado" ? +k.valor_total : +k.valor_recorrente, novoValor = lerValor(document.getElementById("ectValor").value);
     const mudouValor = novoValor > 0 && Math.abs(novoValor - valorAtual) > 0.004;
-    const recorrenteComPrazo = RECORRENTES.indexOf(per) > -1 && !semPrazo;
+    const recorrenteComPrazo = RECORRENTES.indexOf(per) > -1 && !semPrazo && !mudouPer;
     const encurtou = recorrenteComPrazo && k.data_fim && novoFim && novoFim < k.data_fim;
     if (encurtou && !confirm("O novo término é antes do atual. As cobranças ainda não pagas depois de " + dataBR(novoFim) + " serão apagadas. Continuar?")) return;
     const b = this; b.disabled = true;
     let ganho = 0;
     try {
+      if (mudouPer) {
+        const pv = document.getElementById("ectPv").value, semP = document.getElementById("ectSemPrazoNovo").checked, fimN = document.getElementById("ectFimNovo").value || null;
+        const p2 = perNova === "quinzenal" && document.getElementById("ectPv2").value ? +document.getElementById("ectPv2").value.slice(8, 10) : null;
+        const rp = await supa().rpc("contrato_alterar_periodicidade", { p_contrato: k.id, p_nova: perNova, p_primeiro_venc: pv, p_sem_prazo: semP, p_data_fim: semP ? null : fimN, p_valor: mudouValor ? novoValor : null, p_dia2: p2 });
+        if (rp.error || !rp.data || !rp.data.ok) { aviso((rp.data && rp.data.erro) || "Não foi possível mudar a forma de cobrar.", true); return; }
+        const r1b = await supa().from("contratos").update({ produto: produto, forma_pagamento: upd.forma_pagamento, executor_perfil_id: upd.executor_perfil_id }).eq("id", k.id);
+        jct.close(); aviso("Forma de cobrar alterada para " + PER[perNova].toLowerCase() + ". " + rp.data.removidas + " cobrança(s) antiga(s) removida(s), " + rp.data.criadas + " criada(s)."); await carregar(); desenharTudo(); return;
+      }
       if (mudouValor) {
         const rr = await supa().rpc("contrato_reajustar", { p_contrato: k.id, p_novo_valor: novoValor, p_vigencia: document.getElementById("ectVig").value || hoje, p_aplicar_futuras: document.getElementById("ectAplicar").checked, p_motivo: document.getElementById("ectMotivo").value.trim() || null });
         if (rr.error || !rr.data || !rr.data.ok) { aviso((rr.data && rr.data.erro) || "Não foi possível mudar o valor.", true); return; }
@@ -762,6 +874,7 @@
     if ((b = t("[data-alterar-pag]"))) return abrirAlterarPagamento(b.dataset.alterarPag);
     if ((b = t("[data-editar-ct]"))) return abrirEditarContrato(b.dataset.editarCt);
     if ((b = t("[data-extra]"))) return abrirExtra(b.dataset.extra);
+    if ((b = t("[data-adiantar]"))) return abrirAdiantar(b.dataset.adiantar);
     if ((b = t("[data-encerrar]"))) return abrirEncerrar(b.dataset.encerrar);
     if ((b = t("[data-gf]"))) { gaFiltro = b.dataset.gf; desenharGanhos(); return; }
     if ((b = t("[data-ga-det]"))) { gaAbertos[b.dataset.gaDet] = !gaAbertos[b.dataset.gaDet]; desenharGanhos(); return; }
@@ -786,7 +899,8 @@
   });
 
   function desenharTudo() { preencherClientes(); desenharPainel(); desenharCobrancas(); desenharClientes(); desenharContratos(); desenharCustos(); }
-  ligarAbas(document.getElementById("abas"), function (nome) { abaAtual = nome; if (nome === "painel") desenharGraficos(); if (nome === "ganhos") carregarGanhos(); });
+  const abrirFin = ligarAbas(document.getElementById("abas"), function (nome) { abaAtual = nome; if (nome === "ganhos") carregarGanhos(); });
+  abrirFin("contratos");
 
   await carregar();
   await carregarContasDre(pref.dre_empresa_id);

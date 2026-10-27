@@ -676,17 +676,16 @@
     var filtroEmpresa = pessoal ? null : eid;
     function f(q) { var r = q.eq("perfil_id", eu.id); return filtroEmpresa ? r.eq("empresa_id", filtroEmpresa) : r.is("empresa_id", null); }
     var hoje = new Date(), mesRef = hoje.getFullYear() + "-" + String(hoje.getMonth() + 1).padStart(2, "0") + "-01";
-    var [rm, ra, rr] = await Promise.all([
+    var [rm, ra, realizadoV] = await Promise.all([
       f(supa().from("metas_receita").select("valor_meta").eq("mes_referencia", mesRef)).maybeSingle(),
       f(supa().from("acoes_meta").select("status,prazo").eq("mes_referencia", mesRef)),
-      f(supa().from("recebimentos").select("valor,recebido,data_prevista,tipo"))
+      receitaDoMes(filtroEmpresa, hoje.getFullYear(), hoje.getMonth() + 1)
     ]);
     var meta = rm.data ? +rm.data.valor_meta : null;
     var acoes = ra.data || [];
     var hojeStr = hojeISO ? hojeISO() : hoje.toISOString().slice(0, 10);
     var mesIni = mesRef, mesFimObj = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1), mesFim = mesFimObj.toISOString().slice(0, 10);
-    var realizado = (rr.data || []).filter(function (r) { return r.recebido && r.data_prevista >= mesIni && r.data_prevista < mesFim && (r.tipo === "receita_a_receber" || r.tipo === "receita_antecipada" || !r.tipo); })
-      .reduce(function (s, r) { return s + (+r.valor); }, 0);
+    var realizado = realizadoV;
 
     if (!meta && !acoes.length) { document.getElementById("resumoMetaDre").hidden = true; return; }
     document.getElementById("resumoMetaDre").hidden = false;

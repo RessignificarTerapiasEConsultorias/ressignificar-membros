@@ -196,18 +196,20 @@
     const hoje = hojeISO();
     const servDe = function (c) { const k = ks.find(function (x) { return x.id === c.contrato_id; }); return k ? ROTULO_SERVICO[k.servico] : "Avulsa"; };
     const atras = cobs.filter(function (c) { return !c.pago_em && c.vencimento < hoje; });
-    const prox = cobs.filter(function (c) { return !c.pago_em && c.vencimento >= hoje; });
+    const fimMes = hoje.slice(0, 8) + String(new Date(+hoje.slice(0, 4), +hoje.slice(5, 7), 0).getDate()).padStart(2, "0");
+    const prox = cobs.filter(function (c) { return !c.pago_em && c.vencimento >= hoje && c.vencimento <= fimMes; });      // em aberto: só o mês atual
+    const futuras = cobs.filter(function (c) { return !c.pago_em && c.vencimento > fimMes; });
     const totAtras = atras.reduce(function (t, c) { return t + +c.valor; }, 0);
     let avisoHtml = "";
     if (atras.length) avisoHtml += '<div class="aviso erro" style="margin-top:0">Você tem <b>' + brl(totAtras) + "</b> em atraso desde " + dataBR(atras[0].vencimento) + ". Se já pagou, envie o comprovante ao Mauricio. Se precisar, fale com ele para combinar.</div>";
-    if (prox.length) avisoHtml += '<div class="aviso" style="background:#FFF6D6;color:#6B5000;border:1px solid #E8C24A">Próximo pagamento: <b>' + brl(prox[0].valor) + "</b> em " + dataBR(prox[0].vencimento) + " (" + esc(prox[0].descricao) + ").</div>";
-    if (!atras.length && !prox.length) avisoHtml = '<div class="aviso ok" style="margin-top:0">Tudo em dia. Obrigado!</div>';
+    if (prox.length) avisoHtml += '<div class="aviso" style="background:#FFF6D6;color:#6B5000;border:1px solid #E8C24A">Vencimento próximo: <b>' + brl(prox[0].valor) + "</b> em " + dataBR(prox[0].vencimento) + " (" + esc(prox[0].descricao) + ").</div>";
+    if (!atras.length && !prox.length) avisoHtml = '<div class="aviso ok" style="margin-top:0">Tudo em dia. Obrigado!' + (futuras.length ? " Próxima cobrança em " + dataBR(futuras[0].vencimento) + "." : "") + "</div>";
     document.getElementById("avisoPag").innerHTML = avisoHtml;
     const linha = function (c) {
-      const sit = c.pago_em ? '<span class="selo ok">Pago em ' + dataBR(c.pago_em) + "</span>" : (c.vencimento < hoje ? '<span class="selo off">Atrasado</span>' : '<span class="selo pendente">Pendente</span>');
+      const sit = c.pago_em ? '<span class="selo ok">Pago em ' + dataBR(c.pago_em) + "</span>" : (c.vencimento < hoje ? '<span class="selo off">Atrasado</span>' : (c.vencimento > fimMes ? '<span class="selo">Próxima</span>' : '<span class="selo pendente">Vencimento próximo</span>'));
       return '<tr><td class="quebra"><b>' + servDe(c) + '</b><br><span class="vazio" style="padding:0">' + esc(c.descricao) + "</span></td><td>" + dataBR(c.vencimento) + "<br>" + sit + '</td><td class="n">' + brl(c.valor) + "</td></tr>";
     };
-    const resumo = atras.concat(prox.slice(0, 4));
+    const resumo = atras.concat(prox.slice(0, 4), prox.length ? [] : futuras.slice(0, 1));
     const tb = document.getElementById("listaPag");
     tb.innerHTML = (resumo.length ? resumo : cobs.slice(-4)).map(linha).join("");
     const bt = document.getElementById("verTodosPag");
@@ -217,7 +219,7 @@
     if (atras.length || prox.length) {
       const partes = [];
       if (atras.length) partes.push(atras.length + (atras.length === 1 ? " pagamento atrasado" : " pagamentos atrasados") + " (" + brl(totAtras) + ")");
-      if (prox.length) partes.push(prox.length + (prox.length === 1 ? " pendente" : " pendentes"));
+      if (prox.length) partes.push(prox.length + (prox.length === 1 ? " vencimento próximo" : " vencimentos próximos"));
       alertar("pagamentos", "Importante: seus pagamentos", partes.join(" e ") + ". Confira valores e datas.", "Ver pagamentos", "cartaoPag");
     }
   }

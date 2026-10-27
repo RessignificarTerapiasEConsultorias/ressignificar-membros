@@ -101,3 +101,21 @@ function semanasDoMes(ano, mes0) {
   return l;
 }
 function semanaDoDia(dia) { return Math.floor((dia - 1) / 7); }
+
+
+/* Receita do mês para a META. Empresa: entradas totais da DRE (lançamentos de receita do mês).
+   Sem empresa (meta geral): pagamentos de clientes recebidos no mês (cobranças pagas). */
+async function receitaDoMes(empresaId, ano, mes) {
+  const ini = ano + "-" + String(mes).padStart(2, "0") + "-01";
+  const prox = new Date(ano, mes, 1), fim = prox.getFullYear() + "-" + String(prox.getMonth() + 1).padStart(2, "0") + "-01";
+  if (empresaId) {
+    const [rc, rl] = await Promise.all([
+      supa().from("contas").select("id").eq("empresa_id", empresaId).eq("tipo", "receita"),
+      supa().from("lancamentos").select("valor,conta_id").eq("empresa_id", empresaId).gte("data", ini).lt("data", fim).limit(5000)
+    ]);
+    const ids = new Set((rc.data || []).map(function (c) { return c.id; }));
+    return (rl.data || []).filter(function (l) { return ids.has(l.conta_id); }).reduce(function (s, l) { return s + (+l.valor); }, 0);
+  }
+  const r = await supa().from("cobrancas").select("valor,pago_em").gte("pago_em", ini).lt("pago_em", fim).limit(5000);
+  return (r.data || []).reduce(function (s, c) { return s + (+c.valor); }, 0);
+}

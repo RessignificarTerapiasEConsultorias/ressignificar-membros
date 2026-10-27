@@ -8,7 +8,7 @@ window.iniciarFluxo = async function(eid, pid) {
 
   // ── dados em memória ──
   var cartoes = [], gastos = [], faturas = [], recebimentos = [], dividas = [];
-  var metasReceita = [], acoesMeta = [];
+  var metasReceita = [], acoesMeta = [], realizadoMeta = {};
   var abaFluxo = "cartoes";
   var editCartaoId = null, editRecId = null, editDividaId = null, editFuturoId = null, editAcaoMetaId = null;
 
@@ -51,6 +51,7 @@ window.iniciarFluxo = async function(eid, pid) {
 
   // ── carregar tudo ──
   async function carregar() {
+    realizadoMeta = {};
     var ini = mesISO(mesAtual);
     var fim = mesISO(addMeses(mesAtual, 36)); // 36 meses para projeção longa
     var [rc, rg, rf, rr, rd, rmr, ram] = await Promise.all([
@@ -597,10 +598,12 @@ window.iniciarFluxo = async function(eid, pid) {
 
   function desenharMeta() {
     var m = metaDoMes(mesAtual);
-    // receita realizada no mês: recebimentos marcados como recebidos
-    var realizado = recebimentos.filter(function(r){
-      return r.recebido && r.data_prevista >= mesISO(mesAtual) && r.data_prevista < mesISO(addMeses(mesAtual,1)) && (r.tipo==="receita_a_receber"||r.tipo==="receita_antecipada"||!r.tipo);
-    }).reduce(function(s,r){return s+(+r.valor);},0);
+    // receita do mês: empresa = entradas totais da DRE; meta geral = pagamentos de clientes recebidos
+    var chaveMes = mesISO(mesAtual), realizado = realizadoMeta[chaveMes];
+    if (realizado === undefined) {
+      realizado = 0;
+      receitaDoMes(eid, mesAtual.getFullYear(), mesAtual.getMonth() + 1).then(function (v) { realizadoMeta[chaveMes] = v; desenharMeta(); }).catch(function () { realizadoMeta[chaveMes] = 0; });
+    }
     document.getElementById("metaRealizado").textContent = brl(realizado);
     var meta = m ? +m.valor_meta : null;
     document.getElementById("metaValor").textContent = meta ? brl(meta) : "Não definida";
