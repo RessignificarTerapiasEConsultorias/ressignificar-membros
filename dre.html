@@ -13,7 +13,7 @@
 <div class="carregando" id="carregando">Carregando...</div>
 <div id="painel" hidden>
   <header class="topo-painel">
-    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="marca" style="display:flex;align-items:center;gap:14px"><a class="voltar" id="voltar" href="index.html">← Voltar</a><span style="opacity:.35">·</span><img src="img/logo.png" alt="" style="height:22px"><b>Ressignificar</b></div>
     <div class="usuario">
       <span data-nome-usuario></span>
       <a class="lnk" href="conta.html">Minha conta</a>
@@ -21,11 +21,10 @@
     </div>
   </header>
   <main class="conteudo-painel largo">
-    <a class="voltar" id="voltar" href="index.html">← Voltar ao painel</a>
     <div class="cartao erro-pagina" id="falha" hidden><h2>Não foi possível abrir</h2><p class="ajuda" id="falhaMsg"></p></div>
 
     <div id="areaDre" hidden>
-      <div class="empresa-titulo"><h1 id="nomeEmpresa">DRE</h1><span class="selo" id="tipoEmpresa"></span><a class="btn peq contorno" id="linkVendas" href="#" hidden>Vendas por vendedor</a><a class="btn peq contorno" id="linkModulos" href="#" hidden>Módulos</a></div>
+      <div class="empresa-titulo"><h1 id="nomeEmpresa">DRE</h1><span class="selo" id="tipoEmpresa"></span><a class="btn peq contorno" id="linkVendas" href="#" hidden>Vendas por vendedor</a><a class="btn peq contorno" id="linkModulos" href="#" hidden>Módulos</a><<button class="btn peq" type="button" id="btnProLabore" hidden>Tirar pró-labore</button></div>
 
       <div class="resumo-meta-dre" id="resumoMetaDre" hidden>
         <div class="rm-item"><span class="rm-dot" id="dotPlano"></span><b>Plano de ação:</b> <span id="txtPlano"></span></div>
@@ -44,6 +43,7 @@
         <button class="aba" type="button" data-aba="lancar" aria-selected="true">Lançar</button>
         <button class="aba" type="button" data-aba="dre" aria-selected="false">DRE</button>
         <button class="aba" type="button" data-aba="painel" aria-selected="false">Painel e leituras</button>
+        <button class="aba" type="button" data-aba="geral" aria-selected="false">Visão geral</button>
         <button class="aba" type="button" data-aba="cadastros" aria-selected="false">Produtos e contas</button>
         <button class="aba" type="button" data-aba="lives" aria-selected="false" id="abaLives" hidden>Lives</button>
         <button class="aba" type="button" data-aba="fluxo" aria-selected="false">Fluxo 30 dias</button>
@@ -88,6 +88,14 @@
       </section>
 
       <!-- ===== DRE ===== -->
+      <section data-painel="geral" hidden>
+        <div class="cartao">
+          <h2>Renda, gastos e pró-labore</h2>
+          <p class="ajuda">A soma de todas as empresas e da conta pessoal desta mesma pessoa, lado a lado.</p>
+          <div id="painelGeralDre"></div>
+        </div>
+      </section>
+
       <section data-painel="dre" hidden>
         <div class="cartao">
           <div class="checks" style="margin-bottom:12px"><label><input type="checkbox" id="mostrarZeradas"> Mostrar contas sem valor no ano</label></div>
@@ -470,6 +478,20 @@
     </div>
   </main>
 </div>
+<dialog class="janela" id="janelaProLabore">
+  <h2>Tirar pró-labore</h2>
+  <p class="ajuda" id="plInfo"></p>
+  <div class="f">
+    <div class="grade g2">
+      <div class="campo-valor"><label for="plValor">Valor (R$)</label><input id="plValor" inputmode="decimal" placeholder="0,00"></div>
+      <div><label for="plData">Data</label><input id="plData" type="date"></div>
+    </div>
+    <div style="margin-top:12px"><label for="plDesc">Descrição <span class="vazio">(opcional)</span></label><input id="plDesc" maxlength="200" placeholder="Ex.: retirada de outubro"></div>
+    <p class="ajuda" style="margin-top:10px">Isso lança duas coisas de uma vez: uma saída aqui na empresa e uma entrada na sua conta pessoal.</p>
+  </div>
+  <div class="acoes"><button class="btn auto" type="button" id="plConfirmar">Confirmar</button><button class="btn auto contorno" type="button" id="plCancelar">Cancelar</button></div>
+</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="js/config.js"></script>
@@ -477,6 +499,7 @@
 <script src="js/app.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/fluxo.js"></script>
+<script src="js/painel-geral.js"></script>
 <script src="js/dre.js"></script>
 </body>
 </html>

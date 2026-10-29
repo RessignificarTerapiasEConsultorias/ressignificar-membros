@@ -3,6 +3,7 @@
   const eu = await protegerPagina(["master", "suporte", "cliente"]);
   if (!eu) return;
   document.getElementById("voltar").href = PAINEL_DO_PAPEL[eu.papel];
+  if (new URLSearchParams(location.search).get("voltar") === "orcamentos" && eu.papel === "master") document.getElementById("voltar").href = "orcamentos.html";
   const gestor = eu.papel !== "cliente";
   if (!gestor) document.querySelectorAll(".so-gestor").forEach(function (el) { el.remove(); });
 
@@ -661,7 +662,7 @@
   });
 
   var fluxoIniciado = false;
-  ligarAbas(document.getElementById("abas"), async function (nome) {
+  var abrirAbaDre = ligarAbas(document.getElementById("abas"), async function (nome) {
     abaAtual = nome;
     if (nome === "painel") desenharGraficos(calcular());
     if (nome === "lives") { await carregarLives(); desenharLives(); }
@@ -669,6 +670,55 @@
       fluxoIniciado = true;
       await window.iniciarFluxo(pessoal ? null : eid, eu.id);
     }
+  });
+
+  /* chegou com ?aba=fluxo (e opcionalmente &sub=meta): pula direto para lá, sem precisar clicar */
+  var qp = new URLSearchParams(location.search), abaPedida = qp.get("aba"), subPedida = qp.get("sub");
+  if (abaPedida === "fluxo") {
+    abrirAbaDre("fluxo");
+    if (subPedida) {
+      var tentativas = 0;
+      var esperar = setInterval(function () {
+        tentativas++;
+        var b = document.querySelector('#abasFluxo [data-aba="' + subPedida + '"]');
+        if (b) { clearInterval(esperar); b.click(); b.scrollIntoView({ block: "start", behavior: "smooth" }); }
+        else if (tentativas > 40) clearInterval(esperar);
+      }, 100);
+    }
+  }
+
+  /* ---------- pró-labore (só em empresa, nunca em pessoal) e visão geral (empresas + pessoal da mesma pessoa) ---------- */
+  let donoDesta = null;
+  (async function () {
+    const rm = await supa().from("empresa_membros").select("perfil_id,funcao").eq("empresa_id", eid);
+    const membros = rm.data || [];
+    donoDesta = (membros.find(function (m) { return m.funcao === "dono"; }) || membros[0] || {}).perfil_id || eu.id;
+  })();
+  if (!pessoal) {
+    const btnPl = document.getElementById("btnProLabore"), jpl = document.getElementById("janelaProLabore");
+    btnPl.hidden = false;
+    btnPl.addEventListener("click", function () {
+      document.getElementById("plInfo").textContent = emp.nome + " · o valor sai daqui e entra na sua conta pessoal";
+      document.getElementById("plValor").value = ""; document.getElementById("plData").value = hojeISO();
+      document.getElementById("plDesc").value = ""; jpl.showModal();
+    });
+    document.getElementById("plCancelar").addEventListener("click", function () { jpl.close(); });
+    document.getElementById("plConfirmar").addEventListener("click", async function () {
+      const valor = lerValor(document.getElementById("plValor").value), data = document.getElementById("plData").value;
+      if (!(valor > 0)) { aviso("Informe o valor do pró-labore.", true); return; }
+      if (!data) { aviso("Informe a data.", true); return; }
+      const b = this; b.disabled = true;
+      const r = await supa().rpc("financeiro_prolabore", { p_empresa_origem: eid, p_valor: valor, p_data: data, p_descricao: document.getElementById("plDesc").value.trim() || null });
+      b.disabled = false;
+      if (r.error || !r.data || !r.data.ok) { aviso((r.data && r.data.erro && r.data.erro.indexOf("_") === -1 ? r.data.erro : "Não foi possível lançar o pró-labore."), true); return; }
+      jpl.close(); aviso("Pró-labore lançado: " + brl(valor) + " saiu daqui e entrou na sua conta pessoal.");
+      await carregarCadastros(); await carregarAno(); desenharTudo();
+    });
+  }
+  let geralCarregado = false;
+  document.getElementById("abas").addEventListener("click", function (e) {
+    const b = e.target.closest('[data-aba="geral"]'); if (!b) return;
+    if (!geralCarregado) { geralCarregado = true; renderPainelGeral(document.getElementById("painelGeralDre"), donoDesta); }
   });
 
   /* ---------- resumo de meta e plano de ação (sempre visível, qualquer aba) ---------- */

@@ -445,3 +445,8 @@ tr.sub>td{background:#FBF7EE;padding:10px 14px}
 .oferta-card .acoes{margin-top:auto;padding-top:8px;display:flex;gap:8px;flex-wrap:wrap}
 .oferta-card .acoes .btn{width:auto}
 .oferta-card .selo-dest{position:absolute;top:-10px;right:14px}
+
+.topo-painel .voltar{display:inline-block;margin:0;padding:7px 14px 7px 10px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--gold2);font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap}
+.topo-painel .voltar:hover{background:rgba(255,255,255,.16)}
+.topo-painel{flex-wrap:wrap}
+.topo-painel .marca{flex:1 1 auto;min-width:0}

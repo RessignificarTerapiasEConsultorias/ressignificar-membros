@@ -13,7 +13,7 @@
 <div class="carregando" id="carregando">Carregando...</div>
 <div id="painel" hidden>
   <header class="topo-painel">
-    <div class="marca"><img src="img/logo.png" alt=""><b>Ressignificar</b></div>
+    <div class="marca" style="display:flex;align-items:center;gap:14px"><a class="voltar" id="voltar" href="index.html">← Voltar</a><span style="opacity:.35">·</span><img src="img/logo.png" alt="" style="height:22px"><b>Ressignificar</b></div>
     <div class="usuario">
       <span data-nome-usuario></span>
       <a class="lnk" href="conta.html">Minha conta</a>
@@ -21,26 +21,13 @@
     </div>
   </header>
   <main class="conteudo-painel largo">
-    <a class="voltar" id="voltar" href="index.html">← Voltar ao painel</a>
     <div class="empresa-titulo"><h1>Meus orçamentos</h1></div>
-    <p class="sub">Um painel só com o que entra dos clientes, o que sai e o que sobra no mês. Abaixo ficam o plano de ação e a meta.</p>
+    <p class="sub">A meta do mês fica aqui em cima. Abaixo, o painel com o que entra, o que sai e o que sobra, e o plano de ação.</p>
 
     <div class="acoes" style="margin:-4px 0 18px">
       <a class="btn auto" id="irPessoal" href="dre.html">Pessoal</a>
       <a class="btn auto contorno" href="financeiro.html">Do cliente</a>
     </div>
-
-    <section class="cartao" aria-labelledby="tPainel">
-      <h2 id="tPainel">Painel do mês <span class="vazio" id="mesTitulo"></span></h2>
-      <div class="kpis" id="kpis"></div>
-      <div class="graf" style="height:260px"><canvas id="gOrc"></canvas></div>
-      <p class="ajuda" id="notaPainel"></p>
-    </section>
-
-    <section class="cartao" aria-labelledby="tPlano">
-      <h2 id="tPlano">Plano de ação</h2>
-      <div id="planoBox"><p class="vazio">Carregando...</p></div>
-    </section>
 
     <section class="cartao meta-card" id="painelMeta" aria-labelledby="tMeta">
       <h2 id="tMeta" style="color:#fff">Meta do mês</h2>
@@ -51,8 +38,27 @@
       <div class="barra-meta"><span id="metaBarra"></span></div>
       <p id="metaRitmo" class="ajuda" style="margin:10px 0 0"></p>
       <div id="alertaMeta" hidden style="margin-top:12px;padding:10px 14px;background:rgba(255,255,255,.12);border-radius:10px;font-size:14px"></div>
-      <p style="margin:12px 0 0"><a class="btn peq" id="irMeta" href="dre.html" style="background:#fff;color:var(--navy)">Configurar meta e ações</a></p>
+      <p style="margin:12px 0 0"><a class="btn peq" id="irMeta" href="dre.html" style="background:#fff;color:var(--navy)">Lançamentos, Fluxo 30 dias e Meta</a></p>
     </section>
+
+    <section class="cartao" aria-labelledby="tPainel">
+      <h2 id="tPainel">Painel do mês <span class="vazio" id="mesTitulo"></span></h2>
+      <div class="kpis" id="kpis"></div>
+      <div class="graf" style="height:260px"><canvas id="gOrc"></canvas></div>
+      <p class="ajuda" id="notaPainel"></p>
+    </section>
+
+    <section class="cartao" aria-labelledby="tGeral">
+      <h2 id="tGeral">Painel geral</h2>
+      <p class="ajuda">Renda e gastos de cada empresa sua, o que você tirou de pró-labore e as outras entradas pessoais.</p>
+      <div id="painelGeral"></div>
+    </section>
+
+    <section class="cartao" aria-labelledby="tPlano">
+      <h2 id="tPlano">Plano de ação</h2>
+      <div id="planoBox"><p class="vazio">Carregando...</p></div>
+    </section>
+
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -61,6 +67,7 @@
 <script src="js/auth.js"></script>
 <script src="js/app.js"></script>
 <script src="js/i18n.js"></script>
+<script src="js/painel-geral.js"></script>
 <script src="js/orcamentos.js"></script>
 </body>
 </html>

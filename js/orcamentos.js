@@ -19,8 +19,8 @@
     empPessoal = rp.data && rp.data.dados ? rp.data.dados.dre_empresa_id : null;
     if (!empPessoal) { const re = await supa().from("empresas").select("id").eq("tipo", "pessoal").order("criado_em").limit(1); empPessoal = re.data && re.data[0] ? re.data[0].id : null; }
   } catch (e) {}
-  if (empPessoal) $("irPessoal").href = "dre.html?e=" + encodeURIComponent(empPessoal);
-  if (empPessoal) $("irMeta").href = "dre.html?e=" + encodeURIComponent(empPessoal);
+  if (empPessoal) $("irPessoal").href = "dre.html?e=" + encodeURIComponent(empPessoal) + "&voltar=orcamentos";
+  if (empPessoal) $("irMeta").href = "dre.html?e=" + encodeURIComponent(empPessoal) + "&aba=fluxo&sub=meta&voltar=orcamentos";
 
   async function gastoDoMes(a, m) {
     if (!empPessoal) return 0;
@@ -63,6 +63,8 @@
       { label: "Recebido", data: recs, backgroundColor: "#1FA855", borderRadius: 4 }, { label: "Gasto", data: gastos, backgroundColor: "#C62828", borderRadius: 4 }] },
       options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: function (v) { return brl(v).replace(",00", ""); } } } }, plugins: { tooltip: { callbacks: { label: function (c) { return c.dataset.label + ": " + brl(c.parsed.y); } } } } } });
   }
+
+  renderPainelGeral($("painelGeral"), eu.id);
 
   // plano de ação (ações da meta geral deste mês + sugestões do sistema)
   const [rm, ra] = await Promise.all([
