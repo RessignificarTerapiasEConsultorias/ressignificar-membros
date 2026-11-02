@@ -34,13 +34,13 @@
   }
 
   const cobr = await buscarTudo(function () { return supa().from("cobrancas").select("id,perfil_id,descricao,valor,vencimento,pago_em").order("vencimento"); });
-  const recebido = soma(cobr.filter(function (c) { return c.pago_em && c.pago_em >= mesIni && c.pago_em < mesFim; }));
+  const recebido = await receitaDoMes(empPessoal, ano, mes);   // tudo que entrou na conta pessoal (clientes + qualquer outra entrada), não só cobranças
   const aReceber = soma(cobr.filter(function (c) { return !c.pago_em && c.vencimento >= hoje && c.vencimento < mesFim; }));
   const atrasadas = cobr.filter(function (c) { return !c.pago_em && c.vencimento < hoje; });
   const proximos30 = soma(cobr.filter(function (c) { return !c.pago_em && c.vencimento >= hoje && c.vencimento <= mais30; }));
   const gasto = await gastoDoMes(ano, mes), sobra = recebido - gasto;
   const cards = [
-    ["Recebido no mês", brl(recebido), "v-receita", "clientes que já pagaram"],
+    ["Recebido no mês", brl(recebido), "v-receita", "tudo que entrou, clientes inclusive"],
     ["A receber no mês", brl(aReceber), "v-pendente", "vence até o fim do mês"],
     ["Em atraso", brl(soma(atrasadas)), atrasadas.length ? "v-saida" : "", atrasadas.length + (atrasadas.length === 1 ? " cobrança" : " cobranças")],
     ["Próximos 30 dias", brl(proximos30), "v-pendente", "a vencer"],
@@ -54,10 +54,7 @@
   const meses = [];
   for (let i = 5; i >= 0; i--) { const d = new Date(ano, mes - 1 - i, 1); meses.push({ a: d.getFullYear(), m: d.getMonth() + 1 }); }
   const gastos = await Promise.all(meses.map(function (x) { return gastoDoMes(x.a, x.m); }));
-  const recs = meses.map(function (x) {
-    const ini = x.a + "-" + String(x.m).padStart(2, "0") + "-01", fim = iso(new Date(x.a, x.m, 1));
-    return soma(cobr.filter(function (c) { return c.pago_em && c.pago_em >= ini && c.pago_em < fim; }));
-  });
+  const recs = await Promise.all(meses.map(function (x) { return receitaDoMes(empPessoal, x.a, x.m); }));
   if (typeof Chart !== "undefined") {
     new Chart($("gOrc"), { type: "bar", data: { labels: meses.map(function (x) { return NOMES[x.m - 1].slice(0, 3) + "/" + String(x.a).slice(2); }), datasets: [
       { label: "Recebido", data: recs, backgroundColor: "#1FA855", borderRadius: 4 }, { label: "Gasto", data: gastos, backgroundColor: "#C62828", borderRadius: 4 }] },
@@ -86,7 +83,7 @@
   if (acoes.length) planoBox.appendChild(lista); else { const p = document.createElement("p"); p.className = "vazio"; p.textContent = "Nenhuma ação cadastrada para este mês. Cadastre em Pessoal > Fluxo 30 dias > Meta e ações."; planoBox.appendChild(p); }
   if (sugest.length) { const t = document.createElement("p"); t.className = "rotulo"; t.style.marginTop = "12px"; t.textContent = "Sugestões do sistema"; planoBox.appendChild(t); const u = document.createElement("ul"); u.className = "res-lista"; sugest.forEach(function (x) { const li = document.createElement("li"); li.textContent = x; u.appendChild(li); }); planoBox.appendChild(u); }
 
-  // meta do mês (meta geral = pagamentos de clientes recebidos)
+  // meta do mês (tudo que entrou na conta pessoal, mesma base do card "Recebido no mês")
   const meta = rm.data ? +rm.data.valor_meta : null, realizado = recebido;
   $("metaRealizado").textContent = brl(realizado); $("metaValor").textContent = meta ? brl(meta) : "Não definida";
   const pct = meta && meta > 0 ? realizado / meta : 0;

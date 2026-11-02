@@ -668,7 +668,7 @@
     if (nome === "lives") { await carregarLives(); desenharLives(); }
     if (nome === "fluxo" && !fluxoIniciado) {
       fluxoIniciado = true;
-      await window.iniciarFluxo(pessoal ? null : eid, eu.id);
+      await window.iniciarFluxo(eid, eu.id);
     }
   });
 
@@ -723,7 +723,7 @@
 
   /* ---------- resumo de meta e plano de ação (sempre visível, qualquer aba) ---------- */
   async function desenharResumoMeta() {
-    var filtroEmpresa = pessoal ? null : eid;
+    var filtroEmpresa = eid;   // pessoal ou empresa: soma sempre a renda da própria empresa aberta
     function f(q) { var r = q.eq("perfil_id", eu.id); return filtroEmpresa ? r.eq("empresa_id", filtroEmpresa) : r.is("empresa_id", null); }
     var hoje = new Date(), mesRef = hoje.getFullYear() + "-" + String(hoje.getMonth() + 1).padStart(2, "0") + "-01";
     var [rm, ra, realizadoV] = await Promise.all([
@@ -779,7 +779,7 @@
   }
   document.getElementById("btnGerarAcaoRapido").addEventListener("click", async function () {
     document.querySelector('[data-aba="fluxo"]').click();
-    if (!fluxoIniciado) { fluxoIniciado = true; await window.iniciarFluxo(pessoal ? null : eid, eu.id); }
+    if (!fluxoIniciado) { fluxoIniciado = true; await window.iniciarFluxo(eid, eu.id); }
     setTimeout(function () { var b = document.querySelector('#abasFluxo [data-aba="meta"]'); if (b) b.click(); }, 150);
   });
 

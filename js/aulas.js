@@ -58,7 +58,7 @@
       const f = document.createElement("iframe");
       f.src = "https://drive.google.com/file/d/" + a.drive_id + "/preview";
       f.title = a.titulo; f.allow = "autoplay; fullscreen"; f.allowFullscreen = true;
-      f.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation");   // sem pop-up: o botão de abrir em nova aba do Drive não funciona
+      f.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox");   // o player do Drive precisa de popups pra iniciar sozinho; quem sai do site de verdade é o botão "abrir em nova janela", e esse continua coberto pelo .player-bloqueio
       f.referrerPolicy = "no-referrer"; f.loading = "lazy";
       const bloqueio = document.createElement("div"); bloqueio.className = "player-bloqueio"; bloqueio.setAttribute("aria-hidden", "true");   // cobre o botão "abrir em nova janela" do Drive
       caixa.appendChild(f); caixa.appendChild(bloqueio);
