@@ -78,7 +78,10 @@
   <div class="f">
     <div><label for="aTit">Título da aula</label><input id="aTit" maxlength="140"></div>
     <div style="margin-top:12px"><label for="aDesc">Descrição da aula <span class="vazio">(opcional)</span></label><textarea id="aDesc" rows="5" maxlength="4000"></textarea></div>
-    <div style="margin-top:12px"><label for="aLink">Link do vídeo no Google Drive <span class="vazio">(opcional)</span></label><input id="aLink" maxlength="400" placeholder="https://drive.google.com/file/d/.../view"><small>Cole o link de compartilhamento. O site guarda só o código do arquivo e nunca mostra o link ao mentorado.</small></div>
+    <div style="margin-top:12px"><label for="aVideoTipo">Onde está o vídeo <span class="vazio">(opcional)</span></label>
+      <select id="aVideoTipo"><option value="drive">Google Drive</option><option value="youtube">YouTube (não listado)</option><option value="vimeo">Vimeo</option></select></div>
+    <div style="margin-top:12px"><label for="aLink" id="aLinkRot">Link do vídeo no Google Drive</label><input id="aLink" maxlength="400" placeholder="https://drive.google.com/file/d/.../view"><small id="aLinkAjuda">Cole o link de compartilhamento. O site guarda só o código do arquivo e nunca mostra o link ao mentorado.</small></div>
+    <div style="margin-top:12px;max-width:220px"><label for="aDuracao">Duração da aula, em minutos <span class="vazio">(opcional)</span></label><input id="aDuracao" type="number" min="1" max="600" placeholder="Ex.: 15"><small>Usada para mostrar quanto do curso cada pessoa já assistiu.</small></div>
     <div style="margin-top:12px"><label for="aPdf">PDF de apoio <span class="vazio">(opcional, até 20 MB)</span></label><input id="aPdf" type="file" accept="application/pdf"><small id="aPdfAtual"></small>
       <div class="checks" style="margin-top:6px" id="aPdfRemoverBox"><label><input type="checkbox" id="aPdfRemover"> Remover o PDF atual</label></div></div>
     <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="aAtivo"> Publicada (os mentorados veem)</label></div>

@@ -122,13 +122,14 @@
     if (!equipe) a.push({ id: "privado", rotulo: "Conversa com o Mauricio" });
     if (master) a.push({ id: "conversas", rotulo: "Conversas individuais" });
     if (salaDe("mentoria")) a.push({ id: "mentoria", rotulo: "Grupo ao vivo da mentoria" });
+    salas.filter(function (s) { return s.tipo === "grupo"; }).forEach(function (s) { a.push({ id: "grupo:" + s.id, rotulo: s.nome }); });
     if (equipe) a.push({ id: "gerenciar", rotulo: "Gerenciar" });
     return a;
   }
   function temNovo(id) {
     if (id === abaAtiva) return false;
     if (id === "privado" || id === "conversas") return naoLidasPriv > 0;
-    const s = salaDe(id);
+    const s = id.indexOf("grupo:") === 0 ? salas.find(function (x) { return x.id === id.slice(6); }) : salaDe(id);
     return !!(s && s.ultima && s.ultima > vistoDe(s.id));
   }
   function desenharAbas() {
@@ -184,6 +185,21 @@
     });
     aplicarLimites();
   }
+  let grupoMontadoId = null;
+  function garantirGrupo(salaId) {
+    const chave = "grupo:" + salaId;
+    if (conversas[chave] && grupoMontadoId === salaId) return;
+    grupoMontadoId = salaId;
+    montarCaixa($("boxGrupo"), "Escreva para o grupo...");
+    conversas[chave] = criarConversa($("boxGrupo"), {
+      ler: dadosSala.ler(salaId), enviar: dadosSala.enviar(salaId), normalizar: dadosSala.normalizar, textoVazio: "Nenhuma mensagem ainda neste grupo.",
+      apagar: master ? function (id) { return rpc("chat_apagar", { p_msg: id }); } : null,
+      textoApagar: "Apagar esta mensagem para todos? Ela some da sala, mas continua guardada até você excluir de vez em Gerenciar.",
+      aoChegar: function () { if (abaAtiva === chave) { const s = salas.find(function (x) { return x.id === salaId; }); if (s && s.ultima) vistoSet(s.id, s.ultima); desenharAbas(); } }
+    });
+    const s = salas.find(function (x) { return x.id === salaId; });
+    if (s) { if (!equipe && s.silenciado) conversas[chave].limite(false, "Você não pode enviar mensagens agora."); else if (!s.aberta && !equipe) conversas[chave].limite(false, "A sala está fechada no momento. Você ainda pode ler as mensagens."); else conversas[chave].limite(true, ""); }
+  }
   function garantirPrivado() {
     if (conversas.privado) return;
     montarCaixa($("boxPrivado"), "Escreva para o Mauricio...");
@@ -199,12 +215,14 @@
   function abrirAba(id) {
     Object.keys(conversas).forEach(function (k) { conversas[k].parar(); });
     abaAtiva = id;
-    ["geral", "privado", "conversas", "mentoria", "gerenciar"].forEach(function (k) { const p = $("p-" + k); if (p) p.hidden = k !== id; });
+    const ehGrupo = id.indexOf("grupo:") === 0;
+    ["geral", "privado", "conversas", "mentoria", "gerenciar", "grupo"].forEach(function (k) { const p = $("p-" + k); if (p) p.hidden = ehGrupo ? k !== "grupo" : k !== id; });
     if (id === "geral") { garantirSala("geral", "boxGeral", "Escreva para todos...", "Ninguém escreveu ainda. Seja a primeira pessoa a dizer oi!"); conversas.geral && conversas.geral.iniciar(); marcarVista("geral"); }
     if (id === "mentoria") { garantirSala("mentoria", "boxMentoria", "Escreva sua dúvida para o grupo...", "Nenhuma mensagem ainda. Aqui você tira dúvidas com o grupo da mentoria."); conversas.mentoria && conversas.mentoria.iniciar(); marcarVista("mentoria"); }
     if (id === "privado") { garantirPrivado(); conversas.privado.iniciar(); }
     if (id === "conversas") { atualizarSalas(); if (conversas.thread) conversas.thread.iniciar(); }
     if (id === "gerenciar") carregarGerenciar();
+    if (ehGrupo) { const salaId = id.slice(6); garantirGrupo(salaId); conversas[id] && conversas[id].iniciar(); const s = salas.find(function (x) { return x.id === salaId; }); if (s && s.ultima) vistoSet(s.id, s.ultima); }
     aplicarLimites(); desenharAbas();
   }
 
@@ -275,8 +293,62 @@
     }
     try { clientes = (await rpc("chat_grupo_lista")) || []; } catch (e) { aviso(e.message, true); }
     desenharClientes();
+    if (master) { desenharNovoGrupo(); await carregarGruposGerenciaveis(); }
     if (master) atualizarApagadas();
   }
+  function desenharNovoGrupo() {
+    const tb = $("ngLista"); if (!tb) return;
+    tb.innerHTML = clientes.map(function (c) {
+      return '<tr><td>' + esc(c.nome) + '</td><td><label class="chk-linha"><input type="checkbox" value="' + c.id + '"></label></td></tr>';
+    }).join("") || '<tr><td class="vazio">Nenhuma pessoa cadastrada ainda.</td></tr>';
+  }
+  const ngCriar = $("ngCriar");
+  if (ngCriar) ngCriar.addEventListener("click", async function () {
+    const nome = $("ngNome").value.trim();
+    if (!nome) { aviso("Dê um nome ao grupo.", true); return; }
+    const membros = Array.prototype.slice.call(document.querySelectorAll("#ngLista input[type=checkbox]:checked")).map(function (c) { return c.value; });
+    ngCriar.disabled = true;
+    try {
+      const r = await rpc("chat_grupo_criar", { p_nome: nome, p_membros: membros });
+      if (!r || !r.ok) throw new Error((r && r.erro) || "Não foi possível criar o grupo.");
+      aviso("Grupo criado."); $("ngNome").value = ""; desenharNovoGrupo();
+      await atualizarSalas(); await carregarGruposGerenciaveis();
+    } catch (e) { aviso(e.message, true); } finally { ngCriar.disabled = false; }
+  });
+  async function carregarGruposGerenciaveis() {
+    const sel = $("mgSala"); if (!sel) return;
+    const gerenciaveis = salas.filter(function (s) { return s.tipo === "grupo" || s.tipo === "geral"; });
+    const atual = sel.value;
+    sel.innerHTML = gerenciaveis.map(function (s) { return '<option value="' + s.id + '">' + esc(s.nome || (s.tipo === "geral" ? "Sala geral" : s.tipo)) + "</option>"; }).join("");
+    if (atual && gerenciaveis.some(function (s) { return s.id === atual; })) sel.value = atual;
+    if (sel.value) await desenharIntegrantesGrupo(sel.value);
+  }
+  async function desenharIntegrantesGrupo(salaId) {
+    const tb = $("mgLista"); if (!tb) return;
+    tb.innerHTML = '<tr><td colspan="2" class="vazio">Carregando...</td></tr>';
+    let membros = [];
+    try { membros = (await rpc("chat_grupo_membros_listar", { p_sala: salaId })) || []; } catch (e) {}
+    const dentro = {}; membros.forEach(function (m) { dentro[m.perfil_id] = true; });
+    tb.innerHTML = clientes.map(function (c) {
+      return '<tr><td>' + esc(c.nome) + '</td><td><label class="chk-linha"><input type="checkbox" data-mg="' + c.id + '"' + (dentro[c.id] ? " checked" : "") + "></label></td></tr>";
+    }).join("") || '<tr><td colspan="2" class="vazio">Nenhuma pessoa cadastrada ainda.</td></tr>';
+    const sala = salas.find(function (s) { return s.id === salaId; });
+    $("mgApagarBox").hidden = !(sala && sala.tipo === "grupo");
+  }
+  const mgSala = $("mgSala");
+  if (mgSala) mgSala.addEventListener("change", function () { if (mgSala.value) desenharIntegrantesGrupo(mgSala.value); });
+  const mgLista = $("mgLista");
+  if (mgLista) mgLista.addEventListener("change", async function (e) {
+    const ck = e.target.closest("[data-mg]"); if (!ck) return;
+    try { const r = await rpc("chat_grupo_membro_definir", { p_sala: mgSala.value, p_perfil: ck.dataset.mg, p_incluir: ck.checked }); if (!r || !r.ok) throw new Error("Não foi possível salvar."); await atualizarSalas(); }
+    catch (err) { ck.checked = !ck.checked; aviso(err.message, true); }
+  });
+  const mgApagar = $("mgApagar");
+  if (mgApagar) mgApagar.addEventListener("click", async function () {
+    if (!mgSala.value || !confirm("Apagar este grupo? As mensagens dele somem para sempre.")) return;
+    try { const r = await rpc("chat_grupo_apagar", { p_sala: mgSala.value }); if (!r || !r.ok) throw new Error((r && r.erro) || "Não foi possível apagar."); aviso("Grupo apagado."); await atualizarSalas(); await carregarGruposGerenciaveis(); }
+    catch (e) { aviso(e.message, true); }
+  });
   function desenharClientes() {
     const tb = $("gLista"), f = ($("gBusca").value || "").toLowerCase().trim();
     const lista = clientes.filter(function (c) { return !f || c.nome.toLowerCase().indexOf(f) > -1; });

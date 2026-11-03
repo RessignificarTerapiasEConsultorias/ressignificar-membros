@@ -28,10 +28,11 @@
   const hoje = hojeISO();
   const STATUS = { a_fazer: "A fazer", em_andamento: "Em andamento", feito: "Aplicada", cancelado: "Não aplicada" };
   let contratos = [], cobrancas = [], ganhos = [], indicadores = [], acoes = [], iniciativas = [], analises = [], resultadosAcao = [];
+  let resultados = [], porMesResultados = [], atividades = [], progresso = [], todasAulas = [];
   let graficos = {}, abaAtual = "geral", editIni = null, editAn = null;
   const soma = function (l, f) { return l.reduce(function (s, x) { return s + (Number(f(x)) || 0); }, 0); };
   const num2 = function (v) { return String(v).replace(".", ","); };
-  ["gData", "nData", "anData"].forEach(function (id) { const el = document.getElementById(id); if (el) el.value = hoje; });
+  ["gData", "nData", "anData", "rData"].forEach(function (id) { const el = document.getElementById(id); if (el) el.value = hoje; });
   const iMes = document.getElementById("iMes"); if (iMes) iMes.value = hoje.slice(0, 7);
   const aResp = document.getElementById("aResp"); if (aResp) aResp.value = primeiroNome;
   const cIni = document.getElementById("cIni"); if (cIni) { cIni.value = hoje; document.getElementById("cVenc").value = hoje; }
@@ -44,6 +45,25 @@
   }
   if (typeof Chart !== "undefined") { Chart.defaults.font.family = "Figtree, system-ui, sans-serif"; Chart.defaults.color = "#4C5670"; }
   const moedaTick = function (v) { return "R$ " + Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 0 }); };
+
+  function desenharProgresso() {
+    const resumo = document.getElementById("progResumo"), lista = document.getElementById("progLista");
+    if (!resumo || !lista) return;
+    if (!progresso.length) { resumo.textContent = "Nenhuma aula cadastrada ainda."; lista.innerHTML = ""; return; }
+    const comDuracao = progresso.filter(function (a) { return a.duracao_min > 0; });
+    const totalMin = soma(comDuracao, function (a) { return a.duracao_min; });
+    const vistoMin = soma(comDuracao, function (a) { return Math.min(a.duracao_min, (a.segundos_assistidos || 0) / 60); });
+    resumo.innerHTML = totalMin > 0
+      ? "De " + comDuracao.length + (comDuracao.length === 1 ? " aula" : " aulas") + " (" + Math.round(totalMin) + " min no total), " + (equipe ? "a pessoa já assistiu " : "você já assistiu ") + "<b>" + Math.round(vistoMin) + " min</b> (" + pct(totalMin ? vistoMin / totalMin : 0) + ")."
+      : "Cadastre a duração de cada aula (em \"Gerenciar\", nas Aulas da mentoria) para ver o total assistido em minutos.";
+    lista.innerHTML = '<ul class="acoes-lista">' + progresso.map(function (a) {
+      let onde;
+      if (a.metodo === "real") onde = Math.round(a.percentual || 0) + "% assistido" + (a.concluida ? " · concluída" : "");
+      else if (a.metodo === "aproximado") onde = "ficou cerca de " + Math.round((a.segundos_assistidos || 0) / 60) + " min com a aula aberta (aproximado, vídeo do Drive)";
+      else onde = "ainda não acessou";
+      return '<li class="acao"><div class="acao-linha"><b>' + esc(a.titulo) + "</b></div><div class=\"acao-info\">" + onde + (a.duracao_min ? " · dura " + a.duracao_min + " min" : "") + "</div></li>";
+    }).join("") + "</ul>";
+  }
 
   /* ---------- carregar ---------- */
   async function carregar() {
@@ -62,6 +82,18 @@
     ganhos = r[0].data || []; indicadores = r[1].data || []; acoes = r[2].data || []; iniciativas = r[3].data || []; analises = r[4].data || [];
     const rr = await supa().from("acoes_resultados").select("id,acao_id,texto,criado_em").eq("perfil_id", pid).order("criado_em", { ascending: true });
     resultadosAcao = rr.data || [];
+    const [rRes, rAt, rProg, rAulas] = await Promise.all([
+      supa().rpc("mentoria_resultados_lista", { p_perfil: pid }),
+      supa().from("mentoria_atividades").select("id,titulo,descricao,data,concluida").eq("perfil_id", pid).order("data", { ascending: true, nullsFirst: false }),
+      supa().rpc("aulas_progresso_resumo", { p_perfil: pid }),
+      supa().from("aulas").select("id,titulo,ordem").eq("ativo", true).order("ordem")
+    ]);
+    resultados = (rRes.data && rRes.data.ok) ? rRes.data.itens : []; porMesResultados = (rRes.data && rRes.data.ok) ? rRes.data.por_mes : [];
+    atividades = rAt.data || [];
+    progresso = (rProg.data && rProg.data.ok) ? rProg.data.aulas : [];
+    todasAulas = rAulas.data || [];
+    const rAulaSel = document.getElementById("rAula");
+    if (rAulaSel) rAulaSel.innerHTML = '<option value="">Nenhuma em especial</option>' + todasAulas.map(function (a) { return '<option value="' + a.id + '">' + esc(a.titulo) + "</option>"; }).join("");
     if (verFin) {
       contratos = (r[5].data || []).filter(function (c) { return c.ativo; });
       const ids = contratos.map(function (c) { return c.id; });
@@ -101,6 +133,7 @@
     }
     document.getElementById("kpis").innerHTML = cards.map(function (c) { return '<div class="kpi"><small>' + c[0] + "</small><b>" + c[1] + "</b><span>" + c[2] + "</span></div>"; }).join("");
 
+    desenharProgresso();
     const L = [];
     if (verFin && n.investimento) {
       if (n.ganhos >= n.investimento) L.push(["bom", "Os ganhos registrados (" + brl(n.ganhos) + ") já pagaram a mentoria " + vezes(n.retorno).replace("x", " vezes") + "."]);
@@ -246,6 +279,55 @@
         (equipe ? '<div><button class="btn peq perigo" type="button" data-del-acao="' + a.id + '">Apagar ação</button></div>' : "") + "</li>";
     }).join("") : '<li class="vazio">Nenhuma ação definida ainda.</li>';
   }
+
+  /* ================= RESULTADOS ================= */
+  function desenharResultados() {
+    document.getElementById("listaResultados").innerHTML = resultados.length ? resultados.map(function (r) {
+      return '<li class="acao"><div class="acao-linha"><b>' + dataBR(r.data) + "</b></div>" +
+        '<div style="font-size:14.5px">' + esc(r.resultado) + "</div>" +
+        (r.aula_titulo ? '<div class="acao-info">Aula: ' + esc(r.aula_titulo) + "</div>" : "") +
+        (r.observacao ? '<div class="acao-info">' + esc(r.observacao) + "</div>" : "") +
+        (equipe ? '<div><button class="btn peq perigo" type="button" data-del-resultado="' + r.id + '">Apagar</button></div>' : "") + "</li>";
+    }).join("") : '<li class="vazio">Nenhum resultado registrado ainda.</li>';
+    const meses = porMesResultados.map(function (m) { return mesAno(m.mes + "-01"); });
+    grafico("gResultados", { type: "bar", data: { labels: meses, datasets: [{ label: "Resultados registrados", data: porMesResultados.map(function (m) { return m.quantidade; }), backgroundColor: "#C9A24A", borderRadius: 4 }] },
+      options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false } } } });
+  }
+  const fResultado = document.getElementById("formResultado");
+  if (fResultado) fResultado.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const texto = document.getElementById("rTexto").value.trim(), data = document.getElementById("rData").value;
+    if (!data) { aviso("Escolha a data.", true); return; }
+    if (!texto) { aviso("Escreva o resultado.", true); return; }
+    const b = fResultado.querySelector("button[type=submit]"); b.disabled = true;
+    const r = await supa().rpc("mentoria_resultado_adicionar", { p_perfil: pid, p_aula: document.getElementById("rAula").value || null, p_data: data, p_resultado: texto, p_observacao: document.getElementById("rObs").value.trim() || null });
+    b.disabled = false;
+    if (r.error || !r.data || !r.data.ok) { aviso((r.data && r.data.erro) || "Não foi possível salvar.", true); return; }
+    fResultado.reset(); document.getElementById("rData").value = hoje;
+    aviso("Resultado registrado."); await carregar(); desenharTudo();
+  });
+
+  /* ================= ATIVIDADES ================= */
+  function desenharAtividades() {
+    document.getElementById("listaAtividades").innerHTML = atividades.length ? atividades.map(function (t) {
+      return '<li class="acao' + (t.concluida ? " feita" : "") + '"><div class="acao-linha"><label style="display:flex;align-items:center;gap:8px;font-weight:700">' +
+        '<input type="checkbox" data-toggle-atividade="' + t.id + '"' + (t.concluida ? " checked" : "") + "> " + esc(t.titulo) + "</label></div>" +
+        (t.data ? '<div class="acao-info">' + dataBR(t.data) + "</div>" : "") +
+        (t.descricao ? '<div style="font-size:14.5px">' + esc(t.descricao) + "</div>" : "") +
+        (equipe ? '<div><button class="btn peq perigo" type="button" data-del-atividade="' + t.id + '">Apagar</button></div>' : "") + "</li>";
+    }).join("") : '<li class="vazio">Nenhuma atividade por aqui ainda.</li>';
+  }
+  const fAtividade = document.getElementById("formAtividade");
+  if (fAtividade) fAtividade.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const titulo = document.getElementById("tTitulo").value.trim();
+    if (!titulo) { aviso("Escreva o que fazer.", true); return; }
+    const b = fAtividade.querySelector("button[type=submit]"); b.disabled = true;
+    const { error } = await supa().from("mentoria_atividades").insert({ perfil_id: pid, titulo: titulo, data: document.getElementById("tData").value || null, descricao: document.getElementById("tDesc").value.trim() || null, criado_por: eu.id });
+    b.disabled = false;
+    if (error) { aviso("Não foi possível salvar.", true); return; }
+    fAtividade.reset(); aviso("Atividade salva."); await carregar(); desenharTudo();
+  });
 
   /* ================= CONTRATO E PARCELAS ================= */
   function somarMes(iso, k) {
@@ -441,6 +523,8 @@
   area.addEventListener("click", async function (e) {
     const t = function (sel) { return e.target.closest(sel); };
     let b;
+    if ((b = t("[data-del-resultado]"))) return apagar("mentoria_resultados", b.dataset.delResultado, "Apagar este resultado?");
+    if ((b = t("[data-del-atividade]"))) return apagar("mentoria_atividades", b.dataset.delAtividade, "Apagar esta atividade?");
     if ((b = t("[data-del-ganho]"))) return apagar("ganhos", b.dataset.delGanho, "Apagar este ganho?");
     if ((b = t("[data-del-ind]"))) return apagar("indicadores_mensais", b.dataset.delInd, "Apagar o registro deste mês?");
     if ((b = t("[data-del-acao]"))) return apagar("acoes", b.dataset.delAcao, "Apagar esta ação?");
@@ -487,6 +571,12 @@
     }
   });
   area.addEventListener("change", async function (e) {
+    const tg = e.target.closest("[data-toggle-atividade]");
+    if (tg) {
+      const { error } = await supa().from("mentoria_atividades").update({ concluida: tg.checked }).eq("id", tg.dataset.toggleAtividade);
+      if (error) { aviso("Não foi possível atualizar.", true); tg.checked = !tg.checked; return; }
+      await carregar(); desenharTudo(); return;
+    }
     const s = e.target.closest("[data-status]");
     if (!s) return;
     const { error } = await supa().from("acoes").update({ status: s.value }).eq("id", s.dataset.status);
@@ -495,7 +585,7 @@
     await carregar(); desenharTudo();
   });
 
-  function desenharTudo() { desenharGeral(); desenharGanhos(); desenharAcoes(); desenharContratos(); desenharIniciativas(); desenharAnalises(); }
+  function desenharTudo() { desenharGeral(); desenharGanhos(); desenharAcoes(); desenharResultados(); desenharAtividades(); desenharContratos(); desenharIniciativas(); desenharAnalises(); }
   ligarAbas(document.getElementById("abas"), function (nome) {
     abaAtual = nome;
     if (nome === "geral") desenharGraficosGeral();

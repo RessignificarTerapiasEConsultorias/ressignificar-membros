@@ -57,6 +57,9 @@
       <div id="boxMentoria"></div>
     </section>
 
+    <!-- GRUPO (qualquer grupo criado pelo master) -->
+    <section id="p-grupo" hidden><div id="boxGrupo"></div></section>
+
     <!-- GERENCIAR (equipe) -->
     <section id="p-gerenciar" hidden>
       <div class="cartao so-master">
@@ -79,6 +82,23 @@
         <p class="ajuda">Quando você apaga uma mensagem de sala, ela some para todos, mas continua guardada. Aqui você decide se exclui de vez. Nada se apaga sozinho, e só você exclui.</p>
         <p class="vazio" id="apagadasInfo"></p>
         <div class="acoes"><button class="btn auto perigo" id="apagadasExcluir" type="button">Excluir de vez</button></div>
+      </div>
+      <div class="cartao so-master">
+        <h2>Criar um grupo</h2>
+        <p class="ajuda">Só quem você marcar abaixo vai ver e poder conversar neste grupo.</p>
+        <div class="f">
+          <div><label for="ngNome">Nome do grupo</label><input id="ngNome" maxlength="80" placeholder="Ex.: Mentoria turma 2026"></div>
+          <div style="margin-top:12px"><label>Quem participa</label><div class="tabela-wrap" style="max-height:220px"><table class="t"><tbody id="ngLista"></tbody></table></div></div>
+          <div class="acoes"><button class="btn auto" type="button" id="ngCriar">Criar grupo</button></div>
+        </div>
+      </div>
+      <div class="cartao so-master">
+        <h2>Integrantes de um grupo</h2>
+        <div class="f">
+          <div><label for="mgSala">Grupo</label><select id="mgSala"></select></div>
+        </div>
+        <div class="tabela-wrap" style="max-height:260px;margin-top:10px"><table class="t"><thead><tr><th>Pessoa</th><th>No grupo</th></tr></thead><tbody id="mgLista"></tbody></table></div>
+        <div class="acoes" id="mgApagarBox" hidden><button class="btn auto perigo" type="button" id="mgApagar">Apagar este grupo</button></div>
       </div>
       <div class="cartao">
         <h2>Quem está no grupo ao vivo</h2>

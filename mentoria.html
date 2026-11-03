@@ -32,6 +32,8 @@
         <button class="aba" type="button" data-aba="geral" aria-selected="true">Visão geral</button>
         <button class="aba" type="button" data-aba="ganhos" aria-selected="false">Ganhos e evolução</button>
         <button class="aba" type="button" data-aba="acoes" aria-selected="false">Ações</button>
+        <button class="aba" type="button" data-aba="resultados" aria-selected="false">Resultados</button>
+        <button class="aba" type="button" data-aba="atividades" aria-selected="false">Atividades</button>
         <button class="aba so-financeiro" type="button" data-aba="contrato" aria-selected="false">Investimento e pagamentos</button>
         <button class="aba" type="button" data-aba="iniciativas" aria-selected="false">Lives e iniciativas</button>
         <button class="aba" type="button" data-aba="analises" aria-selected="false">Análises</button>
@@ -40,6 +42,10 @@
       <!-- ===== VISÃO GERAL ===== -->
       <section data-painel="geral">
         <div class="kpis" id="kpis"></div>
+        <div class="cartao"><h2>Progresso das aulas</h2>
+          <p class="ajuda" id="progResumo"></p>
+          <div id="progLista"></div>
+        </div>
         <div class="cartao"><h2>Leituras</h2><ul class="insights" id="leituras"></ul></div>
         <div class="graficos">
           <div class="cartao"><h2 id="tituloRetorno">Ganhos acumulados x investimento</h2><div class="graf"><canvas id="gRetorno"></canvas></div></div>
@@ -103,6 +109,47 @@
             </form>
           </div>
           <div class="cartao"><h2>Ações da mentoria</h2><div class="totais-mes" id="totAcoes"></div><ul class="acoes-lista" id="listaAcoes"></ul></div>
+        </div>
+      </section>
+
+      <!-- ===== RESULTADOS ===== -->
+      <section data-painel="resultados" hidden>
+        <div class="duas-col">
+          <div class="cartao so-equipe">
+            <h2>Registrar um resultado</h2>
+            <p class="ajuda">O que a pessoa conseguiu, o dia e, se foi por causa de alguma aula, qual foi.</p>
+            <form id="formResultado" class="f" novalidate>
+              <div class="grade g2">
+                <div><label for="rData">Data</label><input id="rData" type="date" required></div>
+                <div><label for="rAula">Aula aplicada <span class="vazio">(opcional)</span></label><select id="rAula"><option value="">Nenhuma em especial</option></select></div>
+              </div>
+              <div style="margin-top:12px"><label for="rTexto">Resultado</label><textarea id="rTexto" rows="3" maxlength="1000" required placeholder="Ex.: Fechou 2 clientes novos depois de aplicar o script de objeção"></textarea></div>
+              <div style="margin-top:12px"><label for="rObs">Observação <span class="vazio">(opcional)</span></label><textarea id="rObs" rows="2" maxlength="1000"></textarea></div>
+              <div class="acoes"><button class="btn auto" type="submit">Salvar resultado</button></div>
+            </form>
+          </div>
+          <div>
+            <div class="cartao"><h2>Resultados ao longo do tempo</h2><div class="graf"><canvas id="gResultados"></canvas></div></div>
+            <div class="cartao"><h2>Todos os resultados</h2><ul class="acoes-lista" id="listaResultados"></ul></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== ATIVIDADES ===== -->
+      <section data-painel="atividades" hidden>
+        <div class="duas-col">
+          <div class="cartao so-equipe">
+            <h2>Nova atividade</h2>
+            <form id="formAtividade" class="f" novalidate>
+              <div><label for="tTitulo">O que fazer</label><input id="tTitulo" maxlength="140" required></div>
+              <div class="grade g2" style="margin-top:12px">
+                <div><label for="tData">Data <span class="vazio">(opcional)</span></label><input id="tData" type="date"></div>
+              </div>
+              <div style="margin-top:12px"><label for="tDesc">Descrição <span class="vazio">(opcional)</span></label><textarea id="tDesc" rows="3" maxlength="1000"></textarea></div>
+              <div class="acoes"><button class="btn auto" type="submit">Salvar atividade</button></div>
+            </form>
+          </div>
+          <div class="cartao"><h2>Atividades</h2><ul class="acoes-lista" id="listaAtividades"></ul></div>
         </div>
       </section>
 

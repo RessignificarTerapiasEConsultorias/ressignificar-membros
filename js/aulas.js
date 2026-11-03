@@ -22,7 +22,7 @@
   async function carregar() {
     const [rm, ra] = await Promise.all([
       supa().from("aulas_modulos").select("id,titulo,descricao,ordem,ativo,criado_em").order("ordem", { ascending: true }),
-      supa().from("aulas").select("id,modulo_id,titulo,descricao,drive_id,pdf_caminho,pdf_nome,ordem,ativo,criado_em").order("ordem", { ascending: true })
+      supa().from("aulas").select("id,modulo_id,titulo,descricao,drive_id,video_tipo,video_ref,duracao_min,pdf_caminho,pdf_nome,ordem,ativo,criado_em").order("ordem", { ascending: true })
     ]);
     if (rm.error || ra.error) { aviso("Não foi possível carregar as aulas.", true); return; }
     modulos = (rm.data || []).slice().sort(function (a, b) { return a.ordem - b.ordem || (a.criado_em < b.criado_em ? -1 : 1); });
@@ -48,22 +48,85 @@
       nav.appendChild(bloco);
     });
   }
+  /* ---------- progresso do vídeo: real (YouTube/Vimeo) ou aproximado (Drive, tempo com a aula aberta) ---------- */
+  let progressoTimer = null, progressoAcumulado = 0, ytPlayer = null;
+  function pararProgresso() {
+    if (progressoTimer) { clearInterval(progressoTimer); progressoTimer = null; }
+    if (ytPlayer) { try { ytPlayer.destroy(); } catch (e) {} ytPlayer = null; }
+  }
+  function registrarProgresso(aulaId, segundos, percentual, metodo) {
+    supa().rpc("aulas_progresso_registrar", { p_aula: aulaId, p_segundos: Math.round(segundos) || 0, p_percentual: percentual, p_metodo: metodo }).catch(function () {});
+  }
+  function iniciarProgressoDrive(aulaId) {
+    progressoAcumulado = 0;
+    progressoTimer = setInterval(function () {
+      if (document.visibilityState === "visible" && document.hasFocus()) { progressoAcumulado += 5; registrarProgresso(aulaId, progressoAcumulado, null, "aproximado"); }
+    }, 5000);
+  }
+  let apiYouTubePronta = null;
+  function carregarYouTube() {
+    if (window.YT && window.YT.Player) return Promise.resolve();
+    if (apiYouTubePronta) return apiYouTubePronta;
+    apiYouTubePronta = new Promise(function (resolve) {
+      window.onYouTubeIframeAPIReady = resolve;
+      const s = document.createElement("script"); s.src = "https://www.youtube.com/iframe_api"; document.head.appendChild(s);
+    });
+    return apiYouTubePronta;
+  }
+  function iniciarProgressoYouTube(iframeEl, aulaId) {
+    carregarYouTube().then(function () {
+      ytPlayer = new YT.Player(iframeEl, { events: { onReady: function () {
+        progressoTimer = setInterval(function () {
+          try { const dur = ytPlayer.getDuration(), cur = ytPlayer.getCurrentTime(); if (dur > 0) registrarProgresso(aulaId, cur, Math.min(100, (cur / dur) * 100), "real"); } catch (e) {}
+        }, 5000);
+      }, onStateChange: function (ev) {
+        if (ev.data === YT.PlayerState.ENDED) { try { registrarProgresso(aulaId, ytPlayer.getDuration(), 100, "real"); } catch (e) {} }
+      } } });
+    });
+  }
+  let apiVimeoPronta = null;
+  function carregarVimeo() {
+    if (window.Vimeo && window.Vimeo.Player) return Promise.resolve();
+    if (apiVimeoPronta) return apiVimeoPronta;
+    apiVimeoPronta = new Promise(function (resolve) { const s = document.createElement("script"); s.src = "https://player.vimeo.com/api/player.js"; s.onload = resolve; document.head.appendChild(s); });
+    return apiVimeoPronta;
+  }
+  function iniciarProgressoVimeo(iframeEl, aulaId) {
+    carregarVimeo().then(function () {
+      const vp = new Vimeo.Player(iframeEl); let ultimoEnvio = 0;
+      vp.on("timeupdate", function (d) { const agora = Date.now(); if (agora - ultimoEnvio < 5000) return; ultimoEnvio = agora; registrarProgresso(aulaId, d.seconds, Math.min(100, d.percent * 100), "real"); });
+      vp.on("ended", function () { registrarProgresso(aulaId, 0, 100, "real"); });
+    });
+  }
+
   function abrirAula(id) {
+    pararProgresso();
     const a = aulas.find(function (x) { return x.id === id; });
     if (!a) return;
     atual = id; desenharNav();
     const box = $("aulaConteudo"); box.innerHTML = "";
-    if (a.drive_id && /^[A-Za-z0-9_-]{10,100}$/.test(a.drive_id)) {
+    const tipo = a.video_tipo || "drive";
+    const temVideo = tipo === "drive" ? (a.drive_id && /^[A-Za-z0-9_-]{10,100}$/.test(a.drive_id)) : !!a.video_ref;
+    if (temVideo) {
       const caixa = document.createElement("div"); caixa.className = "player-caixa";
       const f = document.createElement("iframe");
-      f.src = "https://drive.google.com/file/d/" + a.drive_id + "/preview";
-      f.title = a.titulo; f.allow = "autoplay; fullscreen"; f.allowFullscreen = true;
-      f.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox");   // o player do Drive precisa de popups pra iniciar sozinho; quem sai do site de verdade é o botão "abrir em nova janela", e esse continua coberto pelo .player-bloqueio
-      f.referrerPolicy = "no-referrer"; f.loading = "lazy";
-      const bloqueio = document.createElement("div"); bloqueio.className = "player-bloqueio"; bloqueio.setAttribute("aria-hidden", "true");   // cobre o botão "abrir em nova janela" do Drive
+      f.title = a.titulo; f.referrerPolicy = "no-referrer"; f.loading = "lazy"; f.allowFullscreen = true;
+      if (tipo === "drive") {
+        f.src = "https://drive.google.com/file/d/" + a.drive_id + "/preview";
+        f.allow = "autoplay; fullscreen";
+        f.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox");   // o player do Drive precisa de popups pra iniciar sozinho; quem sai do site de verdade é o botão "abrir em nova janela", e esse continua coberto pelo .player-bloqueio
+      } else if (tipo === "youtube") {
+        f.src = "https://www.youtube.com/embed/" + a.video_ref + "?enablejsapi=1&rel=0&modestbranding=1";
+        f.allow = "autoplay; encrypted-media; fullscreen";
+      } else {
+        f.src = "https://player.vimeo.com/video/" + a.video_ref + "?title=0&byline=0&portrait=0";
+        f.allow = "autoplay; fullscreen; picture-in-picture";
+      }
+      const bloqueio = document.createElement("div"); bloqueio.className = "player-bloqueio"; bloqueio.setAttribute("aria-hidden", "true");   // cobre o botão de "assistir no site de origem" de qualquer um dos três
       caixa.appendChild(f); caixa.appendChild(bloqueio);
       caixa.addEventListener("contextmenu", function (e) { e.preventDefault(); });
       box.appendChild(caixa);
+      if (tipo === "drive") iniciarProgressoDrive(a.id); else if (tipo === "youtube") iniciarProgressoYouTube(f, a.id); else iniciarProgressoVimeo(f, a.id);
     } else { const p = document.createElement("p"); p.className = "vazio"; p.textContent = "Esta aula não tem vídeo."; box.appendChild(p); }
     const t = document.createElement("h2"); t.textContent = a.titulo; box.appendChild(t);
     if (a.descricao) { const d = document.createElement("div"); d.className = "aula-desc"; d.textContent = a.descricao; box.appendChild(d); }
@@ -164,17 +227,40 @@
     aviso("Módulo excluído."); await recarregarTudo();
   }
 
-  function extrairDriveId(t) {
+  function extrairVideoId(tipo, t) {
     t = (t || "").trim();
     if (!t) return null;
-    const m = t.match(/\/d\/([A-Za-z0-9_-]{10,100})/) || t.match(/[?&]id=([A-Za-z0-9_-]{10,100})/) || (/^[A-Za-z0-9_-]{10,100}$/.test(t) ? [null, t] : null);
-    return m ? m[1] : undefined;   // undefined = link inválido
+    if (tipo === "drive") {
+      const m = t.match(/\/d\/([A-Za-z0-9_-]{10,100})/) || t.match(/[?&]id=([A-Za-z0-9_-]{10,100})/) || (/^[A-Za-z0-9_-]{10,100}$/.test(t) ? [null, t] : null);
+      return m ? m[1] : undefined;
+    }
+    if (tipo === "youtube") {
+      const m = t.match(/[?&]v=([A-Za-z0-9_-]{11})/) || t.match(/youtu\.be\/([A-Za-z0-9_-]{11})/) || t.match(/\/embed\/([A-Za-z0-9_-]{11})/) || (/^[A-Za-z0-9_-]{11}$/.test(t) ? [null, t] : null);
+      return m ? m[1] : undefined;
+    }
+    if (tipo === "vimeo") {
+      const m = t.match(/vimeo\.com\/(?:video\/)?(\d{6,12})/) || (/^\d{6,12}$/.test(t) ? [null, t] : null);
+      return m ? m[1] : undefined;
+    }
+    return undefined;
   }
+  const ROTULO_VIDEO = { drive: ["Link do vídeo no Google Drive", "Cole o link de compartilhamento (drive.google.com/file/d/...). O site guarda só o código do arquivo e nunca mostra o link ao mentorado.", "https://drive.google.com/file/d/.../view"],
+    youtube: ["Link ou código do vídeo no YouTube", "Cole o link do vídeo (de preferência \"não listado\", não público) ou só o código de 11 caracteres.", "https://www.youtube.com/watch?v=... ou youtu.be/..."],
+    vimeo: ["Link ou código do vídeo no Vimeo", "Cole o link do vídeo ou só o número do código.", "https://vimeo.com/..."] };
+  function ajustarRotuloVideo() {
+    const t = ROTULO_VIDEO[$("aVideoTipo").value] || ROTULO_VIDEO.drive;
+    $("aLinkRot").textContent = t[0]; $("aLinkAjuda").textContent = t[1]; $("aLink").placeholder = t[2];
+  }
+  $("aVideoTipo").addEventListener("change", ajustarRotuloVideo);
   function abrirAulaForm(a, moduloId) {
     editAula = a || null; moduloDaAula = moduloId;
     $("auTitulo").textContent = a ? "Editar aula" : "Nova aula";
     $("aTit").value = a ? a.titulo : ""; $("aDesc").value = a ? (a.descricao || "") : "";
-    $("aLink").value = a && a.drive_id ? "https://drive.google.com/file/d/" + a.drive_id + "/view" : "";
+    $("aVideoTipo").value = a ? (a.video_tipo || "drive") : "drive"; ajustarRotuloVideo();
+    $("aDuracao").value = a && a.duracao_min ? a.duracao_min : "";
+    const tipoAtual = a ? (a.video_tipo || "drive") : "drive";
+    $("aLink").value = a && tipoAtual === "drive" && a.drive_id ? "https://drive.google.com/file/d/" + a.drive_id + "/view"
+      : (a && tipoAtual !== "drive" && a.video_ref ? a.video_ref : "");
     $("aPdf").value = ""; $("aPdfRemover").checked = false;
     $("aPdfAtual").textContent = a && a.pdf_caminho ? "PDF atual: " + (a.pdf_nome || "material.pdf") + ". Escolha outro arquivo para trocar." : "";
     $("aPdfRemoverBox").hidden = !(a && a.pdf_caminho);
@@ -184,13 +270,16 @@
   async function salvarAula() {
     const titulo = $("aTit").value.trim();
     if (!titulo) { aviso("Escreva o título da aula.", true); return; }
-    const drive = extrairDriveId($("aLink").value);
-    if (drive === undefined) { aviso("Esse link do Drive não parece válido. Cole o link de compartilhamento do arquivo (drive.google.com/file/d/...).", true); return; }
+    const videoTipo = $("aVideoTipo").value;
+    const videoId = extrairVideoId(videoTipo, $("aLink").value);
+    if (videoId === undefined) { aviso("Esse link de vídeo não parece válido pra " + (videoTipo === "drive" ? "o Google Drive" : videoTipo === "youtube" ? "o YouTube" : "o Vimeo") + ".", true); return; }
+    const duracao = $("aDuracao").value ? Math.max(1, Math.min(600, +$("aDuracao").value)) : null;
     const arq = $("aPdf").files[0];
     if (arq && (arq.type !== "application/pdf" || arq.size > 20 * 1024 * 1024)) { aviso("O PDF precisa ser um arquivo .pdf de até 20 MB.", true); return; }
     $("aSalvar").disabled = true;
     try {
-      const dados = { titulo: titulo, descricao: $("aDesc").value.trim() || null, drive_id: drive, ativo: $("aAtivo").checked };
+      const dados = { titulo: titulo, descricao: $("aDesc").value.trim() || null, video_tipo: videoTipo,
+        drive_id: videoTipo === "drive" ? videoId : null, video_ref: videoTipo !== "drive" ? videoId : null, duracao_min: duracao, ativo: $("aAtivo").checked };
       let id = editAula ? editAula.id : null;
       if (editAula) { const r = await supa().from("aulas").update(dados).eq("id", id); if (r.error) throw r.error; }
       else {
