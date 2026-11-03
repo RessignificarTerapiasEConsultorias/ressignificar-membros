@@ -16,36 +16,73 @@
   if (!temAcesso) { $("semAcesso").hidden = false; return; }
   $("areaAulas").hidden = false;
 
-  let modulos = [], aulas = [], atual = null;
+  let modulos = [], aulas = [], atual = null, progressoMap = {}, capaUrls = {};
   const aulasDe = function (m) { return aulas.filter(function (a) { return a.modulo_id === m; }).sort(function (a, b) { return a.ordem - b.ordem || (a.criado_em < b.criado_em ? -1 : 1); }); };
 
   async function carregar() {
-    const [rm, ra] = await Promise.all([
+    const [rm, ra, rp] = await Promise.all([
       supa().from("aulas_modulos").select("id,titulo,descricao,ordem,ativo,criado_em").order("ordem", { ascending: true }),
-      supa().from("aulas").select("id,modulo_id,titulo,descricao,drive_id,video_tipo,video_ref,duracao_min,pdf_caminho,pdf_nome,ordem,ativo,criado_em").order("ordem", { ascending: true })
+      supa().from("aulas").select("id,modulo_id,titulo,descricao,drive_id,video_tipo,video_ref,duracao_min,pdf_caminho,pdf_nome,capa_caminho,ordem,ativo,criado_em").order("ordem", { ascending: true }),
+      supa().rpc("aulas_progresso_resumo")
     ]);
     if (rm.error || ra.error) { aviso("Não foi possível carregar as aulas.", true); return; }
     modulos = (rm.data || []).slice().sort(function (a, b) { return a.ordem - b.ordem || (a.criado_em < b.criado_em ? -1 : 1); });
     aulas = ra.data || [];
+    progressoMap = {};
+    if (rp.data && rp.data.ok) rp.data.aulas.forEach(function (p) { progressoMap[p.aula_id] = p; });
+  }
+  function fracaoAssistida(a) {
+    const p = progressoMap[a.id]; if (!p) return 0;
+    if (p.metodo === "real") return Math.min(1, (p.percentual || 0) / 100);
+    if (p.metodo === "aproximado" && a.duracao_min > 0) return Math.min(1, (p.segundos_assistidos || 0) / (a.duracao_min * 60));
+    return 0;
+  }
+  function desenharResumoProgresso() {
+    const comDuracao = aulas.filter(function (a) { return a.duracao_min > 0; });
+    const totalMin = comDuracao.reduce(function (s, a) { return s + a.duracao_min; }, 0);
+    const vistoMin = comDuracao.reduce(function (s, a) { return s + fracaoAssistida(a) * a.duracao_min; }, 0);
+    $("aulasResumo").textContent = totalMin > 0
+      ? "Você já assistiu " + Math.round(vistoMin) + " de " + Math.round(totalMin) + " min do curso (" + pct(vistoMin / totalMin) + ")."
+      : "";
   }
 
   /* ================= assistir ================= */
+  const SVG_PLAY = '<svg viewBox="0 0 24 24"><polygon points="9,6.5 9,17.5 18,12"/></svg>';
+  const SVG_CHECK = '<svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 20.6 7.4 19.2 6z"/></svg>';
   function desenharNav() {
+    desenharResumoProgresso();
     const nav = $("aulasNav");
     nav.innerHTML = "";
     if (!modulos.length) { const p = document.createElement("p"); p.className = "vazio"; p.textContent = "Nenhuma aula publicada ainda."; nav.appendChild(p); return; }
+    const paraBuscarCapa = [];
     modulos.forEach(function (m) {
       const bloco = document.createElement("div"); bloco.className = "aulas-modulo";
       const h = document.createElement("h3"); h.textContent = m.titulo; if (!m.ativo) { const s = document.createElement("span"); s.className = "selo"; s.textContent = "rascunho"; h.appendChild(document.createTextNode(" ")); h.appendChild(s); }
       bloco.appendChild(h);
       if (m.descricao) { const d = document.createElement("p"); d.className = "ajuda"; d.textContent = m.descricao; bloco.appendChild(d); }
+      const grade = document.createElement("div"); grade.className = "aulas-modulo-lista";
       aulasDe(m.id).forEach(function (a) {
-        const b = document.createElement("button"); b.type = "button"; b.className = "aula-item" + (atual === a.id ? " ativa" : ""); b.dataset.aula = a.id;
-        b.textContent = a.titulo; if (!a.ativo) { const s = document.createElement("span"); s.className = "selo"; s.textContent = "rascunho"; b.appendChild(document.createTextNode(" ")); b.appendChild(s); }
+        const b = document.createElement("button"); b.type = "button"; b.className = "aula-item" + (atual === a.id ? " ativa" : ""); b.dataset.aula = a.id; b.setAttribute("aria-label", a.titulo);
+        if (!a.ativo) { const s = document.createElement("span"); s.className = "selo"; s.textContent = "rascunho"; b.appendChild(s); }
+        const frac = fracaoAssistida(a), p = progressoMap[a.id];
+        if (p && p.concluida) { const sp = document.createElement("span"); sp.className = "selo-progresso"; sp.innerHTML = SVG_CHECK; b.appendChild(sp); }
+        if (a.capa_caminho) {
+          const img = document.createElement("img"); img.className = "capa"; img.alt = ""; img.dataset.capaDe = a.id; b.appendChild(img);
+          paraBuscarCapa.push(a);
+        } else { const semCapa = document.createElement("div"); semCapa.className = "sem-capa"; semCapa.innerHTML = SVG_PLAY; b.appendChild(semCapa); }
+        const tit = document.createElement("span"); tit.className = "titulo-capa"; tit.textContent = a.titulo; b.appendChild(tit);
+        if (frac > 0 && !(p && p.concluida)) { const barra = document.createElement("div"); barra.className = "barra-progresso"; const sp2 = document.createElement("span"); sp2.style.width = Math.round(frac * 100) + "%"; barra.appendChild(sp2); b.appendChild(barra); }
         b.addEventListener("click", function () { abrirAula(a.id); });
-        bloco.appendChild(b);
+        grade.appendChild(b);
       });
+      bloco.appendChild(grade);
       nav.appendChild(bloco);
+    });
+    paraBuscarCapa.forEach(function (a) {
+      if (capaUrls[a.capa_caminho]) { const img = nav.querySelector('img[data-capa-de="' + a.id + '"]'); if (img) img.src = capaUrls[a.capa_caminho]; return; }
+      supa().storage.from("aulas").createSignedUrl(a.capa_caminho, 3600).then(function (r) {
+        if (r.data && r.data.signedUrl) { capaUrls[a.capa_caminho] = r.data.signedUrl; const img = nav.querySelector('img[data-capa-de="' + a.id + '"]'); if (img) img.src = r.data.signedUrl; }
+      }).catch(function () {});
     });
   }
   /* ---------- progresso do vídeo: real (YouTube/Vimeo) ou aproximado (Drive, tempo com a aula aberta) ---------- */
@@ -220,7 +257,7 @@
   async function excluirModulo(m) {
     const qtd = aulasDe(m.id).length;
     if (!confirm("Excluir o módulo \"" + m.titulo + "\" e as " + qtd + " aula(s) dele? Isso não tem volta.")) return;
-    const caminhos = aulasDe(m.id).map(function (a) { return a.pdf_caminho; }).filter(Boolean);
+    const caminhos = aulasDe(m.id).map(function (a) { return a.pdf_caminho; }).filter(Boolean).concat(aulasDe(m.id).map(function (a) { return a.capa_caminho; }).filter(Boolean));
     const r = await supa().from("aulas_modulos").delete().eq("id", m.id);
     if (r.error) { aviso("Não foi possível excluir.", true); return; }
     if (caminhos.length) { try { await supa().storage.from("aulas").remove(caminhos); } catch (e) {} }
@@ -265,6 +302,14 @@
     $("aPdfAtual").textContent = a && a.pdf_caminho ? "PDF atual: " + (a.pdf_nome || "material.pdf") + ". Escolha outro arquivo para trocar." : "";
     $("aPdfRemoverBox").hidden = !(a && a.pdf_caminho);
     $("aAtivo").checked = a ? a.ativo : true;
+    $("aCapa").value = ""; $("aCapaRemover").checked = false; $("aCapaPreview").hidden = true; $("aCapaAtual").textContent = "";
+    $("aCapaRemoverBox").hidden = !(a && a.capa_caminho);
+    if (a && a.capa_caminho) {
+      $("aCapaAtual").textContent = "Já tem uma foto de capa. Escolha outro arquivo para trocar.";
+      supa().storage.from("aulas").createSignedUrl(a.capa_caminho, 120).then(function (r) {
+        if (r.data && r.data.signedUrl) { $("aCapaPreview").src = r.data.signedUrl; $("aCapaPreview").hidden = false; }
+      }).catch(function () {});
+    }
     janelaA.showModal();
   }
   async function salvarAula() {
@@ -276,6 +321,8 @@
     const duracao = $("aDuracao").value ? Math.max(1, Math.min(600, +$("aDuracao").value)) : null;
     const arq = $("aPdf").files[0];
     if (arq && (arq.type !== "application/pdf" || arq.size > 20 * 1024 * 1024)) { aviso("O PDF precisa ser um arquivo .pdf de até 20 MB.", true); return; }
+    const capaArq = $("aCapa").files[0];
+    if (capaArq && (!/^image\//.test(capaArq.type) || capaArq.size > 5 * 1024 * 1024)) { aviso("A foto de capa precisa ser uma imagem de até 5 MB.", true); return; }
     $("aSalvar").disabled = true;
     try {
       const dados = { titulo: titulo, descricao: $("aDesc").value.trim() || null, video_tipo: videoTipo,
@@ -286,6 +333,20 @@
         const ordem = aulasDe(moduloDaAula).length + 1;
         const r = await supa().from("aulas").insert(Object.assign({ modulo_id: moduloDaAula, ordem: ordem }, dados)).select("id").single();
         if (r.error) throw r.error; id = r.data.id;
+      }
+      const antigoCapa = editAula && editAula.capa_caminho ? editAula.capa_caminho : null;
+      if (capaArq) {
+        const nomeCapa = capaArq.name.replace(/[^A-Za-z0-9._-]+/g, "_").slice(-80);
+        const caminhoCapa = "capas/" + id + "/" + Date.now() + "-" + nomeCapa;
+        const upCapa = await supa().storage.from("aulas").upload(caminhoCapa, capaArq, { contentType: capaArq.type, upsert: false });
+        if (upCapa.error) throw upCapa.error;
+        const rCapa = await supa().from("aulas").update({ capa_caminho: caminhoCapa }).eq("id", id);
+        if (rCapa.error) throw rCapa.error;
+        if (antigoCapa) { try { await supa().storage.from("aulas").remove([antigoCapa]); } catch (e) {} }
+      } else if (antigoCapa && $("aCapaRemover").checked) {
+        const rCapa2 = await supa().from("aulas").update({ capa_caminho: null }).eq("id", id);
+        if (rCapa2.error) throw rCapa2.error;
+        try { await supa().storage.from("aulas").remove([antigoCapa]); } catch (e) {}
       }
       const antigo = editAula && editAula.pdf_caminho ? editAula.pdf_caminho : null;
       if (arq) {
@@ -310,6 +371,7 @@
     const r = await supa().from("aulas").delete().eq("id", a.id);
     if (r.error) { aviso("Não foi possível excluir.", true); return; }
     if (a.pdf_caminho) { try { await supa().storage.from("aulas").remove([a.pdf_caminho]); } catch (e) {} }
+    if (a.capa_caminho) { try { await supa().storage.from("aulas").remove([a.capa_caminho]); } catch (e) {} }
     if (atual === a.id) { atual = null; $("aulaConteudo").innerHTML = '<p class="vazio">Escolha uma aula ao lado.</p>'; }
     aviso("Aula excluída."); await recarregarTudo();
   }

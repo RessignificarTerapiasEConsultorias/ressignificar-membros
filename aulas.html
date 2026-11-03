@@ -36,9 +36,12 @@
 
       <!-- ASSISTIR -->
       <section data-painel="ver">
-        <div class="aulas-grade">
-          <nav class="aulas-nav cartao" id="aulasNav" aria-label="Módulos e aulas"></nav>
-          <article class="aula-conteudo" id="aulaConteudo"><p class="vazio">Escolha uma aula ao lado.</p></article>
+        <div class="aulas-ver">
+          <p class="aulas-resumo" id="aulasResumo"></p>
+          <div class="aulas-grade">
+            <article class="aula-conteudo" id="aulaConteudo"><p class="vazio">Escolha uma aula ao lado.</p></article>
+            <nav class="aulas-nav" id="aulasNav" aria-label="Módulos e aulas"></nav>
+          </div>
         </div>
       </section>
 
@@ -82,6 +85,9 @@
       <select id="aVideoTipo"><option value="drive">Google Drive</option><option value="youtube">YouTube (não listado)</option><option value="vimeo">Vimeo</option></select></div>
     <div style="margin-top:12px"><label for="aLink" id="aLinkRot">Link do vídeo no Google Drive</label><input id="aLink" maxlength="400" placeholder="https://drive.google.com/file/d/.../view"><small id="aLinkAjuda">Cole o link de compartilhamento. O site guarda só o código do arquivo e nunca mostra o link ao mentorado.</small></div>
     <div style="margin-top:12px;max-width:220px"><label for="aDuracao">Duração da aula, em minutos <span class="vazio">(opcional)</span></label><input id="aDuracao" type="number" min="1" max="600" placeholder="Ex.: 15"><small>Usada para mostrar quanto do curso cada pessoa já assistiu.</small></div>
+    <div style="margin-top:12px"><label for="aCapa">Foto de capa da aula <span class="vazio">(opcional, até 5 MB)</span></label><input id="aCapa" type="file" accept="image/*"><small id="aCapaAtual"></small>
+      <div style="margin-top:8px"><img id="aCapaPreview" alt="" hidden style="width:96px;aspect-ratio:2/3;object-fit:cover;border-radius:10px;border:1px solid var(--line)"></div>
+      <div class="checks" style="margin-top:6px" id="aCapaRemoverBox" hidden><label><input type="checkbox" id="aCapaRemover"> Remover a foto atual</label></div></div>
     <div style="margin-top:12px"><label for="aPdf">PDF de apoio <span class="vazio">(opcional, até 20 MB)</span></label><input id="aPdf" type="file" accept="application/pdf"><small id="aPdfAtual"></small>
       <div class="checks" style="margin-top:6px" id="aPdfRemoverBox"><label><input type="checkbox" id="aPdfRemover"> Remover o PDF atual</label></div></div>
     <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="aAtivo"> Publicada (os mentorados veem)</label></div>
